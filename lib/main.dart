@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void main() {
   runApp(const ConectaVidaApp());
@@ -10,47 +11,75 @@ class ConectaVidaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Conecta Vida',
-      debugShowCheckedModeBanner: false,
+      title: 'Conecta Vida App',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 65, 89, 255)),
         useMaterial3: true,
       ),
       home: const SplashScreen(),
-    );
+      debugShowCheckedModeBanner: false,
+      );
   }
 }
 
-//tela inicial base
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.health_and_safety, size: 100, color: Colors.blue),
-            const SizedBox(height: 20),
-            const Text(
-              'Conecta Vida',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
+  Widget build(BuildContext constext) {
+  //encontrar cor de fundo correta noo futuro
+  const Color primaryBlue = Color(0xFF4159FF);
+
+  return Scaffold(
+    backgroundColor: primaryBlue,
+    body: Stack(
+      children: [
+        Image.asset('assets/images/background.png'),
+        Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 110,
+                height: 110,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 10,
+                      offset: const Offset(0, 10),
+                    )
+                  ]
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.add,
+                    size: 60,
+                    color:primaryBlue,
+                  ),
+                )
               ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Informação e Saúde',
-              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-            ),
-          ],
-        ),
-      ),
-    );
+              const SizedBox(height: 20),
+              Text(
+                'Conecta Vida',
+                style: GoogleFonts.overpass(
+                    textStyle: const TextStyle(
+                      fontStyle: FontStyle.italic,
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w100,
+                      
+                    )
+                )
+              )
+            ],
+          ),
+        )
+      ],
+    )
+  );
+    
   }
 }
