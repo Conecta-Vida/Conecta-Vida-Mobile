@@ -37,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 32),
 
               Text(
-                "Por favor insira seu nome, telefone e senha abaixo para fazer login/cadastro:",
+                "Por favor insira seu nome e telefone abaixo para fazer login/cadastro:",
                 style: TextStyle(color: AppCor.textoCinza),
               ),
 

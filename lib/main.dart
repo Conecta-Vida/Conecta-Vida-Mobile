@@ -21,7 +21,7 @@ class ConectaVidaApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: LoginScreen(), //const no começo
+      home: const SplashScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
