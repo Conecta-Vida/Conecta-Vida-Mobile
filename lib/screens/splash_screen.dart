@@ -1,19 +1,46 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile_app/screens/login_screen.dart';
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  Widget build(BuildContext constext) {
-    //encontrar cor de fundo correta noo futuro
+  _SplashScreenState createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  // 1. O initState deve ficar FORA do build
+  @override
+  void initState() {
+    super.initState();
+
+    // Timer de 3 segundos para ir pra proxima tela
+    Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     const Color primaryBlue = Color(0xFF4159FF);
 
     return Scaffold(
       backgroundColor: primaryBlue,
       body: Stack(
         children: [
-          Image.asset('assets/images/background.png'),
+          Image.asset(
+            'assets/images/background.png',
+            width: double.infinity,
+            height: double.infinity,
+            fit: BoxFit.cover,
+          ),
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,

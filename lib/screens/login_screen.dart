@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_app/screens/news_page.dart';
 import '../global/appCor.dart';
 import '../controllers/login_controller.dart';
 
@@ -96,9 +97,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   bool sucesso = _controller.tentarLogin();
 
                   if (sucesso) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Dados validados! Veja o console.'),
+                    Navigator.push(
+                      context,
+                      //passa o nome controller e o telefone
+                      MaterialPageRoute(
+                        builder: (context) => NewsScreen(
+                          nome: _controller.nomeController.text,
+                          telefone: _controller.telefoneController.text,
+                        ),
                       ),
                     );
                   }
