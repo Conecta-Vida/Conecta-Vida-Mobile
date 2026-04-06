@@ -1,0 +1,125 @@
+// lib/components/news_card.dart
+import 'package:flutter/material.dart';
+import '../model/noticia.dart';
+import '../screens/news_details_page.dart';
+
+class NoticiaCard extends StatelessWidget {
+  final NewsModel noticia;
+
+  const NoticiaCard({super.key, required this.noticia});
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isNetworkImage = noticia.imagem.startsWith('http');
+
+    return GestureDetector(
+      onTap: () {
+        // Passa dados para os Detalhes
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => NewsDetailsPage(
+              title: noticia.titulo,
+              description: noticia.descricao,
+              imageUrl: noticia.imagem,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.blue.withOpacity(0.08),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+              child: Hero(
+                tag: noticia.titulo + noticia.data,
+                child: isNetworkImage
+                    ? Image.network(
+                        noticia.imagem,
+                        height: 140,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      )
+                    : Image.asset(
+                        noticia.imagem,
+                        height: 140,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E88E5).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          noticia.tag,
+                          style: const TextStyle(
+                            color: Color(0xFF1E88E5),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        noticia.data,
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    noticia.titulo,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF2C3E50),
+                      height: 1.3,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    noticia.subtitulo,
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
