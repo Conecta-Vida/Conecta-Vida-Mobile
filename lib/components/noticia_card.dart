@@ -18,11 +18,7 @@ class NoticiaCard extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => NewsDetailsPage(
-              title: noticia.titulo,
-              description: noticia.descricao,
-              imageUrl: noticia.imagem,
-            ),
+            builder: (context) => NewsDetailsPage(noticia: noticia),
           ),
         );
       },

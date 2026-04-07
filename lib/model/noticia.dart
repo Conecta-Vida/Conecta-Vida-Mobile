@@ -6,6 +6,10 @@ class NewsModel {
   final String subtitulo;
   final String descricao;
   final String imagem;
+  final String categoria;
+  final String local;
+  final String publicoAlvo;
+  final String textoBotaoAcao;
 
   NewsModel({
     required this.tag,
@@ -14,5 +18,9 @@ class NewsModel {
     required this.subtitulo,
     required this.descricao,
     required this.imagem,
+    this.categoria = 'Geral', // Valores padrão caso não seja preenchido
+    this.local = 'Bragança Paulista',
+    this.publicoAlvo = 'População em Geral',
+    this.textoBotaoAcao = 'Saber Mais',
   });
 }
