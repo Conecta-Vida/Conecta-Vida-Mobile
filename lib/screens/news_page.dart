@@ -2,8 +2,8 @@
 import 'package:flutter/material.dart';
 import '../global/appCor.dart';
 import '../controllers/noticia_controller.dart';
-import '../components/noticia_card.dart';
-import '../components/bottom_navbar.dart';
+import '../widgets/noticia_card.dart';
+import '../widgets/bottom_navbar.dart';
 
 class NewsScreen extends StatefulWidget {
   final String nome;

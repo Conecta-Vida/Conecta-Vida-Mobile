@@ -1,7 +1,7 @@
 // lib/screens/news_details_page.dart
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../model/noticia.dart';
+import '../models/noticia.dart';
 import '../global/appCor.dart';
 import '../controllers/noticia_controller.dart';
 

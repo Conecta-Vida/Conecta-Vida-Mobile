@@ -1,6 +1,6 @@
 // lib/components/news_card.dart
 import 'package:flutter/material.dart';
-import '../model/noticia.dart';
+import '../models/noticia.dart';
 import '../screens/news_details_page.dart';
 
 class NoticiaCard extends StatelessWidget {

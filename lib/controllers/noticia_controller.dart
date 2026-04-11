@@ -1,5 +1,5 @@
 // lib/controllers/news_controller.dart
-import '../model/noticia.dart';
+import '../models/noticia.dart';
 
 class NewsController {
   // Função que a tela vai chamar para pegar a lista certa
