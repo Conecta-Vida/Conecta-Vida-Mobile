@@ -1,9 +1,11 @@
-// lib/screens/news_details_page.dart
 import 'package:flutter/material.dart';
+import 'package:mobile_app/widgets/noticia_info_botao.dart';
+import 'package:mobile_app/widgets/noticia_secao_mais.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/noticia.dart';
 import '../global/appCor.dart';
-import '../controllers/noticia_controller.dart';
+import '../widgets/noticia_info_botao.dart';
+import '../widgets/noticia_secao_mais.dart';
 
 class NewsDetailsPage extends StatelessWidget {
   final NewsModel noticia;
@@ -23,13 +25,9 @@ class NewsDetailsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      // ==========================================
-      // CABEÇALHO COM BOTÕES DE VOLTAR E COMPARTILHAR
-      // ==========================================
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        // O famoso BOTÃO DE VOLTAR
         leading: IconButton(
           icon: Container(
             padding: const EdgeInsets.all(8),
@@ -45,7 +43,6 @@ class NewsDetailsPage extends StatelessWidget {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        // O novo BOTÃO DE COMPARTILHAR
         actions: [
           IconButton(
             icon: Container(
@@ -66,19 +63,17 @@ class NewsDetailsPage extends StatelessWidget {
                   content: Text('Preparando para compartilhar...'),
                 ),
               );
-              // Dica: No futuro, use o pacote "share_plus" aqui para abrir o WhatsApp!
             },
           ),
           const SizedBox(width: 8),
         ],
       ),
-      extendBodyBehindAppBar: true, // Faz a imagem subir por trás da barra
+      extendBodyBehindAppBar: true,
 
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // IMAGEM NO TOPO
             SizedBox(
               width: double.infinity,
               height: 320,
@@ -106,7 +101,6 @@ class NewsDetailsPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // TAG DA CATEGORIA
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -130,7 +124,6 @@ class NewsDetailsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
 
-                  // TÍTULO DA NOTÍCIA
                   Text(
                     noticia.titulo,
                     style: const TextStyle(
@@ -142,7 +135,6 @@ class NewsDetailsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  // CAIXA DE INFORMAÇÕES (Data, Local, etc)
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
@@ -154,8 +146,7 @@ class NewsDetailsPage extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        _infoInterativa(
-                          context,
+                        NoticiasInfoBotao(
                           icone: Icons.calendar_month,
                           titulo: 'Data e Hora',
                           valor: noticia.data,
@@ -172,8 +163,8 @@ class NewsDetailsPage extends StatelessWidget {
                               ),
                         ),
                         const Divider(height: 1),
-                        _infoInterativa(
-                          context,
+
+                        NoticiasInfoBotao(
                           icone: Icons.location_on,
                           titulo: 'Local (Toque para abrir)',
                           valor: noticia.local,
@@ -187,8 +178,8 @@ class NewsDetailsPage extends StatelessWidget {
                           },
                         ),
                         const Divider(height: 1),
-                        _infoInterativa(
-                          context,
+                        // WIDGET EXTRAÍDO 3
+                        NoticiasInfoBotao(
                           icone: Icons.people,
                           titulo: 'Público-Alvo',
                           valor: noticia.publicoAlvo,
@@ -219,7 +210,6 @@ class NewsDetailsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  // BOTÃO DE AÇÃO PRINCIPAL
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -243,223 +233,9 @@ class NewsDetailsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 40),
 
-                  // ==========================================
-                  // SEÇÃO DE NOTÍCIAS RELACIONADAS (DE VOLTA!)
-                  // ==========================================
-                  _construirSecaoMaisNoticias(context),
+                  NoticiasSecaoMais(noticiaAtual: noticia),
                   const SizedBox(height: 20),
                 ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // WIDGET AUXILIAR INTERATIVO
-  Widget _infoInterativa(
-    BuildContext context, {
-    required IconData icone,
-    required String titulo,
-    required String valor,
-    IconData? iconeAcao,
-    Color? corAcao,
-    VoidCallback? aoClicar,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: aoClicar,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Row(
-            children: [
-              Icon(icone, color: AppCor.textoCinza, size: 24),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      titulo,
-                      style: const TextStyle(fontSize: 11, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      valor,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: AppCor.textoPrimario,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (iconeAcao != null)
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: corAcao!.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(iconeAcao, color: corAcao, size: 20),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ==========================================
-  // FUNÇÕES DA SEÇÃO DE NOTÍCIAS RELACIONADAS
-  // ==========================================
-  Widget _construirSecaoMaisNoticias(BuildContext context) {
-    // Chama o cérebro das notícias
-    final controller = NewsController();
-
-    // Pega todas as notícias (aqui estamos a pegar as da Home, mas pode ser qualquer categoria)
-    List<NewsModel> todasAsNoticias = controller.getNoticiasPorCategoria(0);
-
-    // Remove a notícia que o utilizador já está a ler (para não repetir)
-    List<NewsModel> recomendadas = todasAsNoticias
-        .where((n) => n.titulo != noticia.titulo)
-        .toList();
-
-    // Se não houver mais notícias, esconde a seção
-    if (recomendadas.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Outras Campanhas',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppCor.textoPrimario,
-          ),
-        ),
-        const SizedBox(height: 16),
-        GridView.builder(
-          padding: EdgeInsets.zero,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 0.65,
-          ),
-          // Mostra as recomendadas (limitado a 4 no máximo para não ficar gigante)
-          itemCount: recomendadas.length > 4 ? 4 : recomendadas.length,
-          itemBuilder: (context, index) {
-            return _construirCardDinamico(context, recomendadas[index]);
-          },
-        ),
-      ],
-    );
-  }
-
-  // Novo Card que lê qualquer notícia que vier do Controller
-  Widget _construirCardDinamico(
-    BuildContext context,
-    NewsModel noticiaRelacionada,
-  ) {
-    bool ehUrgente =
-        noticiaRelacionada.categoria.toLowerCase().contains('sangue') ||
-        noticiaRelacionada.categoria.toLowerCase().contains('alerta');
-
-    return GestureDetector(
-      onTap: () {
-        // Navega para abrir a notícia clicada
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => NewsDetailsPage(noticia: noticiaRelacionada),
-          ),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 5,
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 3,
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: AppCor.background,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                ),
-                child: Center(
-                  // Ícone dinâmico baseado na urgência
-                  child: Icon(
-                    ehUrgente ? Icons.warning_rounded : Icons.article,
-                    size: 50,
-                    color: ehUrgente ? AppCor.error : AppCor.primary,
-                  ),
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Text(
-                      noticiaRelacionada.titulo,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      noticiaRelacionada.categoria,
-                      style: const TextStyle(
-                        color: AppCor.textoCinza,
-                        fontSize: 11,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          noticiaRelacionada.tag,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 12,
-                            color: ehUrgente
-                                ? AppCor.error
-                                : AppCor.textoPrimario,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
               ),
             ),
           ],
