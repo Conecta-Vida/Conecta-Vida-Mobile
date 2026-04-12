@@ -29,7 +29,8 @@ class _NewsScreenState extends State<NewsScreen> {
       body: _bottomNavIndex == 0
           ? _buildHomeBody(context)
           : const Center(child: Text('Outras abas em construção...')),
-      bottomNavigationBar: CustomBottomNavBar( //
+      bottomNavigationBar: CustomBottomNavBar(
+        //
         currentIndex: _bottomNavIndex,
         onTap: (index) => setState(() => _bottomNavIndex = index),
       ),
@@ -38,7 +39,9 @@ class _NewsScreenState extends State<NewsScreen> {
 
   Widget _buildHomeBody(BuildContext context) {
     // Busca a lista de notícias do controller
-    final List<NewsModel> noticias = _newsController.getNoticiasPorCategoria(_categoryIndex);
+    final List<NewsModel> noticias = _newsController.getNoticiasPorCategoria(
+      _categoryIndex,
+    );
     final String tituloSessao = _newsController.getTituloSessao(_categoryIndex);
 
     return SingleChildScrollView(
@@ -69,8 +72,10 @@ class _NewsScreenState extends State<NewsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: ListView.builder(
               padding: EdgeInsets.zero,
-              shrinkWrap: true, // Necessário para funcionar dentro do SingleChildScrollView
-              physics: const NeverScrollableScrollPhysics(), // O scroll é controlado pela tela principal
+              shrinkWrap:
+                  true, // Necessário para funcionar dentro do SingleChildScrollView
+              physics:
+                  const NeverScrollableScrollPhysics(), // O scroll é controlado pela tela principal
               itemCount: noticias.length,
               itemBuilder: (context, index) {
                 // Renderiza cada card de notícia dinamicamente
@@ -98,7 +103,9 @@ class _NewsScreenState extends State<NewsScreen> {
           width: double.infinity,
           padding: EdgeInsets.only(
             top: MediaQuery.of(context).padding.top + 10,
-            left: 24, right: 24, bottom: 60,
+            left: 24,
+            right: 24,
+            bottom: 60,
           ),
           decoration: const BoxDecoration(
             color: AppCor.primary, //
@@ -107,18 +114,22 @@ class _NewsScreenState extends State<NewsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Olá, ${widget.nome}', 
-                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-              const Text('Confira as novidades da saúde hoje.', 
-                style: TextStyle(color: Colors.white70, fontSize: 14)),
+              Text(
+                'Olá, ${widget.nome}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Text(
+                'Confira as novidades da saúde hoje.',
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
             ],
           ),
         ),
-        Positioned(
-          bottom: -25,
-          left: 24, right: 24,
-          child: _buildSearchBar(),
-        ),
+        Positioned(bottom: -25, left: 24, right: 24, child: _buildSearchBar()),
       ],
     );
   }
@@ -129,7 +140,9 @@ class _NewsScreenState extends State<NewsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(25),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10),
+        ],
       ),
       child: const TextField(
         decoration: InputDecoration(
@@ -143,36 +156,96 @@ class _NewsScreenState extends State<NewsScreen> {
   }
 
   Widget _buildCategories() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Row(
-        children: [
-          _categoryItem('Geral', AppCor.catNoticias, Icons.article, 0),
-          _categoryItem('Vacina', AppCor.catVacinacao, Icons.vaccines, 1),
-          _categoryItem('Sangue', AppCor.catDoacoes, Icons.bloodtype, 2),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24),
+          child: Text(
+            'Categorias',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppCor.textTitle,
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Row(
+            children: [
+              _categoryItem('Notícias', AppCor.catNoticias, Icons.article, 0),
+              _categoryItem(
+                'Vacinação',
+                AppCor.catVacinacao,
+                Icons.vaccines,
+                1,
+              ),
+              _categoryItem('Doações', AppCor.catDoacoes, Icons.water_drop, 2),
+              _categoryItem(
+                'Urgentes',
+                AppCor.catUrgentes,
+                Icons.warning_rounded,
+                3,
+              ),
+              _categoryItem('Eventos', AppCor.catEventos, Icons.event, 4),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
   Widget _categoryItem(String label, Color color, IconData icon, int index) {
     bool isSelected = _categoryIndex == index;
+
     return GestureDetector(
       onTap: () => setState(() => _categoryIndex = index),
       child: Container(
-        margin: const EdgeInsets.only(right: 15),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        margin: const EdgeInsets.only(right: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         decoration: BoxDecoration(
-          color: isSelected ? color : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color),
+          color: Colors.white, // Fundo da pílula
+          borderRadius: BorderRadius.circular(
+            40,
+          ), // Curvatura acentuada (formato pílula)
+          border: Border.all(
+            color: isSelected
+                ? color
+                : Colors.transparent, // Borda colorida apenas se selecionado
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize
+              .min, // Garante que a coluna ocupe apenas o espaço necessário
           children: [
-            Icon(icon, size: 18, color: isSelected ? Colors.white : color),
-            const SizedBox(width: 8),
-            Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.black87)),
+            // Círculo colorido com o ícone no meio
+            Container(
+              width: 55,
+              height: 55,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              child: Icon(icon, color: Colors.white, size: 28),
+            ),
+            const SizedBox(height: 16),
+            // Texto da categoria
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppCor.textSubtitle,
+              ),
+            ),
           ],
         ),
       ),
