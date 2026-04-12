@@ -16,7 +16,7 @@ class NewsDetailsPage extends StatelessWidget {
     if (categoria.toLowerCase().contains('alerta')) return AppCor.error;
     if (categoria.toLowerCase().contains('vacina')) return AppCor.catVacinacao;
     if (categoria.toLowerCase().contains('sangue') ||
-        categoria.toLowerCase().contains('doaç'))
+        categoria.toLowerCase().contains('doação'))
       return AppCor.catNoticias;
     return AppCor.primary;
   }
