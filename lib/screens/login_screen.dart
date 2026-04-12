@@ -22,7 +22,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     double alturaTela = MediaQuery.of(context).size.height;
-    //double larguraTela = MediaQuery.of(context).size.width;
 
     return Scaffold(
       appBar: AppBar(title: const Text('LOGIN')),
@@ -34,10 +33,14 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.health_and_safety, size: 80, color: Colors.blue),
+              const Icon(
+                Icons.health_and_safety,
+                size: 80,
+                color: AppCor.primary,
+              ),
               const SizedBox(height: 32),
 
-              Text(
+              const Text(
                 "Por favor insira seu nome e telefone abaixo para fazer login/cadastro:",
                 style: TextStyle(color: AppCor.textoCinza),
               ),
@@ -81,8 +84,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   if (value == null || value.isEmpty) {
                     return 'Por favor, digite o seu telefone';
                   }
-
-                  //VALIDA PRA VER SE 9 DIGITOS
                   if (value.length < 9) {
                     return 'O telefone deve ter pelo menos 9 dígitos';
                   }
@@ -91,15 +92,13 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Botão de Envio
+              // BOTÃO DE ENVIO
               ElevatedButton(
                 onPressed: () {
                   bool sucesso = _controller.tentarLogin();
-
                   if (sucesso) {
                     Navigator.push(
                       context,
-                      //passa o nome controller e o telefone
                       MaterialPageRoute(
                         builder: (context) => NewsScreen(
                           nome: _controller.nomeController.text,
@@ -109,14 +108,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     );
                   }
                 },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: AppCor.primary,
-                ),
-                child: const Text(
-                  'CONTINUAR',
-                  style: TextStyle(fontSize: 18, color: AppCor.textoSecundario),
-                ),
+
+                child: const Text('CONTINUAR', style: TextStyle(fontSize: 18)),
               ),
             ],
           ),

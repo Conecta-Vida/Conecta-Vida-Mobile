@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_app/screens/login_screen.dart';
+import '../global/appCor.dart'; // Importe o AppCor aqui
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -11,12 +12,9 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  // 1. O initState deve ficar FORA do build
   @override
   void initState() {
     super.initState();
-
-    // Timer de 3 segundos para ir pra proxima tela
     Timer(const Duration(seconds: 3), () {
       if (mounted) {
         Navigator.pushReplacement(
@@ -24,8 +22,6 @@ class _SplashScreenState extends State<SplashScreen> {
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>
                 const LoginScreen(),
-
-            // duracao da transicao
             transitionDuration: const Duration(milliseconds: 800),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
@@ -33,7 +29,6 @@ class _SplashScreenState extends State<SplashScreen> {
                     parent: animation,
                     curve: Curves.easeIn,
                   );
-
                   return FadeTransition(opacity: curva, child: child);
                 },
           ),
@@ -44,10 +39,8 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const Color primaryBlue = Color(0xFF4159FF);
-
     return Scaffold(
-      backgroundColor: primaryBlue,
+      backgroundColor: AppCor.primary,
       body: Stack(
         children: [
           Image.asset(
@@ -75,7 +68,11 @@ class _SplashScreenState extends State<SplashScreen> {
                     ],
                   ),
                   child: const Center(
-                    child: Icon(Icons.add, size: 60, color: primaryBlue),
+                    child: Icon(
+                      Icons.add,
+                      size: 60,
+                      color: AppCor.primary,
+                    ), // Cor global
                   ),
                 ),
                 const SizedBox(height: 20),

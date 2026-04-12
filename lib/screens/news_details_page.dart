@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/widgets/noticia_info_botao.dart';
-import 'package:mobile_app/widgets/noticia_secao_mais.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/noticia.dart';
 import '../global/appCor.dart';
@@ -26,8 +24,6 @@ class NewsDetailsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         leading: IconButton(
           icon: Container(
             padding: const EdgeInsets.all(8),
@@ -163,7 +159,6 @@ class NewsDetailsPage extends StatelessWidget {
                               ),
                         ),
                         const Divider(height: 1),
-
                         NoticiasInfoBotao(
                           icone: Icons.location_on,
                           titulo: 'Local (Toque para abrir)',
@@ -178,7 +173,6 @@ class NewsDetailsPage extends StatelessWidget {
                           },
                         ),
                         const Divider(height: 1),
-                        // WIDGET EXTRAÍDO 3
                         NoticiasInfoBotao(
                           icone: Icons.people,
                           titulo: 'Público-Alvo',
@@ -216,17 +210,12 @@ class NewsDetailsPage extends StatelessWidget {
                       onPressed: () {},
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _corDaCategoria(noticia.categoria),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
                       ),
                       child: Text(
                         noticia.textoBotaoAcao,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
                         ),
                       ),
                     ),

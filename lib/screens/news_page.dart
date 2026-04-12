@@ -26,7 +26,6 @@ class _NewsScreenState extends State<NewsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppCor.background,
       body: _bottomNavIndex == 0
           ? _buildHomeBody(context)
           : const Center(child: Text('Outras abas em construção...')),
@@ -47,17 +46,12 @@ class _NewsScreenState extends State<NewsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // WIDGET DE CABEÇALHO
           NoticiasHeader(nome: widget.nome),
-
           const SizedBox(height: 35),
-
-          // WIDGET DE CATEGORIAS
           Categorias(
             categoryIndex: _categoryIndex,
             onTap: (index) => setState(() => _categoryIndex = index),
           ),
-
           const SizedBox(height: 35),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -71,7 +65,6 @@ class _NewsScreenState extends State<NewsScreen> {
             ),
           ),
           const SizedBox(height: 15),
-
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: ListView.builder(
