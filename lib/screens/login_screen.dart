@@ -22,7 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     double alturaTela = MediaQuery.of(context).size.height;
-    double larguraTela = MediaQuery.of(context).size.width;
+    //double larguraTela = MediaQuery.of(context).size.width;
 
     return Scaffold(
       appBar: AppBar(title: const Text('LOGIN')),
