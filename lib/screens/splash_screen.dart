@@ -21,7 +21,22 @@ class _SplashScreenState extends State<SplashScreen> {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const LoginScreen(),
+
+            // duracao da transicao
+            transitionDuration: const Duration(milliseconds: 800),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  var curva = CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeIn,
+                  );
+
+                  return FadeTransition(opacity: curva, child: child);
+                },
+          ),
         );
       }
     });
