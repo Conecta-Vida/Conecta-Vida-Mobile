@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/screens/news_page.dart';
+import 'package:mobile_app/screens/forgot_password_screen.dart';
+import 'package:mobile_app/screens/signup_screen.dart';
 import '../global/appCor.dart';
 import '../controllers/login_controller.dart';
+import '../models/usuario.dart';
+import '../services/supabase_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,97 +23,173 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  String _nomeDoEmail(String email) {
+    if (email.contains('@')) {
+      return email.split('@').first;
+    }
+    return email;
+  }
+
   @override
   Widget build(BuildContext context) {
-    double alturaTela = MediaQuery.of(context).size.height;
-
     return Scaffold(
-      appBar: AppBar(title: const Text('LOGIN')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _controller.formKey,
+      backgroundColor: AppCor.background,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(
-                Icons.health_and_safety,
-                size: 80,
-                color: AppCor.primary,
+              const Text(
+                'Conecta Vida',
+                style: TextStyle(
+                  color: AppCor.primary,
+                  fontSize: 34,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Acesso rápido às notícias e campanhas de saúde.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppCor.textoCinza, fontSize: 16),
               ),
               const SizedBox(height: 32),
-
-              const Text(
-                "Por favor insira seu nome e telefone abaixo para fazer login/cadastro:",
-                style: TextStyle(color: AppCor.textoCinza),
-              ),
-
-              SizedBox(height: alturaTela * 0.05),
-
-              // NOME
-              TextFormField(
-                controller: _controller.nomeController,
-                keyboardType: TextInputType.name,
-                decoration: const InputDecoration(
-                  labelText: 'Nome Completo',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(15.0)),
-                  ),
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha:0.08),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Por favor, digite o seu nome';
-                  }
-                  if (value.trim().split(' ').length < 2) {
-                    return 'Digite pelo menos nome e apelido';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // TELEFONE
-              TextFormField(
-                controller: _controller.telefoneController,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  hintText: '(11) 4002-8922',
-                  hintStyle: TextStyle(color: AppCor.textoCinza),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(15.0)),
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor, digite o seu telefone';
-                  }
-                  if (value.length < 9) {
-                    return 'O telefone deve ter pelo menos 9 dígitos';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // BOTÃO DE ENVIO
-              ElevatedButton(
-                onPressed: () {
-                  bool sucesso = _controller.tentarLogin();
-                  if (sucesso) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => NewsScreen(
-                          nome: _controller.nomeController.text,
-                          telefone: _controller.telefoneController.text,
+                child: Form(
+                  key: _controller.formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextFormField(
+                        controller: _controller.emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(15.0)),
+                          ),
                         ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Por favor, digite seu email';
+                          }
+                          if (!value.contains('@') || !value.contains('.')) {
+                            return 'Digite um email válido';
+                          }
+                          return null;
+                        },
                       ),
-                    );
-                  }
-                },
-
-                child: const Text('CONTINUAR', style: TextStyle(fontSize: 18)),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _controller.senhaController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Senha',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(15.0)),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor, digite sua senha';
+                          }
+                          if (value.length < 6) {
+                            return 'A senha deve ter pelo menos 6 caracteres';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 28),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppCor.primary,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: () async {
+                          if (_controller.tentarLogin()) {
+                            try {
+                              await SupabaseService.signIn(
+                                _controller.emailController.text.trim(),
+                                _controller.senhaController.text.trim(),
+                              );
+                              final usuario = await SupabaseService.fetchUsuarioByEmail(
+                                      _controller.emailController.text.trim()) ??
+                                  UserModel(
+                                    nome: _nomeDoEmail(_controller.emailController.text),
+                                    email: _controller.emailController.text,
+                                    idade: '18+',
+                                    sexo: 'Não informado',
+                                    localizacao: 'Não disponível',
+                                  );
+                              if (!mounted) return;
+                              // ignore: use_build_context_synchronously
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => HomeScreen(usuario: usuario),
+                                ),
+                              );
+                            } catch (error) {
+                              if (!mounted) return;
+                              // ignore: use_build_context_synchronously
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(error.toString()),
+                                  backgroundColor: AppCor.error,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: const Text('Entrar', style: TextStyle(fontSize: 18)),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const SignupScreen(),
+                                ),
+                              );
+                            },
+                            child: const Text('Cadastro'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ForgotPasswordScreen(),
+                                ),
+                              );
+                            },
+                            child: const Text('Esqueci senha'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),

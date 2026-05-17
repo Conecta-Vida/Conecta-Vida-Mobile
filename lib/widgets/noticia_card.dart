@@ -5,8 +5,9 @@ import '../screens/news_details_page.dart';
 
 class NoticiaCard extends StatelessWidget {
   final NewsModel noticia;
+  final String? userEmail;
 
-  const NoticiaCard({super.key, required this.noticia});
+  const NoticiaCard({super.key, required this.noticia, this.userEmail});
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +19,10 @@ class NoticiaCard extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => NewsDetailsPage(noticia: noticia),
+            builder: (context) => NewsDetailsPage(
+              noticia: noticia,
+              sharedBy: userEmail,
+            ),
           ),
         );
       },
@@ -29,7 +33,7 @@ class NoticiaCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.blue.withOpacity(0.08),
+              color: Colors.blue.withValues(alpha:0.08),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
@@ -73,7 +77,7 @@ class NoticiaCard extends StatelessWidget {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1E88E5).withOpacity(0.1),
+                          color: const Color(0xFF1E88E5).withValues(alpha:0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(

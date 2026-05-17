@@ -1,21 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/noticia.dart';
 import '../global/appCor.dart';
+import '../services/supabase_service.dart';
 import '../widgets/noticia_info_botao.dart';
 import '../widgets/noticia_secao_mais.dart';
 
 class NewsDetailsPage extends StatelessWidget {
   final NewsModel noticia;
+  final String? sharedBy;
 
-  const NewsDetailsPage({super.key, required this.noticia});
+  const NewsDetailsPage({super.key, required this.noticia, this.sharedBy});
 
   Color _corDaCategoria(String categoria) {
-    if (categoria.toLowerCase().contains('alerta')) return AppCor.error;
-    if (categoria.toLowerCase().contains('vacina')) return AppCor.catVacinacao;
+    if (categoria.toLowerCase().contains('alerta')) {
+      return AppCor.error;
+    }
+    if (categoria.toLowerCase().contains('vacina')) {
+      return AppCor.catVacinacao;
+    }
     if (categoria.toLowerCase().contains('sangue') ||
-        categoria.toLowerCase().contains('doação'))
+        categoria.toLowerCase().contains('doação')) {
       return AppCor.catNoticias;
+    }
     return AppCor.primary;
   }
 
@@ -28,7 +36,7 @@ class NewsDetailsPage extends StatelessWidget {
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha:0.8),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -44,7 +52,7 @@ class NewsDetailsPage extends StatelessWidget {
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha:0.8),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -53,11 +61,14 @@ class NewsDetailsPage extends StatelessWidget {
                 size: 20,
               ),
             ),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Preparando para compartilhar...'),
-                ),
+            onPressed: () async {
+              final shareText =
+                  '${noticia.titulo}\n\n${noticia.subtitulo}\n\n${noticia.descricao}\n\nÓrgão: ${noticia.orgao}\nContato: ${noticia.orgaoTelefone}';
+              await Share.share(shareText,
+                  subject: noticia.titulo);
+              await SupabaseService.trackNewsShare(
+                noticia,
+                sharedBy: sharedBy ?? 'app_user',
               );
             },
           ),
@@ -105,7 +116,7 @@ class NewsDetailsPage extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: _corDaCategoria(
                         noticia.categoria,
-                      ).withOpacity(0.1),
+                      ).withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -137,7 +148,7 @@ class NewsDetailsPage extends StatelessWidget {
                       color: AppCor.background,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppCor.textoCinza.withOpacity(0.2),
+                        color: AppCor.textoCinza.withValues(alpha:0.2),
                       ),
                     ),
                     child: Column(
@@ -169,7 +180,37 @@ class NewsDetailsPage extends StatelessWidget {
                             final url = Uri.parse(
                               'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(noticia.local)}',
                             );
-                            if (await canLaunchUrl(url)) await launchUrl(url);
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url);
+                            }
+                          },
+                        ),
+                        const Divider(height: 1),
+                        NoticiasInfoBotao(
+                          icone: Icons.business,
+                          titulo: 'Órgão Publicador',
+                          valor: noticia.orgao,
+                          iconeAcao: Icons.open_in_new,
+                          corAcao: AppCor.primary,
+                          aoClicar: () async {
+                            final url = Uri.parse(noticia.orgaoSite);
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url);
+                            }
+                          },
+                        ),
+                        const Divider(height: 1),
+                        NoticiasInfoBotao(
+                          icone: Icons.phone,
+                          titulo: 'Contato',
+                          valor: noticia.orgaoTelefone,
+                          iconeAcao: Icons.call_outlined,
+                          corAcao: AppCor.primary,
+                          aoClicar: () async {
+                            final url = Uri.parse('tel:${noticia.orgaoTelefone}');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url);
+                            }
                           },
                         ),
                         const Divider(height: 1),
@@ -207,7 +248,16 @@ class NewsDetailsPage extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () async {
+                        final shareText =
+                            '${noticia.titulo}\n\n${noticia.subtitulo}\n\n${noticia.descricao}\n\nÓrgão: ${noticia.orgao}\nContato: ${noticia.orgaoTelefone}';
+                        await Share.share(shareText,
+                            subject: noticia.titulo);
+                        await SupabaseService.trackNewsShare(
+                          noticia,
+                          sharedBy: sharedBy ?? 'app_user',
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _corDaCategoria(noticia.categoria),
                       ),

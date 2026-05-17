@@ -3,8 +3,17 @@ import '../global/appCor.dart';
 
 class NoticiasHeader extends StatelessWidget {
   final String nome;
+  final VoidCallback? onNotifications;
+  final VoidCallback? onCalendar;
+  final VoidCallback? onSettings;
 
-  const NoticiasHeader({super.key, required this.nome});
+  const NoticiasHeader({
+    super.key,
+    required this.nome,
+    this.onNotifications,
+    this.onCalendar,
+    this.onSettings,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +27,7 @@ class NoticiasHeader extends StatelessWidget {
             top: MediaQuery.of(context).padding.top + 10,
             left: 24,
             right: 24,
-            bottom: 60,
+            bottom: 70,
           ),
           decoration: const BoxDecoration(
             color: AppCor.primary,
@@ -27,6 +36,17 @@ class NoticiasHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  _buildIconButton(Icons.notifications_outlined, onNotifications),
+                  const SizedBox(width: 10),
+                  _buildIconButton(Icons.calendar_month, onCalendar),
+                  const SizedBox(width: 10),
+                  _buildIconButton(Icons.settings, onSettings),
+                ],
+              ),
+              const SizedBox(height: 20),
               Text(
                 'Olá, $nome',
                 style: const TextStyle(
@@ -35,6 +55,7 @@ class NoticiasHeader extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              const SizedBox(height: 8),
               const Text(
                 'Confira as novidades da saúde hoje.',
                 style: TextStyle(color: Colors.white70, fontSize: 14),
@@ -47,6 +68,21 @@ class NoticiasHeader extends StatelessWidget {
     );
   }
 
+  Widget _buildIconButton(IconData icon, VoidCallback? action) {
+    return GestureDetector(
+      onTap: action,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha:0.2),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: Colors.white, size: 22),
+      ),
+    );
+  }
+
   Widget _buildSearchBar() {
     return Container(
       height: 50,
@@ -54,7 +90,7 @@ class NoticiasHeader extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(25),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10),
+          BoxShadow(color: Colors.black.withValues(alpha:0.1), blurRadius: 10),
         ],
       ),
       child: const TextField(

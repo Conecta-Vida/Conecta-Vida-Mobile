@@ -1,4 +1,3 @@
-// lib/components/custom_bottom_nav_bar.dart
 import 'package:flutter/material.dart';
 import '../global/appCor.dart';
 
@@ -12,6 +11,14 @@ class CustomBottomNavBar extends StatelessWidget {
     required this.onTap,
   });
 
+  static const _items = [
+    {'active': Icons.article, 'inactive': Icons.article_outlined, 'label': 'Notícias'},
+    {'active': Icons.vaccines, 'inactive': Icons.vaccines, 'label': 'Vacinação'},
+    {'active': Icons.water_drop, 'inactive': Icons.water_drop, 'label': 'Doações'},
+    {'active': Icons.warning_rounded, 'inactive': Icons.warning_amber_outlined, 'label': 'Urgentes'},
+    {'active': Icons.event, 'inactive': Icons.event_outlined, 'label': 'Eventos'},
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -20,7 +27,7 @@ class CustomBottomNavBar extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha:0.04),
             blurRadius: 15,
             offset: const Offset(0, -5),
           ),
@@ -28,13 +35,14 @@ class CustomBottomNavBar extends StatelessWidget {
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildNavItem(Icons.home, Icons.home_outlined, 0),
-          _buildNotificationItem(1),
-          _buildCenterAddItem(2),
-          _buildNavItem(Icons.shopping_bag, Icons.shopping_bag_outlined, 3),
-          _buildNavItem(Icons.person, Icons.person_outline, 4),
-        ],
+        children: List.generate(
+          _items.length,
+          (index) => _buildNavItem(
+            _items[index]['active'] as IconData,
+            _items[index]['inactive'] as IconData,
+            index,
+          ),
+        ),
       ),
     );
   }
@@ -45,62 +53,12 @@ class CustomBottomNavBar extends StatelessWidget {
       onTap: () => onTap(index),
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
         child: Icon(
           isSelected ? activeIcon : inactiveIcon,
           color: isSelected ? AppCor.primary : Colors.grey.shade400,
           size: 28,
         ),
-      ),
-    );
-  }
-
-  Widget _buildNotificationItem(int index) {
-    bool isSelected = currentIndex == index;
-    return GestureDetector(
-      onTap: () => onTap(index),
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Stack(
-          children: [
-            Icon(
-              isSelected
-                  ? Icons.notifications
-                  : Icons.notifications_none_outlined,
-              color: isSelected ? AppCor.primary : Colors.grey.shade400,
-              size: 28,
-            ),
-            Positioned(
-              right: 2,
-              top: 2,
-              child: Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCenterAddItem(int index) {
-    return GestureDetector(
-      onTap: () => onTap(index),
-      child: Container(
-        width: 45,
-        height: 45,
-        decoration: BoxDecoration(
-          color: AppCor.primary,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Icon(Icons.add, color: Colors.white, size: 26),
       ),
     );
   }

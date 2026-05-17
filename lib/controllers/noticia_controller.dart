@@ -38,6 +38,16 @@ class NewsController {
     }
   }
 
+  List<NewsModel> getAllNoticias() {
+    return [
+      ..._noticiasHome,
+      ..._noticiasVacinacao,
+      ..._noticiasSangue,
+      ..._noticiasUrgentes,
+      ..._noticiasEventos,
+    ];
+  }
+
   // --- AS LISTAS DE DADOS ---
   final List<NewsModel> _noticiasHome = [
     NewsModel(
@@ -48,6 +58,13 @@ class NewsController {
       descricao:
           'A campanha de vacinação está disponível para toda a população...',
       imagem: 'assets/images/vacina_banner.png',
+      categoria: 'Vacinação',
+      local: 'Posto de Saúde central',
+      publicoAlvo: 'Todas as idades',
+      orgao: 'Secretaria Municipal de Saúde',
+      orgaoTelefone: '(11) 4002-8922',
+      orgaoSite: 'https://www.saude.gov.br',
+      textoBotaoAcao: 'Ver Detalhes',
     ),
     NewsModel(
       tag: 'Informativo',
@@ -57,6 +74,28 @@ class NewsController {
       descricao: 'A Ouvidoria do SUS reforça seus canais de atendimento...',
       imagem:
           'https://images.unsplash.com/photo-1551076805-e1869033e561?q=80&w=800&auto=format&fit=crop',
+      categoria: 'Notícias',
+      local: 'Sede da Ouvidoria',
+      publicoAlvo: 'População em geral',
+      orgao: 'Ouvidoria SUS',
+      orgaoTelefone: '(11) 3030-3030',
+      orgaoSite: 'https://www.saude.gov.br/ouvidoria',
+      textoBotaoAcao: 'Abrir Mais',
+    ),
+    NewsModel(
+      tag: 'Alerta',
+      data: '12/05/2026',
+      titulo: 'Combate à Dengue: limpe seu quintal',
+      subtitulo: 'A campanha percorre bairros da cidade.',
+      descricao: 'A ação educativa orienta moradores a eliminar águas paradas e distruibui kits de prevenção.',
+      imagem: 'https://images.unsplash.com/photo-1584438781843-3be91c98a8d4?q=80&w=800&auto=format&fit=crop',
+      categoria: 'Urgente',
+      local: 'Vários bairros',
+      publicoAlvo: 'População em geral',
+      orgao: 'Secretaria Municipal de Saúde',
+      orgaoTelefone: '(11) 4002-8922',
+      orgaoSite: 'https://www.saude.gov.br',
+      textoBotaoAcao: 'Veja como ajudar',
     ),
   ];
 
@@ -69,6 +108,13 @@ class NewsController {
       descricao: 'A vacina da Influenza já está liberada nos postos.',
       imagem:
           'assets/images/vacina_banner.png', // Lembre-se de ter essa imagem ou trocar por uma URL
+      categoria: 'Vacinação',
+      local: 'Posto de Saúde central',
+      publicoAlvo: 'População em geral',
+      orgao: 'Secretaria Municipal de Saúde',
+      orgaoTelefone: '(11) 4002-8922',
+      orgaoSite: 'https://www.saude.gov.br',
+      textoBotaoAcao: 'Saber Mais',
     ),
   ];
 
@@ -81,6 +127,13 @@ class NewsController {
       descricao: 'Participe da nossa campanha de doação no hemocentro central.',
       imagem:
           'https://images.unsplash.com/photo-1615461066841-6116e61058f4?q=80&w=800&auto=format&fit=crop',
+      categoria: 'Doações',
+      local: 'Hemocentro central',
+      publicoAlvo: 'Doadores voluntários',
+      orgao: 'Hemocentro Municipal',
+      orgaoTelefone: '(11) 5555-1212',
+      orgaoSite: 'https://www.saude.gov.br/hemocentro',
+      textoBotaoAcao: 'Quero ajudar',
     ),
   ];
 
@@ -93,6 +146,13 @@ class NewsController {
       descricao: 'Precisamos de sangue O- com urgência.',
       imagem:
           'https://images.unsplash.com/photo-1584036561566-baf8f5f1b144?q=80&w=800&auto=format&fit=crop',
+      categoria: 'Urgente',
+      local: 'Hospital Municipal',
+      publicoAlvo: 'Doadores O-',
+      orgao: 'Clínica de Emergência',
+      orgaoTelefone: '(11) 9999-0000',
+      orgaoSite: 'https://www.saude.gov.br/emergencia',
+      textoBotaoAcao: 'Apoiar agora',
     ),
   ];
 
@@ -105,6 +165,13 @@ class NewsController {
       descricao: 'Participe do nosso evento solidário na praça principal.',
       imagem:
           'https://images.unsplash.com/photo-1615461066841-6116e61058f4?q=80&w=800&auto=format&fit=crop',
+      categoria: 'Eventos',
+      local: 'Praça Central',
+      publicoAlvo: 'Interessados em ajuda comunitária',
+      orgao: 'Associação Vida',
+      orgaoTelefone: '(11) 8888-1515',
+      orgaoSite: 'https://www.saude.gov.br/eventos',
+      textoBotaoAcao: 'Participar',
     ),
   ];
 }

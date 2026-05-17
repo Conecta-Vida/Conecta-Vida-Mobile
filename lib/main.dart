@@ -1,8 +1,30 @@
 import 'package:flutter/material.dart';
-import 'global/appCor.dart'; // O nosso arquivo de cores!
-import 'screens/splash_screen.dart'; // Sua tela inicial
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'global/appCor.dart';
+import 'screens/splash_screen.dart';
+import 'services/supabase_service.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    // Carrega o .env com os dados do supabase pra entrar
+    await dotenv.load(fileName: ".env");
+
+    // extrai o url e chave publica pra variavel dotenv.
+    await SupabaseService.initializeCredentials(
+      dotenv.env['SUPABASE_URL']!,
+      dotenv.env['SUPABASE_ANON_KEY']!,
+    );
+
+    // Inicia ligação com banco de dados
+    await SupabaseService.init();
+    await SupabaseService.syncDefaultNoticias();
+  } catch (e) {
+    // Se esquecer do ficheiro .env ou a net falhar, dá erro
+    print('🚨 ERRO FATAL NO ARRANQUE: $e');
+  }
+
   runApp(const ConectaVidaApp());
 }
 
@@ -23,7 +45,7 @@ class ConectaVidaApp extends StatelessWidget {
         scaffoldBackgroundColor: AppCor.background,
 
         // Cores Base
-        colorScheme: ColorScheme.light(
+        colorScheme: const ColorScheme.light(
           primary: AppCor.primary,
           secondary: AppCor.secondary,
           error: AppCor.error,
