@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'global/appCor.dart';
 import 'screens/splash_screen.dart';
 import 'services/supabase_service.dart';
@@ -8,6 +9,12 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
+    // Inicializa o Hive para o Flutter
+    await Hive.initFlutter();
+
+    // Abre a "caixa" chamada 'preferencias' pra usar na pag. settings
+    await Hive.openBox('preferencias');
+
     // Carrega o .env com os dados do supabase pra entrar
     await dotenv.load(fileName: ".env");
 
