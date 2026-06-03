@@ -21,26 +21,26 @@ class SupabaseService {
   static Future<void> signUp(String email, String senha) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/usuarios'),
+        Uri.parse('$baseUrl/usuarios/cadastro'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'email': email,
-          'senha': senha,
-          'nome': 'Novo Usuário',
-          'idade': null,
-          'sexo': '',
-          'localizacao': '',
-          'permissao': 'CIDADAO',
+          'email': email, // Obrigatório
+          'senha': senha, // Obrigatório
+          'nome': 'Novo Usuário', // Obrigatório
+          'idade': 0, // Envie 0, não null
+          'sexo': 'Não informado', // Envie uma string, não null ou vazio
+          'localizacao':
+              'N/A', // O backend do seu amigo usa isso como permissão
+          'permissao': 'Usuário Comum', // Obrigatório pela nova estrutura
         }),
       );
 
       if (response.statusCode != 200 && response.statusCode != 201) {
-        throw Exception(
-          'Falha no cadastro (API retornou ${response.statusCode})',
-        );
+        // Se falhar, o Flutter vai mostrar o erro no console
+        developer.log('Erro do Servidor: ${response.body}', name: 'ApiService');
+        throw Exception('Falha no cadastro: ${response.statusCode}');
       }
     } catch (e) {
-      developer.log('Erro ao registrar: $e', name: 'ApiService');
       throw Exception('Falha no cadastro: $e');
     }
   }
@@ -71,18 +71,28 @@ class SupabaseService {
   // Atualiza ou insere as informações de perfil do usuário na base de dados
   static Future<void> upsertUsuario(UserModel user, {String senha = ''}) async {
     try {
+      // Prepara o mapa base
       Map<String, dynamic> payload = user.toMap(senha: senha);
-      payload['idade'] = int.tryParse(user.idade.toString());
-      payload['permissao'] = 'CIDADAO';
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/usuarios'),
+      // Garante que a idade seja um Integer (o Java não aceita string aqui)
+      payload['idade'] = int.tryParse(user.idade.toString()) ?? 0;
+
+      // Remove campos que o Java não espera no Put para evitar conflitos
+      payload.remove('campanhasInscritas');
+
+      // Ajustado para PUT conforme o seu UsuarioController.java
+      final response = await http.put(
+        Uri.parse(
+          '$baseUrl/usuarios/0',
+        ), // Lembre-se: substitua '0' pelo ID real do usuário
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
       );
 
+      // Log para ajudar a ver o erro caso o 400 continue
       if (response.statusCode != 200 && response.statusCode != 201) {
-        throw Exception('Erro ao sincronizar usuário');
+        developer.log('Erro 400 corpo: ${response.body}', name: 'ApiService');
+        throw Exception('Erro ao sincronizar usuário: ${response.statusCode}');
       }
     } catch (e) {
       developer.log('Erro ao sincronizar usuario: $e', name: 'ApiService');

@@ -94,9 +94,7 @@ class _SignupScreenState extends State<SignupScreen> {
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => HomeScreen(usuario: usuario),
-          ),
+          MaterialPageRoute(builder: (context) => HomeScreen(usuario: usuario)),
         );
       } catch (error) {
         if (!mounted) return;
@@ -212,8 +210,14 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
                 items: const [
                   DropdownMenuItem(value: 'Feminino', child: Text('Feminino')),
-                  DropdownMenuItem(value: 'Masculino', child: Text('Masculino')),
-                  DropdownMenuItem(value: 'Prefiro não informar', child: Text('Prefiro não informar')),
+                  DropdownMenuItem(
+                    value: 'Masculino',
+                    child: Text('Masculino'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Prefiro não informar',
+                    child: Text('Prefiro não informar'),
+                  ),
                 ],
                 onChanged: (value) {
                   if (value != null) {
@@ -223,17 +227,24 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: _carregandoLocalizacao ? null : _solicitarLocalizacao,
+                onPressed: _carregandoLocalizacao
+                    ? null
+                    : _solicitarLocalizacao,
                 child: Text(
                   _carregandoLocalizacao
                       ? 'Solicitando localização...'
-                      : (_localizacaoAtiva ? 'Localização autorizada' : 'Permitir localização'),
+                      : (_localizacaoAtiva
+                            ? 'Localização autorizada'
+                            : 'Permitir localização'),
                 ),
               ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _cadastro,
-                child: const Text('Finalizar cadastro', style: TextStyle(fontSize: 18)),
+                child: const Text(
+                  'Finalizar cadastro',
+                  style: TextStyle(fontSize: 18),
+                ),
               ),
               const SizedBox(height: 16),
               Text(
