@@ -31,9 +31,19 @@ class NewsModel {
   });
 
   factory NewsModel.fromMap(Map<String, dynamic> map) {
+    // Pegamos a data bruta que vem do banco
+    String dataBruta = map['data'] ?? '';
+    String dataFormatada = dataBruta;
+
+    // Se a data for maior que 10 caracteres (ex: 2026-06-02 14:18:46...)
+    if (dataBruta.length >= 10) {
+      // Corta a string para pegar apenas o "Ano-Mês-Dia" (os 10 primeiros caracteres)
+      dataFormatada = dataBruta.substring(0, 10);
+    }
+
     return NewsModel(
       tag: map['tag'] ?? '',
-      data: map['data'] ?? '',
+      data: dataFormatada,
       titulo: map['titulo'] ?? '',
       subtitulo: map['subtitulo'] ?? '',
       descricao: map['descricao'] ?? '',

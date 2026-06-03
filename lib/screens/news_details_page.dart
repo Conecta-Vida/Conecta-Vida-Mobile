@@ -36,7 +36,7 @@ class NewsDetailsPage extends StatelessWidget {
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha:0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -52,7 +52,7 @@ class NewsDetailsPage extends StatelessWidget {
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha:0.8),
+                color: Colors.white.withValues(alpha: 0.8),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -64,8 +64,7 @@ class NewsDetailsPage extends StatelessWidget {
             onPressed: () async {
               final shareText =
                   '${noticia.titulo}\n\n${noticia.subtitulo}\n\n${noticia.descricao}\n\nÓrgão: ${noticia.orgao}\nContato: ${noticia.orgaoTelefone}';
-              await Share.share(shareText,
-                  subject: noticia.titulo);
+              await Share.share(shareText, subject: noticia.titulo);
               await SupabaseService.trackNewsShare(
                 noticia,
                 sharedBy: sharedBy ?? 'app_user',
@@ -116,7 +115,7 @@ class NewsDetailsPage extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: _corDaCategoria(
                         noticia.categoria,
-                      ).withValues(alpha:0.1),
+                      ).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -148,7 +147,7 @@ class NewsDetailsPage extends StatelessWidget {
                       color: AppCor.background,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppCor.textoCinza.withValues(alpha:0.2),
+                        color: AppCor.textoCinza.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Column(
@@ -207,7 +206,9 @@ class NewsDetailsPage extends StatelessWidget {
                           iconeAcao: Icons.call_outlined,
                           corAcao: AppCor.primary,
                           aoClicar: () async {
-                            final url = Uri.parse('tel:${noticia.orgaoTelefone}');
+                            final url = Uri.parse(
+                              'tel:${noticia.orgaoTelefone}',
+                            );
                             if (await canLaunchUrl(url)) {
                               await launchUrl(url);
                             }
@@ -243,6 +244,7 @@ class NewsDetailsPage extends StatelessWidget {
                     ),
                     textAlign: TextAlign.justify,
                   ),
+
                   const SizedBox(height: 24),
 
                   SizedBox(
@@ -251,8 +253,7 @@ class NewsDetailsPage extends StatelessWidget {
                       onPressed: () async {
                         final shareText =
                             '${noticia.titulo}\n\n${noticia.subtitulo}\n\n${noticia.descricao}\n\nÓrgão: ${noticia.orgao}\nContato: ${noticia.orgaoTelefone}';
-                        await Share.share(shareText,
-                            subject: noticia.titulo);
+                        await Share.share(shareText, subject: noticia.titulo);
                         await SupabaseService.trackNewsShare(
                           noticia,
                           sharedBy: sharedBy ?? 'app_user',
@@ -260,13 +261,27 @@ class NewsDetailsPage extends StatelessWidget {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _corDaCategoria(noticia.categoria),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                        ), // Botão mais alto e elegante
                       ),
-                      child: Text(
-                        noticia.textoBotaoAcao,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.share,
+                            color: Colors.white,
+                          ), // Ícone de compartilhamento
+                          SizedBox(width: 8),
+                          Text(
+                            'Compartilhar', // Texto fixo corrigido
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

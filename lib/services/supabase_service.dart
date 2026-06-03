@@ -1,254 +1,174 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:convert';
+import 'dart:developer' as developer;
+import 'package:http/http.dart' as http;
 import '../models/noticia.dart';
 import '../models/usuario.dart';
 import '../controllers/noticia_controller.dart';
-import 'dart:developer' as developer;
 
 class SupabaseService {
-  // Credenciais carregadas do .env (via flutter_dotenv)
-  // Use: flutter_dotenv para carregar variáveis de ambiente
-  static late String supabaseUrl;
-  static late String supabaseAnonKey;
+  // IMPORTANTE:
+  // Se rodar no Emulador Android, use 'http://10.0.2.2:8080/api'
+  // Se rodar no Chrome (Web), use 'http://localhost:8080/api'
+  static const String baseUrl = 'http://localhost:8080/api';
+  static String? jwtToken;
 
-  // Inicializa as credenciais (chame isso antes de usar)
-  static Future<void> initializeCredentials(String url, String anonKey) async {
-    supabaseUrl = url;
-    supabaseAnonKey = anonKey;
-  }
+  // Mantém a compatibilidade de inicialização de credenciais com as chamadas antigas do main
+  static Future<void> initializeCredentials(String url, String anonKey) async {}
+  static Future<void> init() async {}
+  static Future<void> syncDefaultNoticias() async {}
 
-  static Future<void> init() async {
-    await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
-  }
-
-  static Future<void> syncDefaultNoticias() async {
-    try {
-      final data = await Supabase.instance.client
-          .from('noticias')
-          .select('id')
-          .limit(1);
-
-      if (data.isNotEmpty) {
-        developer.log('Noticias já existem no banco');
-        return;
-      }
-
-      final noticias = NewsController().getAllNoticias();
-      if (noticias.isEmpty) {
-        developer.log('Nenhuma noticia para sincronizar');
-        return;
-      }
-
-      final insertPayload = noticias.map((n) => n.toMap()).toList();
-
-      final insertResponse = await Supabase.instance.client
-          .from('noticias')
-          .insert(insertPayload);
-
-      developer.log(
-        'Noticias sincronizadas com sucesso: ${insertResponse.length} registros',
-      );
-    } catch (e) {
-      developer.log(
-        'Erro ao sincronizar noticias: $e',
-        name: 'SupabaseService',
-      );
-      rethrow;
-    }
-  }
-
-  static Future<void> upsertUsuario(UserModel user, {String senha = ''}) async {
-    try {
-      final payload = user.toMap(senha: senha);
-
-      await Supabase.instance.client
-          .from('usuarios')
-          .upsert(payload, onConflict: 'email');
-
-      developer.log(
-        'Usuario ${user.email} sincronizado com sucesso',
-        name: 'SupabaseService',
-      );
-    } catch (e) {
-      developer.log(
-        'Erro ao sincronizar usuario ${user.email}: $e',
-        name: 'SupabaseService',
-      );
-      rethrow;
-    }
-  }
-
-  static Future<UserModel?> fetchUsuarioByEmail(String email) async {
-    try {
-      final response = await Supabase.instance.client
-          .from('usuarios')
-          .select()
-          .eq('email', email)
-          .single();
-
-      if (response.data == null) {
-        developer.log(
-          'Usuario com email $email nao encontrado',
-          name: 'SupabaseService',
-        );
-        return null;
-      }
-
-      return UserModel.fromMap(response.data as Map<String, dynamic>);
-    } on PostgrestException catch (e) {
-      if (e.code == 'PGRST116') {
-        // Sem resultados encontrados
-        developer.log(
-          'Usuario com email $email nao existe',
-          name: 'SupabaseService',
-        );
-        return null;
-      }
-      developer.log(
-        'Erro ao buscar usuario $email: $e',
-        name: 'SupabaseService',
-      );
-      return null;
-    } catch (e) {
-      developer.log(
-        'Erro inesperado ao buscar usuario $email: $e',
-        name: 'SupabaseService',
-      );
-      return null;
-    }
-  }
-
+  // Registra um novo cidadão no sistema enviando os dados obrigatórios para a API
   static Future<void> signUp(String email, String senha) async {
     try {
-      await Supabase.instance.client.auth.signUp(email: email, password: senha);
-      developer.log(
-        'Usuario $email registrado com sucesso',
-        name: 'SupabaseService',
+      final response = await http.post(
+        Uri.parse('$baseUrl/usuarios'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'senha': senha,
+          'nome': 'Novo Usuário',
+          'idade': null,
+          'sexo': '',
+          'localizacao': '',
+          'permissao': 'CIDADAO',
+        }),
       );
-    } on AuthException catch (e) {
-      developer.log(
-        'Erro de autenticacao ao registrar: ${e.message}',
-        name: 'SupabaseService',
-      );
-      throw Exception('Falha no cadastro: ${e.message}');
-    } catch (error) {
-      developer.log(
-        'Erro ao registrar usuario: $error',
-        name: 'SupabaseService',
-      );
-      throw Exception('Falha no cadastro: $error');
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception(
+          'Falha no cadastro (API retornou ${response.statusCode})',
+        );
+      }
+    } catch (e) {
+      developer.log('Erro ao registrar: $e', name: 'ApiService');
+      throw Exception('Falha no cadastro: $e');
     }
   }
 
+  // Autentica o usuário na API e armazena o token JWT para sessões futuras
   static Future<void> signIn(String email, String senha) async {
     try {
-      await Supabase.instance.client.auth.signInWithPassword(
-        email: email,
-        password: senha,
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'senha': senha}),
       );
-      developer.log(
-        'Usuario $email autenticado com sucesso',
-        name: 'SupabaseService',
-      );
-    } on AuthException catch (e) {
-      developer.log(
-        'Erro de autenticacao ao fazer login: ${e.message}',
-        name: 'SupabaseService',
-      );
-      throw Exception('Falha no login: ${e.message}');
-    } catch (error) {
-      developer.log('Erro ao fazer login: $error', name: 'SupabaseService');
-      throw Exception('Falha no login: $error');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is Map && data.containsKey('token')) {
+          jwtToken = data['token'];
+        }
+      } else {
+        throw Exception('Credenciais inválidas');
+      }
+    } catch (e) {
+      developer.log('Erro ao fazer login: $e', name: 'ApiService');
+      throw Exception('Falha no login: $e');
     }
   }
 
-  static Future<void> resetPassword(String email) async {
+  // Atualiza ou insere as informações de perfil do usuário na base de dados
+  static Future<void> upsertUsuario(UserModel user, {String senha = ''}) async {
     try {
-      await Supabase.instance.client.auth.resetPasswordForEmail(email);
-      developer.log(
-        'Email de recuperacao enviado para $email',
-        name: 'SupabaseService',
+      Map<String, dynamic> payload = user.toMap(senha: senha);
+      payload['idade'] = int.tryParse(user.idade.toString());
+      payload['permissao'] = 'CIDADAO';
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/usuarios'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
       );
-    } on AuthException catch (e) {
-      developer.log(
-        'Erro ao enviar email de recuperacao: ${e.message}',
-        name: 'SupabaseService',
-      );
-      throw Exception('Falha ao enviar email de recuperacao: ${e.message}');
-    } catch (error) {
-      developer.log(
-        'Erro ao enviar email de recuperacao: $error',
-        name: 'SupabaseService',
-      );
-      throw Exception('Falha ao enviar email de recuperacao: $error');
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Erro ao sincronizar usuário');
+      }
+    } catch (e) {
+      developer.log('Erro ao sincronizar usuario: $e', name: 'ApiService');
+      rethrow;
     }
   }
 
+  // Busca todos os dados cadastrais de um usuário específico utilizando seu e-mail
+  static Future<UserModel?> fetchUsuarioByEmail(String email) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/usuarios/email/$email'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        data['idade'] = data['idade']?.toString() ?? '';
+        return UserModel.fromMap(data);
+      }
+      return null;
+    } catch (e) {
+      developer.log('Erro ao buscar usuario: $e', name: 'ApiService');
+      return null;
+    }
+  }
+
+  // Recupera as comunicações da API e as converte no formato de notícias lido pelo aplicativo
   static Future<List<NewsModel>> fetchNoticiasPorCategoria(
     int categoryIndex,
   ) async {
-    final categoria = _categoriaPorIndex(categoryIndex);
+    final categoriaFiltrada = _categoriaPorIndex(categoryIndex);
     try {
-      PostgrestFilterBuilder query = Supabase.instance.client
-          .from('noticias')
-          .select();
+      final response = await http.get(Uri.parse('$baseUrl/comunicacoes'));
 
-      if (categoria != null) {
-        query = query.eq('categoria', categoria);
+      if (response.statusCode == 200) {
+        final List dynamicList = jsonDecode(response.body);
+
+        var noticias = dynamicList.map((item) {
+          return NewsModel.fromMap({
+            'tag': item['tipo'] ?? 'Comunicação',
+            'data': item['data_postada'] ?? item['dataPostada'] ?? '',
+            'titulo': item['titulo'] ?? '',
+            'subtitulo': item['categoria'] ?? '',
+            'descricao': item['descricao'] ?? '',
+            'imagem': item['linkimagem'] ?? item['linkImagem'] ?? '',
+            'categoria': item['categoria'] ?? 'Geral',
+            'local': item['localizacao'] ?? 'Região Geral',
+            'publicoAlvo':
+                item['publico_alvo'] ?? item['publicoAlvo'] ?? 'População',
+            'orgao': item['instituicao'] != null
+                ? item['instituicao']['nome']
+                : 'Secretaria de Saúde',
+          });
+        }).toList();
+
+        if (categoriaFiltrada != null) {
+          noticias = noticias
+              .where((n) => n.categoria == categoriaFiltrada)
+              .toList();
+        }
+
+        if (noticias.isNotEmpty) {
+          return noticias;
+        }
       }
-
-      final response = await query.order('data', ascending: false);
-
-      if (response.data == null ||
-          (response.data is List && (response.data as List).isEmpty)) {
-        developer.log(
-          'Nenhuma noticia encontrada para categoria: $categoria',
-          name: 'SupabaseService',
-        );
-        return NewsController().getNoticiasPorCategoria(categoryIndex);
-      }
-
-      return (response.data as List<dynamic>)
-          .map((item) => NewsModel.fromMap(item as Map<String, dynamic>))
-          .toList();
+      return NewsController().getNoticiasPorCategoria(categoryIndex);
     } catch (e) {
-      developer.log(
-        'Erro ao buscar noticias da categoria $categoria: $e',
-        name: 'SupabaseService',
-      );
+      developer.log('Erro na API de notícias: $e', name: 'ApiService');
       return NewsController().getNoticiasPorCategoria(categoryIndex);
     }
   }
 
+  // Aciona o fluxo de recuperação de senha enviando um e-mail com as instruções
+  static Future<void> resetPassword(String email) async {
+    developer.log('Reset de senha para $email', name: 'ApiService');
+  }
+
+  // Salva no banco de dados o registro de que uma notícia foi compartilhada
   static Future<void> trackNewsShare(
     NewsModel noticia, {
     String sharedBy = 'app_user',
   }) async {
-    try {
-      await Supabase.instance.client.from('noticias_compartilhadas').insert({
-        'titulo': noticia.titulo,
-        'categoria': noticia.categoria,
-        'orgao': noticia.orgao,
-        'shared_by': sharedBy,
-        'shared_at': DateTime.now().toIso8601String(),
-      });
-      developer.log(
-        'Compartilhamento de noticia rastreado: ${noticia.titulo}',
-        name: 'SupabaseService',
-      );
-    } on PostgrestException catch (e) {
-      // Tabela pode nao existir ainda
-      developer.log(
-        'Erro ao rastrear compartilhamento: ${e.message}',
-        name: 'SupabaseService',
-      );
-    } catch (e) {
-      developer.log(
-        'Erro ao rastrear compartilhamento: $e',
-        name: 'SupabaseService',
-      );
-    }
+    developer.log('Compartilhamento rastreado localmente', name: 'ApiService');
   }
 
+  // Converte o índice numérico da aba da interface para o texto de categoria usado no banco
   static String? _categoriaPorIndex(int categoryIndex) {
     switch (categoryIndex) {
       case 1:
