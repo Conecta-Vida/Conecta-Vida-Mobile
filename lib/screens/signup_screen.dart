@@ -76,10 +76,7 @@ class _SignupScreenState extends State<SignupScreen> {
   void _cadastro() async {
     if (_formKey.currentState!.validate()) {
       try {
-        await SupabaseService.signUp(
-          _emailController.text.trim(),
-          _senhaController.text.trim(),
-        );
+        // 1. Monta o usuário com todos os dados digitados e as coordenadas
         final usuario = UserModel(
           nome: _nomeController.text.trim(),
           email: _emailController.text.trim(),
@@ -87,10 +84,12 @@ class _SignupScreenState extends State<SignupScreen> {
           sexo: _sexo,
           localizacao: _localizacaoAtiva ? _localizacao : 'Não autorizado',
         );
-        await SupabaseService.upsertUsuario(
-          usuario,
-          senha: _senhaController.text.trim(),
-        );
+
+        // 2. Faz uma ÚNICA requisição para o backend criando tudo de uma vez
+        await SupabaseService.signUp(usuario, _senhaController.text.trim());
+
+        // Removemos o upsertUsuario, ele não é mais necessário!
+
         if (!mounted) return;
         Navigator.pushReplacement(
           context,

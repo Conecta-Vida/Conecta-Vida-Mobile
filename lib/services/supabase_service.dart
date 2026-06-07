@@ -18,27 +18,28 @@ class SupabaseService {
   static Future<void> syncDefaultNoticias() async {}
 
   // Registra um novo cidadão no sistema enviando os dados obrigatórios para a API
-  static Future<void> signUp(String email, String senha) async {
+  static Future<void> signUp(UserModel usuario, String senha) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/usuarios/cadastro'),
+        Uri.parse('$baseUrl/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'email': email, // Obrigatório
-          'senha': senha, // Obrigatório
-          'nome': 'Novo Usuário', // Obrigatório
-          'idade': 0, // Envie 0, não null
-          'sexo': 'Não informado', // Envie uma string, não null ou vazio
+          'nome': usuario.nome.trim(),
+          'email': usuario.email.trim(),
+          'senha': senha.trim(),
+          'idade': int.tryParse(usuario.idade.toString()) ?? 0,
+          'sexo': usuario.sexo,
           'localizacao':
-              'N/A', // O backend do seu amigo usa isso como permissão
-          'permissao': 'Usuário Comum', // Obrigatório pela nova estrutura
+              usuario.localizacao, // As coordenadas vêm pra cá direto!
+          'permissao': 'Usuário Comum',
         }),
       );
 
       if (response.statusCode != 200 && response.statusCode != 201) {
-        // Se falhar, o Flutter vai mostrar o erro no console
         developer.log('Erro do Servidor: ${response.body}', name: 'ApiService');
-        throw Exception('Falha no cadastro: ${response.statusCode}');
+        throw Exception(
+          'Falha no cadastro (Erro ${response.statusCode}): O email já existe ou os dados são inválidos.',
+        );
       }
     } catch (e) {
       throw Exception('Falha no cadastro: $e');
