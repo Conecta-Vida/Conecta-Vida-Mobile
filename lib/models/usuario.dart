@@ -1,14 +1,15 @@
 class UserModel {
   final String nome;
   final String email;
-  final String idade;
+  final int?
+  dataNascimento; // Alterado para int e opcional (null) conforme o banco
   final String sexo;
   final String localizacao;
 
   const UserModel({
     required this.nome,
     required this.email,
-    required this.idade,
+    this.dataNascimento,
     required this.sexo,
     required this.localizacao,
   });
@@ -17,7 +18,7 @@ class UserModel {
     return {
       'nome': nome,
       'email': email,
-      'idade': idade,
+      'data_nascimento': dataNascimento, // Nome exato da nova coluna do banco
       'sexo': sexo,
       'localizacao': localizacao,
       'senha': senha,
@@ -28,10 +29,12 @@ class UserModel {
     return UserModel(
       nome: map['nome'] ?? '',
       email: map['email'] ?? '',
-      idade: map['idade'] ?? '',
+      // Tenta ler como int, se vier string ou nulo, trata com segurança
+      dataNascimento: map['data_nascimento'] is int
+          ? map['data_nascimento']
+          : int.tryParse(map['data_nascimento']?.toString() ?? ''),
       sexo: map['sexo'] ?? '',
       localizacao: map['localizacao'] ?? '',
     );
   }
 }
-

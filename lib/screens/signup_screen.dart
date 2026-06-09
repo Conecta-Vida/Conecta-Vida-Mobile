@@ -76,19 +76,24 @@ class _SignupScreenState extends State<SignupScreen> {
   void _cadastro() async {
     if (_formKey.currentState!.validate()) {
       try {
-        // 1. Monta o usuário com todos os dados digitados e as coordenadas
+        // 1. Converte o texto digitado (Ex: "1998") para número inteiro
+        int? anoNascimento = int.tryParse(_idadeController.text.trim());
+        String localizacaoLimpa = _localizacaoAtiva
+            ? _localizacao
+            : 'Não autorizado';
+
+        // 2. Monta o usuário com os tipos de dados corretos para o novo Banco
         final usuario = UserModel(
           nome: _nomeController.text.trim(),
           email: _emailController.text.trim(),
-          idade: _idadeController.text.trim(),
+          dataNascimento:
+              anoNascimento, // <-- Correção: Usando dataNascimento como Int
           sexo: _sexo,
-          localizacao: _localizacaoAtiva ? _localizacao : 'Não autorizado',
+          localizacao: localizacaoLimpa,
         );
 
-        // 2. Faz uma ÚNICA requisição para o backend criando tudo de uma vez
+        // 3. Faz uma ÚNICA requisição para o backend criando tudo de uma vez
         await SupabaseService.signUp(usuario, _senhaController.text.trim());
-
-        // Removemos o upsertUsuario, ele não é mais necessário!
 
         if (!mounted) return;
         Navigator.pushReplacement(
@@ -183,7 +188,9 @@ class _SignupScreenState extends State<SignupScreen> {
                 controller: _idadeController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
-                  labelText: 'Idade',
+                  labelText: 'Ano de Nascimento',
+                  hintText: 'Ex: 2002',
+                  counterText: "",
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.all(Radius.circular(15.0)),
                   ),

@@ -27,7 +27,7 @@ class SupabaseService {
           'nome': usuario.nome.trim(),
           'email': usuario.email.trim(),
           'senha': senha.trim(),
-          'idade': int.tryParse(usuario.idade.toString()) ?? 0,
+          'idade': int.tryParse(usuario.dataNascimento.toString()) ?? 0,
           'sexo': usuario.sexo,
           'localizacao':
               usuario.localizacao, // As coordenadas vêm pra cá direto!
@@ -76,7 +76,7 @@ class SupabaseService {
       Map<String, dynamic> payload = user.toMap(senha: senha);
 
       // Garante que a idade seja um Integer (o Java não aceita string aqui)
-      payload['idade'] = int.tryParse(user.idade.toString()) ?? 0;
+      payload['idade'] = int.tryParse(user.dataNascimento.toString()) ?? 0;
 
       // Remove campos que o Java não espera no Put para evitar conflitos
       payload.remove('campanhasInscritas');
