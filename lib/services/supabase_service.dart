@@ -126,7 +126,19 @@ class SupabaseService {
   ) async {
     final categoriaFiltrada = _categoriaPorIndex(categoryIndex);
     try {
-      final response = await http.get(Uri.parse('$baseUrl/comunicacoes'));
+      developer.log(
+        'A tentar buscar notícias reais da API...',
+        name: 'ApiService',
+      );
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/comunicacoes'),
+        headers: {
+          'Content-Type': 'application/json',
+          // Se existir um token de login, envia para o Java autorizar a busca!
+          if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
+        },
+      );
 
       if (response.statusCode == 200) {
         final List dynamicList = jsonDecode(response.body);
@@ -139,7 +151,7 @@ class SupabaseService {
             'subtitulo': item['categoria'] ?? '',
             'descricao': item['descricao'] ?? '',
             'imagem': item['linkimagem'] ?? item['linkImagem'] ?? '',
-            'categoria': item['categoria'] ?? 'Geral',
+            'categoria': item['categoria'] ?? 'Notícia',
             'local': item['localizacao'] ?? 'Região Geral',
             'publicoAlvo':
                 item['publico_alvo'] ?? item['publicoAlvo'] ?? 'População',
@@ -156,12 +168,26 @@ class SupabaseService {
         }
 
         if (noticias.isNotEmpty) {
+          developer.log(
+            'Sucesso! Notícias reais carregadas.',
+            name: 'ApiService',
+          );
           return noticias;
         }
+      } else {
+        // AVISO DE ERRO CRÍTICO AQUI!
+        developer.log(
+          '🚨 API RECUSOU DAR AS NOTÍCIAS. Status: ${response.statusCode}',
+          name: 'ApiService',
+        );
       }
+
       return NewsController().getNoticiasPorCategoria(categoryIndex);
     } catch (e) {
-      developer.log('Erro na API de notícias: $e', name: 'ApiService');
+      developer.log(
+        '🚨 ERRO FATAL DE CONEXÃO NAS NOTÍCIAS: $e',
+        name: 'ApiService',
+      );
       return NewsController().getNoticiasPorCategoria(categoryIndex);
     }
   }

@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
+
 import '../global/appCor.dart';
 import '../models/usuario.dart';
+import '../services/supabase_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   final UserModel usuario;
@@ -54,7 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _buscarRegioesDoBanco() async {
     final Set<String> localizacoesUnicas = {};
     // IMPORTANTE: Se usar emulador Android, coloque 10.0.2.2 em vez de http://localhost:8080/api
-    const String baseUrl = 'http://localhost:8080/api';
+    const String baseUrl = SupabaseService.baseUrl;
 
     try {
       // Busca localizações das Comunicações/Notícias
@@ -73,7 +76,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       // Busca localizações das Instituições de Saúde
       final resInstituicoes = await http.get(
-        Uri.parse('$baseUrl/instituicoes-saude'),
+        Uri.parse('$baseUrl/instituicoes'),
       );
       if (resInstituicoes.statusCode == 200) {
         final List dynamicList = jsonDecode(resInstituicoes.body);
