@@ -46,8 +46,8 @@ class SupabaseService {
     }
   }
 
-  // Autentica o usuário na API e armazena o token JWT para sessões futuras
-  static Future<void> signIn(String email, String senha) async {
+  // Autentica o usuário na API e retorna os dados do usuário logado
+  static Future<UserModel> signIn(String email, String senha) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
@@ -60,12 +60,20 @@ class SupabaseService {
         if (data is Map && data.containsKey('token')) {
           jwtToken = data['token'];
         }
+        return UserModel(
+          nome: data['nome'] ?? email.split('@').first,
+          email: data['email'] ?? email,
+          dataNascimento: data['idade'] is int ? data['idade'] : null,
+          sexo: data['sexo'] ?? 'Não informado',
+          localizacao: data['localizacao'] ?? 'Não informado',
+        );
       } else {
-        throw Exception('Credenciais inválidas');
+        final body = jsonDecode(response.body);
+        throw Exception(body['mensagem'] ?? 'Credenciais inválidas');
       }
     } catch (e) {
       developer.log('Erro ao fazer login: $e', name: 'ApiService');
-      throw Exception('Falha no login: $e');
+      rethrow;
     }
   }
 
