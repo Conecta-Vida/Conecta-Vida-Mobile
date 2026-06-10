@@ -25,7 +25,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _categoryIndex = 0;
   late Future<List<NewsModel>> _noticiasFuture;
   String _searchQuery = '';
-  String _cidadeFiltro = '';
+  Set<String> _cidadesFiltro = {};
+  List<NewsModel> _noticiasCache = [];
 
   @override
   void initState() {
@@ -46,36 +47,146 @@ class _HomeScreenState extends State<HomeScreen> {
         n.descricao.toLowerCase().contains(q)
       ).toList();
     }
-    if (_cidadeFiltro.isNotEmpty) {
+    if (_cidadesFiltro.isNotEmpty) {
       lista = lista.where((n) =>
-        n.local.toLowerCase().contains(_cidadeFiltro.toLowerCase())
+        _cidadesFiltro.any((c) => n.local.toLowerCase().contains(c.toLowerCase()))
       ).toList();
     }
     return lista;
   }
 
+  List<String> _cidadesDisponiveis() {
+    final cidades = _noticiasCache
+        .map((n) => n.local)
+        .where((l) => l.isNotEmpty && l != 'Região Geral')
+        .toSet()
+        .toList()
+      ..sort();
+    return cidades;
+  }
+
+  void _abrirFiltroCidades() {
+    final disponiveis = _cidadesDisponiveis();
+    if (disponiveis.isEmpty) return;
+
+    Set<String> selecao = Set.from(_cidadesFiltro);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(ctx).size.height * 0.6,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Filtrar por cidades',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: ListView(
+                        children: disponiveis.map((cidade) {
+                          return CheckboxListTile(
+                            title: Text(cidade),
+                            value: selecao.contains(cidade),
+                            activeColor: AppCor.primary,
+                            contentPadding: EdgeInsets.zero,
+                            onChanged: (checked) {
+                              setModalState(() {
+                                checked == true
+                                    ? selecao.add(cidade)
+                                    : selecao.remove(cidade);
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppCor.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          setState(() => _cidadesFiltro = selecao);
+                          Navigator.pop(ctx);
+                        },
+                        child: const Text('Aplicar'),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildCidadeChips() {
     final cidadeUsuario = widget.usuario.localizacao;
+    final temFiltroAtivo = _cidadesFiltro.isNotEmpty;
+    final cidadeUsuarioValida = cidadeUsuario.isNotEmpty &&
+        cidadeUsuario != 'Não informado' &&
+        cidadeUsuario != 'Não disponível';
+
+    final cidadesExtras = _cidadesFiltro
+        .where((c) => c != cidadeUsuario)
+        .toList();
+
     return SizedBox(
       height: 36,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 24),
         children: [
-          _buildChip('Todas', ''),
-          if (cidadeUsuario.isNotEmpty && cidadeUsuario != 'Não informado')
-            _buildChip(cidadeUsuario, cidadeUsuario),
+          _buildChip('Todas', selecionado: !temFiltroAtivo, onTap: () {
+            setState(() => _cidadesFiltro = {});
+          }),
+          if (cidadeUsuarioValida)
+            _buildChip(
+              cidadeUsuario,
+              selecionado: _cidadesFiltro.contains(cidadeUsuario),
+              onTap: () {
+                setState(() {
+                  _cidadesFiltro.contains(cidadeUsuario)
+                      ? _cidadesFiltro.remove(cidadeUsuario)
+                      : _cidadesFiltro.add(cidadeUsuario);
+                });
+              },
+            ),
+          ...cidadesExtras.map((cidade) => _buildChipRemovivel(cidade)),
+          _buildChipFiltro(),
         ],
       ),
     );
   }
 
-  Widget _buildChip(String label, String value) {
-    final selecionado = _cidadeFiltro == value;
+  Widget _buildChip(String label, {required bool selecionado, required VoidCallback onTap}) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: GestureDetector(
-        onTap: () => setState(() => _cidadeFiltro = value),
+        onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -93,6 +204,78 @@ class _HomeScreenState extends State<HomeScreen> {
               fontWeight: selecionado ? FontWeight.bold : FontWeight.normal,
               fontSize: 13,
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChipRemovivel(String cidade) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppCor.primary,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              cidade,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: () => setState(() => _cidadesFiltro.remove(cidade)),
+              child: const Icon(Icons.close, size: 14, color: Colors.white),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChipFiltro() {
+    final temExtra = _cidadesFiltro.any((c) {
+      final cidadeUsuario = widget.usuario.localizacao;
+      return c != cidadeUsuario;
+    });
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: _abrirFiltroCidades,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: temExtra ? AppCor.primary : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: temExtra ? AppCor.primary : Colors.grey.shade300,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.tune, size: 14,
+                  color: temExtra ? Colors.white : AppCor.textoCinza),
+              const SizedBox(width: 4),
+              Text(
+                'Filtrar',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: temExtra ? Colors.white : AppCor.textoCinza,
+                  fontWeight: temExtra ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -186,6 +369,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       final todas = snapshot.data ??
                           _newsController.getNoticiasPorCategoria(_categoryIndex);
+                      if (_noticiasCache != todas) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) setState(() => _noticiasCache = todas);
+                        });
+                      }
                       final noticias = _filtrarNoticias(todas);
 
                       if (snapshot.hasError && todas.isEmpty) {
