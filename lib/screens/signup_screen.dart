@@ -80,30 +80,48 @@ class _SignupScreenState extends State<SignupScreen> {
   void _cadastro() async {
     if (_formKey.currentState!.validate()) {
       try {
-        int? idade = int.tryParse(_idadeController.text.trim());
+        int? anoNascimento = int.tryParse(_idadeController.text.trim());
+        String localizacaoLimpa =
+            _localizacaoAtiva || _cidadeController.text.isNotEmpty
+            ? _cidadeController.text.trim()
+            : 'Não informado';
 
-        final usuario = UserModel(
+        // Monta o usuário temporário (sem ID)
+        final usuarioLocal = UserModel(
           nome: _nomeController.text.trim(),
           email: _emailController.text.trim(),
-          dataNascimento: idade,
+          dataNascimento: anoNascimento,
           sexo: _sexo,
-          localizacao: _cidadeController.text.trim().isNotEmpty
-              ? _cidadeController.text.trim()
-              : 'Não informado',
+          localizacao: localizacaoLimpa,
         );
 
-        await SupabaseService.signUp(usuario, _senhaController.text.trim());
+        String senhaDigitada = _senhaController.text.trim();
+
+        // 2. Manda o Java salvar no banco (O Java vai gerar o ID 32, por exemplo)
+        await SupabaseService.signUp(usuarioLocal, senhaDigitada);
+
+        // 3. Faz login automático por baixo dos panos para ganhar o Token JWT
+        await SupabaseService.signIn(usuarioLocal.email, senhaDigitada);
+
+        // 4. AGORA SIM! Busca o perfil oficial do banco, que vem com o ID preenchido
+        final usuarioOficialComId = await SupabaseService.fetchUsuarioByEmail(
+          usuarioLocal.email,
+        );
 
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => HomeScreen(usuario: usuario)),
+          MaterialPageRoute(
+            // Passa o usuário oficial para a Home. Se der erro, usa o local como fallback.
+            builder: (context) =>
+                HomeScreen(usuario: usuarioOficialComId ?? usuarioLocal),
+          ),
         );
       } catch (error) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(error.toString()),
+            content: Text(error.toString().replaceAll('Exception: ', '')),
             backgroundColor: AppCor.error,
           ),
         );
@@ -231,13 +249,15 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: _carregandoLocalizacao ? null : _solicitarLocalizacao,
+                onPressed: _carregandoLocalizacao
+                    ? null
+                    : _solicitarLocalizacao,
                 child: Text(
                   _carregandoLocalizacao
                       ? 'Detectando cidade...'
                       : (_localizacaoAtiva
-                          ? 'Localização detectada ✓'
-                          : 'Detectar minha cidade'),
+                            ? 'Localização detectada ✓'
+                            : 'Detectar minha cidade'),
                 ),
               ),
               if (_localizacaoAtiva || _cidadeController.text.isNotEmpty) ...[

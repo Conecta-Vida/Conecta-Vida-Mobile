@@ -77,31 +77,62 @@ class SupabaseService {
     }
   }
 
+  // Faz o logout limpando o token da memória
+  static void signOut() {
+    jwtToken = null;
+    developer.log('Usuário deslogado com sucesso.', name: 'ApiService');
+  }
+
+  // Deleta a conta do usuário na API
+  static Future<void> deleteUsuario(String email) async {
+    try {
+      final userCompleto = await fetchUsuarioByEmail(email);
+      if (userCompleto == null || userCompleto.id == null) {
+        throw Exception("Usuário não encontrado para exclusão.");
+      }
+
+      final response = await http.delete(
+        Uri.parse('$baseUrl/usuarios/${userCompleto.id}'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
+        },
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          'Erro ao deletar conta. Status: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      developer.log('Erro ao deletar conta: $e', name: 'ApiService');
+      rethrow;
+    }
+  }
+
   // Atualiza ou insere as informações de perfil do usuário na base de dados
   static Future<void> upsertUsuario(UserModel user, {String senha = ''}) async {
     try {
-      // Prepara o mapa base
+      if (user.id == null) {
+        throw Exception("ID não encontrado. Faça login novamente.");
+      }
+
       Map<String, dynamic> payload = user.toMap(senha: senha);
-
-      // Garante que a idade seja um Integer (o Java não aceita string aqui)
       payload['idade'] = int.tryParse(user.dataNascimento.toString()) ?? 0;
-
-      // Remove campos que o Java não espera no Put para evitar conflitos
       payload.remove('campanhasInscritas');
 
-      // Ajustado para PUT conforme o seu UsuarioController.java
+      // Substituído o '0' pelo ID real do usuário:
       final response = await http.put(
-        Uri.parse(
-          '$baseUrl/usuarios/0',
-        ), // Lembre-se: substitua '0' pelo ID real do usuário
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$baseUrl/usuarios/${user.id}'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
+        },
         body: jsonEncode(payload),
       );
 
-      // Log para ajudar a ver o erro caso o 400 continue
       if (response.statusCode != 200 && response.statusCode != 201) {
-        developer.log('Erro 400 corpo: ${response.body}', name: 'ApiService');
-        throw Exception('Erro ao sincronizar usuário: ${response.statusCode}');
+        throw Exception('Erro ao atualizar dados: ${response.statusCode}');
       }
     } catch (e) {
       developer.log('Erro ao sincronizar usuario: $e', name: 'ApiService');
@@ -219,9 +250,10 @@ class SupabaseService {
       final uri = Uri.parse(
         'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lon&format=json&accept-language=pt',
       );
-      final response = await http.get(uri, headers: {
-        'User-Agent': 'ConectaVidaApp/1.0',
-      });
+      final response = await http.get(
+        uri,
+        headers: {'User-Agent': 'ConectaVidaApp/1.0'},
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final address = data['address'] as Map<String, dynamic>?;
