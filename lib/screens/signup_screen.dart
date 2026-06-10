@@ -18,8 +18,8 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _senhaController = TextEditingController();
   final _idadeController = TextEditingController();
+  final _cidadeController = TextEditingController();
   String _sexo = 'Feminino';
-  String _localizacao = 'Não autorizado';
   bool _localizacaoAtiva = false;
   bool _carregandoLocalizacao = false;
 
@@ -29,6 +29,7 @@ class _SignupScreenState extends State<SignupScreen> {
     _emailController.dispose();
     _senhaController.dispose();
     _idadeController.dispose();
+    _cidadeController.dispose();
     super.dispose();
   }
 
@@ -64,10 +65,13 @@ class _SignupScreenState extends State<SignupScreen> {
     }
 
     final posicao = await Geolocator.getCurrentPosition();
+    final cidade = await SupabaseService.fetchCidadeFromCoords(
+      posicao.latitude,
+      posicao.longitude,
+    );
     if (!mounted) return;
     setState(() {
-      _localizacao =
-          'Lat ${posicao.latitude.toStringAsFixed(4)}, Lon ${posicao.longitude.toStringAsFixed(4)}';
+      _cidadeController.text = cidade ?? '';
       _localizacaoAtiva = true;
       _carregandoLocalizacao = false;
     });
@@ -82,7 +86,9 @@ class _SignupScreenState extends State<SignupScreen> {
           email: _emailController.text.trim(),
           idade: _idadeController.text.trim(),
           sexo: _sexo,
-          localizacao: _localizacaoAtiva ? _localizacao : 'Não autorizado',
+          localizacao: _cidadeController.text.trim().isNotEmpty
+              ? _cidadeController.text.trim()
+              : 'Não informado',
         );
 
         // 2. Faz uma ÚNICA requisição para o backend criando tudo de uma vez
@@ -226,17 +232,29 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: _carregandoLocalizacao
-                    ? null
-                    : _solicitarLocalizacao,
+                onPressed: _carregandoLocalizacao ? null : _solicitarLocalizacao,
                 child: Text(
                   _carregandoLocalizacao
-                      ? 'Solicitando localização...'
+                      ? 'Detectando cidade...'
                       : (_localizacaoAtiva
-                            ? 'Localização autorizada'
-                            : 'Permitir localização'),
+                          ? 'Localização detectada ✓'
+                          : 'Detectar minha cidade'),
                 ),
               ),
+              if (_localizacaoAtiva || _cidadeController.text.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _cidadeController,
+                  decoration: const InputDecoration(
+                    labelText: 'Cidade',
+                    prefixIcon: Icon(Icons.location_on_outlined),
+                    helperText: 'Detectada pelo GPS — edite se necessário',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(15.0)),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _cadastro,
@@ -244,11 +262,6 @@ class _SignupScreenState extends State<SignupScreen> {
                   'Finalizar cadastro',
                   style: TextStyle(fontSize: 18),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Localização: $_localizacao',
-                style: const TextStyle(color: AppCor.textoCinza),
               ),
             ],
           ),
