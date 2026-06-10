@@ -4,7 +4,6 @@ import 'package:mobile_app/screens/forgot_password_screen.dart';
 import 'package:mobile_app/screens/signup_screen.dart';
 import '../global/appCor.dart';
 import '../controllers/login_controller.dart';
-import '../models/usuario.dart';
 import '../services/supabase_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -21,13 +20,6 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _controller.limparMemoria();
     super.dispose();
-  }
-
-  String _nomeDoEmail(String email) {
-    if (email.contains('@')) {
-      return email.split('@').first;
-    }
-    return email;
   }
 
   @override
@@ -128,23 +120,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: () async {
                           if (_controller.tentarLogin()) {
                             try {
-                              await SupabaseService.signIn(
+                              final usuario = await SupabaseService.signIn(
                                 _controller.emailController.text.trim(),
                                 _controller.senhaController.text.trim(),
                               );
-                              final usuario =
-                                  await SupabaseService.fetchUsuarioByEmail(
-                                    _controller.emailController.text.trim(),
-                                  ) ??
-                                  UserModel(
-                                    nome: _nomeDoEmail(
-                                      _controller.emailController.text,
-                                    ),
-                                    email: _controller.emailController.text,
-                                    dataNascimento: 2000,
-                                    sexo: 'Não informado',
-                                    localizacao: 'Não disponível',
-                                  );
                               if (!mounted) return;
                               // ignore: use_build_context_synchronously
                               Navigator.pushReplacement(
