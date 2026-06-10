@@ -62,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha:0.08),
+                      color: Colors.black.withValues(alpha: 0.08),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
@@ -79,7 +79,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Email',
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(15.0)),
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(15.0),
+                            ),
                           ),
                         ),
                         validator: (value) {
@@ -99,7 +101,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Senha',
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(15.0)),
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(15.0),
+                            ),
                           ),
                         ),
                         validator: (value) {
@@ -128,12 +132,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                 _controller.emailController.text.trim(),
                                 _controller.senhaController.text.trim(),
                               );
-                              final usuario = await SupabaseService.fetchUsuarioByEmail(
-                                      _controller.emailController.text.trim()) ??
+                              final usuario =
+                                  await SupabaseService.fetchUsuarioByEmail(
+                                    _controller.emailController.text.trim(),
+                                  ) ??
                                   UserModel(
-                                    nome: _nomeDoEmail(_controller.emailController.text),
+                                    nome: _nomeDoEmail(
+                                      _controller.emailController.text,
+                                    ),
                                     email: _controller.emailController.text,
-                                    idade: '18+',
+                                    dataNascimento: 2000,
                                     sexo: 'Não informado',
                                     localizacao: 'Não disponível',
                                   );
@@ -142,7 +150,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => HomeScreen(usuario: usuario),
+                                  builder: (context) =>
+                                      HomeScreen(usuario: usuario),
                                 ),
                               );
                             } catch (error) {
@@ -157,7 +166,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             }
                           }
                         },
-                        child: const Text('Entrar', style: TextStyle(fontSize: 18)),
+                        child: const Text(
+                          'Entrar',
+                          style: TextStyle(fontSize: 18),
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Row(
@@ -179,7 +191,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const ForgotPasswordScreen(),
+                                  builder: (context) =>
+                                      const ForgotPasswordScreen(),
                                 ),
                               );
                             },
