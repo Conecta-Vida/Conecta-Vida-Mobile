@@ -205,6 +205,31 @@ class SupabaseService {
     developer.log('Compartilhamento rastreado localmente', name: 'ApiService');
   }
 
+  // Converte coordenadas GPS em nome de cidade usando Nominatim (OpenStreetMap)
+  static Future<String?> fetchCidadeFromCoords(double lat, double lon) async {
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lon&format=json&accept-language=pt',
+      );
+      final response = await http.get(uri, headers: {
+        'User-Agent': 'ConectaVidaApp/1.0',
+      });
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final address = data['address'] as Map<String, dynamic>?;
+        if (address != null) {
+          return address['city'] as String? ??
+              address['town'] as String? ??
+              address['municipality'] as String? ??
+              address['county'] as String?;
+        }
+      }
+    } catch (e) {
+      developer.log('Erro no reverse geocoding: $e', name: 'ApiService');
+    }
+    return null;
+  }
+
   // Converte o índice numérico da aba da interface para o texto de categoria usado no banco
   static String? _categoriaPorIndex(int categoryIndex) {
     switch (categoryIndex) {
