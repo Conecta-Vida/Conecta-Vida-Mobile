@@ -6,6 +6,7 @@ class NoticiasHeader extends StatelessWidget {
   final VoidCallback? onNotifications;
   final VoidCallback? onCalendar;
   final VoidCallback? onSettings;
+  final ValueChanged<String>? onSearch;
 
   const NoticiasHeader({
     super.key,
@@ -13,6 +14,7 @@ class NoticiasHeader extends StatelessWidget {
     this.onNotifications,
     this.onCalendar,
     this.onSettings,
+    this.onSearch,
   });
 
   @override
@@ -93,8 +95,9 @@ class NoticiasHeader extends StatelessWidget {
           BoxShadow(color: Colors.black.withValues(alpha:0.1), blurRadius: 10),
         ],
       ),
-      child: const TextField(
-        decoration: InputDecoration(
+      child: TextField(
+        onChanged: onSearch,
+        decoration: const InputDecoration(
           hintText: 'Pesquisar notícias...',
           prefixIcon: Icon(Icons.search),
           border: InputBorder.none,
