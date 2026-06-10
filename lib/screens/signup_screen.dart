@@ -80,21 +80,18 @@ class _SignupScreenState extends State<SignupScreen> {
   void _cadastro() async {
     if (_formKey.currentState!.validate()) {
       try {
-        // 1. Converte o texto digitado (Ex: "1998") para número inteiro
-        int? anoNascimento = int.tryParse(_idadeController.text.trim());
+        int? idade = int.tryParse(_idadeController.text.trim());
 
-        // 2. Monta o usuário com os tipos de dados corretos para o novo Banco
         final usuario = UserModel(
           nome: _nomeController.text.trim(),
           email: _emailController.text.trim(),
-          dataNascimento: anoNascimento,
+          dataNascimento: idade,
           sexo: _sexo,
           localizacao: _cidadeController.text.trim().isNotEmpty
               ? _cidadeController.text.trim()
               : 'Não informado',
         );
 
-        // 3. Faz uma ÚNICA requisição para o backend criando tudo de uma vez
         await SupabaseService.signUp(usuario, _senhaController.text.trim());
 
         if (!mounted) return;
@@ -190,8 +187,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 controller: _idadeController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
-                  labelText: 'Ano de Nascimento',
-                  hintText: 'Ex: 2002',
+                  labelText: 'Idade',
                   counterText: "",
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.all(Radius.circular(15.0)),
