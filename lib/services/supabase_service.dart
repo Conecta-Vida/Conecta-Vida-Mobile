@@ -27,7 +27,8 @@ class SupabaseService {
           'nome': usuario.nome.trim(),
           'email': usuario.email.trim(),
           'senha': senha.trim(),
-          'idade': int.tryParse(usuario.dataNascimento.toString()) ?? 0,
+          'data_nascimento':
+              int.tryParse(usuario.dataNascimento.toString()) ?? 0,
           'sexo': usuario.sexo,
           'localizacao':
               usuario.localizacao, // As coordenadas vêm pra cá direto!
@@ -60,10 +61,14 @@ class SupabaseService {
         if (data is Map && data.containsKey('token')) {
           jwtToken = data['token'];
         }
+        //retorna dados do usuario pro mobile
         return UserModel(
+          id: data['id'],
           nome: data['nome'] ?? email.split('@').first,
           email: data['email'] ?? email,
-          dataNascimento: data['idade'] is int ? data['idade'] : null,
+          dataNascimento: data['data_nascimento'] is int
+              ? data['data_nascimento']
+              : null,
           sexo: data['sexo'] ?? 'Não informado',
           localizacao: data['localizacao'] ?? 'Não informado',
         );

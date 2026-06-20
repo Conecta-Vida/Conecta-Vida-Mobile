@@ -205,7 +205,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 controller: _idadeController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
-                  labelText: 'Idade',
+                  labelText: 'Data de Nascimento',
                   counterText: "",
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.all(Radius.circular(15.0)),
@@ -213,7 +213,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Digite sua idade';
+                    return 'Digite sua data de nascimento';
                   }
                   if (int.tryParse(value.trim()) == null) {
                     return 'Digite um número válido';
