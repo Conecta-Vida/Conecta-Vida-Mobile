@@ -168,7 +168,6 @@ class SupabaseService {
   static Future<List<NewsModel>> fetchNoticiasPorCategoria(
     int categoryIndex,
   ) async {
-    final categoriaFiltrada = _categoriaPorIndex(categoryIndex);
     try {
       developer.log(
         'A tentar buscar notícias reais da API...',
@@ -205,19 +204,50 @@ class SupabaseService {
           });
         }).toList();
 
-        if (categoriaFiltrada != null) {
+        if (categoryIndex == 0) {
+          // Todas as notícias
           noticias = noticias
-              .where((n) => n.categoria == categoriaFiltrada)
+              .where((n) => n.tag.toUpperCase() == 'NOTICIA')
+              .toList();
+        } else if (categoryIndex == 1) {
+          // Vacinações
+          noticias = noticias
+              .where(
+                (n) =>
+                    n.tag.toUpperCase() == 'CAMPANHA' &&
+                    n.categoria.toLowerCase().contains('vacina'),
+              )
+              .toList();
+        } else if (categoryIndex == 2) {
+          // Doações de sangue
+          noticias = noticias
+              .where(
+                (n) =>
+                    n.tag.toUpperCase() == 'CAMPANHA' &&
+                    n.categoria.toLowerCase().contains('doa'),
+              )
+              .toList();
+        } else if (categoryIndex == 3) {
+          // Alertas
+          noticias = noticias
+              .where((n) => n.tag.toUpperCase() == 'ALERTA')
+              .toList();
+        } else if (categoryIndex == 4) {
+          //Todas as Campanhas
+          noticias = noticias
+              .where((n) => n.tag.toUpperCase() == 'CAMPANHA')
               .toList();
         }
 
-        if (noticias.isNotEmpty) {
-          developer.log(
-            'Sucesso! Notícias reais carregadas.',
-            name: 'ApiService',
-          );
-          return noticias;
-        }
+        //ordena do mais recente pro mais antigo as noticias
+        noticias.sort((a, b) => b.data.compareTo(a.data));
+
+        developer.log(
+          'Sucesso! Notícias filtradas carregadas.',
+          name: 'ApiService',
+        );
+
+        return noticias;
       } else {
         // AVISO DE ERRO CRÍTICO AQUI!
         developer.log(
@@ -273,21 +303,5 @@ class SupabaseService {
       developer.log('Erro no reverse geocoding: $e', name: 'ApiService');
     }
     return null;
-  }
-
-  // Converte o índice numérico da aba da interface para o texto de categoria usado no banco
-  static String? _categoriaPorIndex(int categoryIndex) {
-    switch (categoryIndex) {
-      case 1:
-        return 'Vacinação';
-      case 2:
-        return 'Doações';
-      case 3:
-        return 'Urgente';
-      case 4:
-        return 'Eventos';
-      default:
-        return null;
-    }
   }
 }

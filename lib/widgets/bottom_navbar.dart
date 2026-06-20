@@ -12,11 +12,31 @@ class CustomBottomNavBar extends StatelessWidget {
   });
 
   static const _items = [
-    {'active': Icons.article, 'inactive': Icons.article_outlined, 'label': 'Notícias'},
-    {'active': Icons.vaccines, 'inactive': Icons.vaccines, 'label': 'Vacinação'},
-    {'active': Icons.water_drop, 'inactive': Icons.water_drop, 'label': 'Doações'},
-    {'active': Icons.warning_rounded, 'inactive': Icons.warning_amber_outlined, 'label': 'Urgentes'},
-    {'active': Icons.event, 'inactive': Icons.event_outlined, 'label': 'Eventos'},
+    {
+      'active': Icons.article,
+      'inactive': Icons.article_outlined,
+      'label': 'Notícias',
+    },
+    {
+      'active': Icons.vaccines,
+      'inactive': Icons.vaccines_outlined,
+      'label': 'Vacinas',
+    },
+    {
+      'active': Icons.water_drop,
+      'inactive': Icons.water_drop_outlined,
+      'label': 'Doações',
+    },
+    {
+      'active': Icons.warning_rounded,
+      'inactive': Icons.warning_amber_outlined,
+      'label': 'Alertas',
+    },
+    {
+      'active': Icons.campaign,
+      'inactive': Icons.campaign_outlined,
+      'label': 'Campanhas',
+    },
   ];
 
   @override
@@ -27,7 +47,7 @@ class CustomBottomNavBar extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 15,
             offset: const Offset(0, -5),
           ),

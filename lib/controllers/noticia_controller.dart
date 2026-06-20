@@ -24,15 +24,15 @@ class NewsController {
   String getTituloSessao(int categoryIndex) {
     switch (categoryIndex) {
       case 0:
-        return 'Últimas Notícias';
+        return 'Todas as Notícias';
       case 1:
-        return 'Vacinações';
+        return 'Campanhas de Vacinação';
       case 2:
         return 'Doações de Sangue';
       case 3:
-        return 'Casos Urgentes';
+        return 'Alertas Urgentes';
       case 4:
-        return 'Próximos Eventos';
+        return 'Todas as Campanhas';
       default:
         return 'Últimas Notícias';
     }
@@ -87,8 +87,10 @@ class NewsController {
       data: '12/05/2026',
       titulo: 'Combate à Dengue: limpe seu quintal',
       subtitulo: 'A campanha percorre bairros da cidade.',
-      descricao: 'A ação educativa orienta moradores a eliminar águas paradas e distruibui kits de prevenção.',
-      imagem: 'https://images.unsplash.com/photo-1584438781843-3be91c98a8d4?q=80&w=800&auto=format&fit=crop',
+      descricao:
+          'A ação educativa orienta moradores a eliminar águas paradas e distruibui kits de prevenção.',
+      imagem:
+          'https://images.unsplash.com/photo-1584438781843-3be91c98a8d4?q=80&w=800&auto=format&fit=crop',
       categoria: 'Urgente',
       local: 'Vários bairros',
       publicoAlvo: 'População em geral',
