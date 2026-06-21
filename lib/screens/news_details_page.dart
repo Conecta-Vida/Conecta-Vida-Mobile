@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/noticia.dart';
@@ -7,11 +8,199 @@ import '../services/supabase_service.dart';
 import '../widgets/noticia_info_botao.dart';
 import '../widgets/noticia_secao_mais.dart';
 
-class NewsDetailsPage extends StatelessWidget {
+class NewsDetailsPage extends StatefulWidget {
   final NewsModel noticia;
   final String? sharedBy;
+  final int? userId;
 
-  const NewsDetailsPage({super.key, required this.noticia, this.sharedBy});
+  const NewsDetailsPage({
+    super.key,
+    required this.noticia,
+    this.sharedBy,
+    this.userId,
+  });
+
+  @override
+  State<NewsDetailsPage> createState() => _NewsDetailsPageState();
+}
+
+class _NewsDetailsPageState extends State<NewsDetailsPage> {
+  static const String _boxPreferencias = 'preferencias';
+  static const String _keyLembretesCampanhas = 'lembretes_campanhas';
+
+  bool _processandoCampanha = false;
+  bool _inscrito = false;
+  bool _lembreteSalvo = false;
+
+  bool get _ehCampanha => widget.noticia.tag.toUpperCase() == 'CAMPANHA';
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarStatusLembrete();
+    _carregarStatusInscricao();
+  }
+
+  Future<Box> _obterBoxPreferencias() async {
+    if (Hive.isBoxOpen(_boxPreferencias)) {
+      return Hive.box(_boxPreferencias);
+    }
+    return Hive.openBox(_boxPreferencias);
+  }
+
+  String _chaveLembrete() {
+    return widget.noticia.id != null
+        ? 'campanha_${widget.noticia.id}'
+        : 'campanha_${widget.noticia.titulo}_${widget.noticia.data}';
+  }
+
+  Future<void> _carregarStatusLembrete() async {
+    try {
+      final box = await _obterBoxPreferencias();
+      final lembretes = List<String>.from(
+        box.get(_keyLembretesCampanhas, defaultValue: <String>[]),
+      );
+      if (!mounted) return;
+      setState(() {
+        _lembreteSalvo = lembretes.contains(_chaveLembrete());
+      });
+    } catch (_) {
+      // Sem bloqueio caso Hive não esteja disponível por algum motivo.
+    }
+  }
+
+  Future<void> _alternarLembreteCampanha() async {
+    if (!_ehCampanha) return;
+
+    try {
+      final box = await _obterBoxPreferencias();
+      final lembretes = List<String>.from(
+        box.get(_keyLembretesCampanhas, defaultValue: <String>[]),
+      );
+      final chave = _chaveLembrete();
+
+      if (lembretes.contains(chave)) {
+        lembretes.remove(chave);
+        await box.put(_keyLembretesCampanhas, lembretes);
+        if (!mounted) return;
+        setState(() => _lembreteSalvo = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lembrete removido: ${widget.noticia.titulo}'),
+            backgroundColor: AppCor.primary,
+          ),
+        );
+      } else {
+        lembretes.add(chave);
+        await box.put(_keyLembretesCampanhas, lembretes);
+        if (!mounted) return;
+        setState(() => _lembreteSalvo = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lembrete salvo para ${widget.noticia.titulo}'),
+            backgroundColor: AppCor.primary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Não foi possível salvar o lembrete: $e'),
+          backgroundColor: AppCor.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _carregarStatusInscricao() async {
+    if (!_ehCampanha || widget.userId == null || widget.noticia.id == null) {
+      return;
+    }
+
+    try {
+      final inscrito = await SupabaseService.isUsuarioInscritoEmCampanha(
+        comunicacaoId: widget.noticia.id!,
+        usuarioId: widget.userId!,
+      );
+      if (!mounted) return;
+      setState(() => _inscrito = inscrito);
+    } catch (_) {
+      // Mantém a tela funcional mesmo se a API de inscrição falhar.
+    }
+  }
+
+  Future<void> _alternarInscricaoCampanha() async {
+    if (widget.noticia.id == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Esta campanha ainda não possui ID válido para inscrição.'),
+        ),
+      );
+      return;
+    }
+
+    int? usuarioId = widget.userId;
+
+    // Fallback: se o id não veio da sessão, tenta resolver pelo e-mail autenticado.
+    if (usuarioId == null && (widget.sharedBy ?? '').trim().isNotEmpty) {
+      final user = await SupabaseService.fetchUsuarioByEmail(widget.sharedBy!.trim());
+      usuarioId = user?.id;
+    }
+
+    if (usuarioId == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível identificar o usuário para inscrição.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _processandoCampanha = true);
+
+    try {
+      if (_inscrito) {
+        await SupabaseService.desinscreverUsuarioDaCampanha(
+          comunicacaoId: widget.noticia.id!,
+          usuarioId: usuarioId,
+        );
+        if (!mounted) return;
+        setState(() => _inscrito = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Você se desinscreveu de "${widget.noticia.titulo}".'),
+            backgroundColor: AppCor.primary,
+          ),
+        );
+      } else {
+        await SupabaseService.inscreverUsuarioEmCampanha(
+          comunicacaoId: widget.noticia.id!,
+          usuarioId: usuarioId,
+        );
+        if (!mounted) return;
+        setState(() => _inscrito = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Campanha adicionada ao seu calendário: ${widget.noticia.titulo}'),
+            backgroundColor: AppCor.primary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao atualizar inscrição da campanha: $e'),
+          backgroundColor: AppCor.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _processandoCampanha = false);
+    }
+  }
 
   Color _corDaCategoria(String categoria) {
     if (categoria.toLowerCase().contains('alerta')) {
@@ -29,7 +218,7 @@ class NewsDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String imagePath = noticia.imagem.trim();
+    final String imagePath = widget.noticia.imagem.trim();
     final bool hasImage = imagePath.isNotEmpty;
     final bool isNetworkImage = hasImage && imagePath.startsWith('http');
 
@@ -67,11 +256,11 @@ class NewsDetailsPage extends StatelessWidget {
             ),
             onPressed: () async {
               final shareText =
-                  '${noticia.titulo}\n\n${noticia.subtitulo}\n\n${noticia.descricao}\n\nÓrgão: ${noticia.orgao}\nContato: ${noticia.orgaoTelefone}';
-              await Share.share(shareText, subject: noticia.titulo);
+                  '${widget.noticia.titulo}\n\n${widget.noticia.subtitulo}\n\n${widget.noticia.descricao}\n\nÓrgão: ${widget.noticia.orgao}\nContato: ${widget.noticia.orgaoTelefone}';
+              await Share.share(shareText, subject: widget.noticia.titulo);
               await SupabaseService.trackNewsShare(
-                noticia,
-                sharedBy: sharedBy ?? 'app_user',
+                widget.noticia,
+                sharedBy: widget.sharedBy ?? 'app_user',
               );
             },
           ),
@@ -88,7 +277,7 @@ class NewsDetailsPage extends StatelessWidget {
               width: double.infinity,
               height: 320,
               child: Hero(
-                tag: noticia.titulo + noticia.data,
+                tag: widget.noticia.titulo + widget.noticia.data,
                 child: !hasImage
                     ? Container(
                         color: const Color(0xFFEAF3FB),
@@ -128,14 +317,14 @@ class NewsDetailsPage extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: _corDaCategoria(
-                        noticia.categoria,
+                        widget.noticia.categoria,
                       ).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      noticia.categoria.toUpperCase(),
+                      widget.noticia.categoria.toUpperCase(),
                       style: TextStyle(
-                        color: _corDaCategoria(noticia.categoria),
+                        color: _corDaCategoria(widget.noticia.categoria),
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                         letterSpacing: 1,
@@ -145,7 +334,7 @@ class NewsDetailsPage extends StatelessWidget {
                   const SizedBox(height: 16),
 
                   Text(
-                    noticia.titulo,
+                    widget.noticia.titulo,
                     style: const TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
@@ -169,29 +358,21 @@ class NewsDetailsPage extends StatelessWidget {
                         NoticiasInfoBotao(
                           icone: Icons.calendar_month,
                           titulo: 'Data e Hora',
-                          valor: noticia.data,
-                          iconeAcao: Icons.add_alarm,
-                          corAcao: AppCor.catDoacoes,
-                          aoClicar: () =>
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    '🔔 Lembrete salvo no calendário!',
-                                  ),
-                                  backgroundColor: AppCor.catVacinacao,
-                                ),
-                              ),
+                          valor: widget.noticia.data,
+                          iconeAcao: _lembreteSalvo ? Icons.alarm_on : Icons.add_alarm,
+                          corAcao: _lembreteSalvo ? AppCor.catVacinacao : AppCor.catDoacoes,
+                          aoClicar: _ehCampanha ? _alternarLembreteCampanha : null,
                         ),
                         const Divider(height: 1),
                         NoticiasInfoBotao(
                           icone: Icons.location_on,
                           titulo: 'Local (Toque para abrir)',
-                          valor: noticia.local,
+                          valor: widget.noticia.local,
                           iconeAcao: Icons.map_outlined,
                           corAcao: AppCor.primary,
                           aoClicar: () async {
                             final url = Uri.parse(
-                              'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(noticia.local)}',
+                              'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(widget.noticia.local)}',
                             );
                             if (await canLaunchUrl(url)) {
                               await launchUrl(url);
@@ -202,11 +383,11 @@ class NewsDetailsPage extends StatelessWidget {
                         NoticiasInfoBotao(
                           icone: Icons.business,
                           titulo: 'Órgão Publicador',
-                          valor: noticia.orgao,
+                          valor: widget.noticia.orgao,
                           iconeAcao: Icons.open_in_new,
                           corAcao: AppCor.primary,
                           aoClicar: () async {
-                            final url = Uri.parse(noticia.orgaoSite);
+                            final url = Uri.parse(widget.noticia.orgaoSite);
                             if (await canLaunchUrl(url)) {
                               await launchUrl(url);
                             }
@@ -216,12 +397,12 @@ class NewsDetailsPage extends StatelessWidget {
                         NoticiasInfoBotao(
                           icone: Icons.phone,
                           titulo: 'Contato',
-                          valor: noticia.orgaoTelefone,
+                          valor: widget.noticia.orgaoTelefone,
                           iconeAcao: Icons.call_outlined,
                           corAcao: AppCor.primary,
                           aoClicar: () async {
                             final url = Uri.parse(
-                              'tel:${noticia.orgaoTelefone}',
+                              'tel:${widget.noticia.orgaoTelefone}',
                             );
                             if (await canLaunchUrl(url)) {
                               await launchUrl(url);
@@ -232,12 +413,46 @@ class NewsDetailsPage extends StatelessWidget {
                         NoticiasInfoBotao(
                           icone: Icons.people,
                           titulo: 'Público-Alvo',
-                          valor: noticia.publicoAlvo,
+                          valor: widget.noticia.publicoAlvo,
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 24),
+
+                  if (_ehCampanha)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _processandoCampanha
+                            ? null
+                            : _alternarInscricaoCampanha,
+                        icon: Icon(
+                          _inscrito
+                              ? Icons.event_busy_outlined
+                              : Icons.event_available_outlined,
+                          color: Colors.white,
+                        ),
+                        label: Text(
+                          _processandoCampanha
+                              ? 'Processando...'
+                              : _inscrito
+                              ? 'Remover do calendário (desinscrever)'
+                              : 'Adicionar ao calendário (inscrever)',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _inscrito ? AppCor.error : AppCor.catVacinacao,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
+
+                  if (_ehCampanha) const SizedBox(height: 16),
 
                   const Text(
                     'Detalhes',
@@ -250,7 +465,7 @@ class NewsDetailsPage extends StatelessWidget {
                   const SizedBox(height: 12),
 
                   Text(
-                    noticia.descricao,
+                    widget.noticia.descricao,
                     style: const TextStyle(
                       fontSize: 16,
                       height: 1.6,
@@ -266,15 +481,15 @@ class NewsDetailsPage extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () async {
                         final shareText =
-                            '${noticia.titulo}\n\n${noticia.subtitulo}\n\n${noticia.descricao}\n\nÓrgão: ${noticia.orgao}\nContato: ${noticia.orgaoTelefone}';
-                        await Share.share(shareText, subject: noticia.titulo);
+                            '${widget.noticia.titulo}\n\n${widget.noticia.subtitulo}\n\n${widget.noticia.descricao}\n\nÓrgão: ${widget.noticia.orgao}\nContato: ${widget.noticia.orgaoTelefone}';
+                        await Share.share(shareText, subject: widget.noticia.titulo);
                         await SupabaseService.trackNewsShare(
-                          noticia,
-                          sharedBy: sharedBy ?? 'app_user',
+                          widget.noticia,
+                          sharedBy: widget.sharedBy ?? 'app_user',
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _corDaCategoria(noticia.categoria),
+                        backgroundColor: _corDaCategoria(widget.noticia.categoria),
                         padding: const EdgeInsets.symmetric(
                           vertical: 14,
                         ), // Botão mais alto e elegante
@@ -301,7 +516,11 @@ class NewsDetailsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 40),
 
-                  NoticiasSecaoMais(noticiaAtual: noticia),
+                  NoticiasSecaoMais(
+                    noticiaAtual: widget.noticia,
+                    userId: widget.userId,
+                    userEmail: widget.sharedBy,
+                  ),
                   const SizedBox(height: 20),
                 ],
               ),

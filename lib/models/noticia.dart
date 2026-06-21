@@ -1,7 +1,10 @@
 // lib/model/news_model.dart
 class NewsModel {
+  final int? id;
   final String tag;
   final String data;
+  final String dataInicio;
+  final String dataFim;
   final String titulo;
   final String subtitulo;
   final String descricao;
@@ -15,8 +18,11 @@ class NewsModel {
   final String orgaoSite;
 
   NewsModel({
+    this.id,
     required this.tag,
     required this.data,
+    this.dataInicio = '',
+    this.dataFim = '',
     required this.titulo,
     required this.subtitulo,
     required this.descricao,
@@ -42,8 +48,11 @@ class NewsModel {
     }
 
     return NewsModel(
+      id: map['id'] is int ? map['id'] : int.tryParse('${map['id'] ?? ''}'),
       tag: map['tag'] ?? '',
       data: dataFormatada,
+      dataInicio: (map['dataInicio'] ?? map['data_inicio'] ?? '').toString(),
+      dataFim: (map['dataFim'] ?? map['data_fim'] ?? '').toString(),
       titulo: map['titulo'] ?? '',
       subtitulo: map['subtitulo'] ?? '',
       descricao: map['descricao'] ?? '',
@@ -60,8 +69,11 @@ class NewsModel {
 
   Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'tag': tag,
       'data': data,
+      'dataInicio': dataInicio,
+      'dataFim': dataFim,
       'titulo': titulo,
       'subtitulo': subtitulo,
       'descricao': descricao,

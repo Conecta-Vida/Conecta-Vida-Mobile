@@ -202,8 +202,11 @@ class SupabaseService {
 
         var noticias = dynamicList.map((item) {
           return NewsModel.fromMap({
+            'id': item['id'],
             'tag': item['tipo'] ?? 'Comunicação',
             'data': item['data_postada'] ?? item['dataPostada'] ?? '',
+            'data_inicio': item['data_inicio'] ?? item['dataInicio'] ?? '',
+            'data_fim': item['data_fim'] ?? item['dataFim'] ?? '',
             'titulo': item['titulo'] ?? '',
             'subtitulo': item['categoria'] ?? '',
             'descricao': item['descricao'] ?? '',
@@ -409,6 +412,175 @@ class SupabaseService {
     } catch (e) {
       developer.log('Erro ao rastrear compartilhamento: $e', name: 'ApiService');
     }
+  }
+
+  // Inscreve usuário em uma campanha (também usada para "adicionar ao calendário")
+  static Future<void> inscreverUsuarioEmCampanha({
+    required int comunicacaoId,
+    required int usuarioId,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/campanhas/$comunicacaoId/inscrever'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
+      },
+      body: jsonEncode({'usuario_id': usuarioId}),
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      String detalhe = '';
+      try {
+        final body = jsonDecode(response.body);
+        detalhe = (body is Map && body['mensagem'] != null)
+            ? body['mensagem'].toString()
+            : response.body;
+      } catch (_) {
+        detalhe = response.body;
+      }
+      throw Exception('Falha ao inscrever em campanha (${response.statusCode}): $detalhe');
+    }
+  }
+
+  // Remove vínculo usuário-campanha
+  static Future<void> desinscreverUsuarioDaCampanha({
+    required int comunicacaoId,
+    required int usuarioId,
+  }) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/campanhas/$comunicacaoId/desinscrever'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
+      },
+      body: jsonEncode({'usuario_id': usuarioId}),
+    );
+
+    if (response.statusCode != 200) {
+      String detalhe = '';
+      try {
+        final body = jsonDecode(response.body);
+        detalhe = (body is Map && body['mensagem'] != null)
+            ? body['mensagem'].toString()
+            : response.body;
+      } catch (_) {
+        detalhe = response.body;
+      }
+      throw Exception('Falha ao desinscrever da campanha (${response.statusCode}): $detalhe');
+    }
+  }
+
+  // Lista inscritos de uma campanha específica
+  static Future<List<Map<String, dynamic>>> fetchInscritosCampanha(
+    int comunicacaoId,
+  ) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/campanhas/$comunicacaoId/inscritos'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Falha ao buscar inscritos: ${response.statusCode}');
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final lista = data['inscritos'] as List<dynamic>? ?? [];
+    return lista.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  static Future<bool> isUsuarioInscritoEmCampanha({
+    required int comunicacaoId,
+    required int usuarioId,
+  }) async {
+    final inscritos = await fetchInscritosCampanha(comunicacaoId);
+    return inscritos.any((i) => (i['usuario_id'] ?? -1) == usuarioId);
+  }
+
+  static DateTime? _parseDateFlexible(String value) {
+    final texto = value.trim();
+    if (texto.isEmpty) return null;
+    if (texto.length >= 10) {
+      final iso = texto.substring(0, 10);
+      final parts = iso.split('-');
+      if (parts.length == 3) {
+        final y = int.tryParse(parts[0]);
+        final m = int.tryParse(parts[1]);
+        final d = int.tryParse(parts[2]);
+        if (y != null && m != null && d != null) {
+          return DateTime(y, m, d);
+        }
+      }
+    }
+    return DateTime.tryParse(texto);
+  }
+
+  // Campanhas ativas do usuário, ordenadas por fim mais próximo primeiro
+  static Future<List<NewsModel>> fetchCampanhasAtivasDoUsuario(int usuarioId) async {
+    final campanhas = await fetchNoticiasPorCategoria(4);
+    final List<NewsModel> inscritas = [];
+    final hoje = DateTime.now();
+    final inicioHoje = DateTime(hoje.year, hoje.month, hoje.day);
+
+    for (final campanha in campanhas) {
+      if (campanha.id == null) continue;
+
+      final inscrito = await isUsuarioInscritoEmCampanha(
+        comunicacaoId: campanha.id!,
+        usuarioId: usuarioId,
+      );
+      if (!inscrito) continue;
+
+      final fim = _parseDateFlexible(campanha.dataFim);
+      if (fim != null && fim.isBefore(inicioHoje)) continue;
+
+      inscritas.add(campanha);
+    }
+
+    inscritas.sort((a, b) {
+      final dataA = _parseDateFlexible(a.dataFim) ?? DateTime(9999, 12, 31);
+      final dataB = _parseDateFlexible(b.dataFim) ?? DateTime(9999, 12, 31);
+      return dataA.compareTo(dataB);
+    });
+
+    return inscritas;
+  }
+
+  // Gera notificações (in-app) para campanhas que acabam amanhã
+  static Future<List<Map<String, dynamic>>> fetchLembretesCampanhaUmDiaAntes(
+    int usuarioId,
+  ) async {
+    final campanhas = await fetchCampanhasAtivasDoUsuario(usuarioId);
+    final hoje = DateTime.now();
+    final amanha = DateTime(hoje.year, hoje.month, hoje.day).add(
+      const Duration(days: 1),
+    );
+
+    final lembretes = <Map<String, dynamic>>[];
+
+    for (final campanha in campanhas) {
+      final fim = _parseDateFlexible(campanha.dataFim);
+      if (fim == null) continue;
+
+      final fimDia = DateTime(fim.year, fim.month, fim.day);
+      if (fimDia.year == amanha.year &&
+          fimDia.month == amanha.month &&
+          fimDia.day == amanha.day) {
+        lembretes.add({
+          'id': 'fim_campanha_${campanha.id ?? campanha.titulo}_${campanha.dataFim}',
+          'titulo': 'Campanha termina amanhã',
+          'descricao': 'A campanha "${campanha.titulo}" encerra em breve. Confira os detalhes.',
+          'categoria': 'Urgentes',
+          'data': campanha.dataFim,
+          'localizacao': campanha.local,
+          'tipo': 'CAMPANHA',
+        });
+      }
+    }
+
+    return lembretes;
   }
 
   // Converte coordenadas GPS em nome de cidade usando Nominatim (OpenStreetMap)

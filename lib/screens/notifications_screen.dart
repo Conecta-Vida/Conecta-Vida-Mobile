@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import '../global/appCor.dart';
+import '../models/usuario.dart';
 import '../services/supabase_service.dart';
 
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({super.key});
+  final UserModel? usuario;
+
+  const NotificationsScreen({super.key, this.usuario});
 
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
@@ -58,7 +61,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<List<_NotificacaoItem>> _buscarNotificacoes() async {
     final data = await SupabaseService.fetchNotificacoes();
-    return data.map(_NotificacaoItem.fromMap).toList();
+
+    if (widget.usuario?.id != null) {
+      final lembretes = await SupabaseService.fetchLembretesCampanhaUmDiaAntes(
+        widget.usuario!.id!,
+      );
+      data.insertAll(0, lembretes);
+    }
+
+    final itens = data.map(_NotificacaoItem.fromMap).toList();
+    itens.sort((a, b) {
+      final da = DateTime.tryParse(a.data);
+      final db = DateTime.tryParse(b.data);
+      if (da == null && db == null) return 0;
+      if (da == null) return 1;
+      if (db == null) return -1;
+      return db.compareTo(da);
+    });
+    return itens;
   }
 
   List<_NotificacaoItem> _filtrarNotificacoes(List<_NotificacaoItem> lista) {

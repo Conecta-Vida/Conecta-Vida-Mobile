@@ -305,7 +305,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const NotificationsScreen(),
+                    builder: (context) => NotificationsScreen(usuario: widget.usuario),
                   ),
                 );
               },
@@ -313,7 +313,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const CalendarScreen(),
+                    builder: (context) => CalendarScreen(usuario: widget.usuario),
                   ),
                 );
               },
@@ -403,6 +403,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: NoticiaCard(
                               noticia: noticias[index],
                               userEmail: widget.usuario.email,
+                              userId: widget.usuario.id,
                             ),
                           );
                         },

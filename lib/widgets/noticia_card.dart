@@ -6,8 +6,14 @@ import '../screens/news_details_page.dart';
 class NoticiaCard extends StatelessWidget {
   final NewsModel noticia;
   final String? userEmail;
+  final int? userId;
 
-  const NoticiaCard({super.key, required this.noticia, this.userEmail});
+  const NoticiaCard({
+    super.key,
+    required this.noticia,
+    this.userEmail,
+    this.userId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +28,11 @@ class NoticiaCard extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (context) =>
-                NewsDetailsPage(noticia: noticia, sharedBy: userEmail),
+                NewsDetailsPage(
+                  noticia: noticia,
+                  sharedBy: userEmail,
+                  userId: userId,
+                ),
           ),
         );
       },
