@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:provider/provider.dart';
 import 'global/appCor.dart';
+import 'providers/usuario_provider.dart';
 import 'screens/splash_screen.dart';
 import 'services/supabase_service.dart';
 
@@ -32,7 +34,12 @@ Future<void> main() async {
     print('🚨 ERRO FATAL NO ARRANQUE: $e');
   }
 
-  runApp(const ConectaVidaApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => UsuarioProvider(),
+      child: const ConectaVidaApp(),
+    ),
+  );
 }
 
 class ConectaVidaApp extends StatelessWidget {

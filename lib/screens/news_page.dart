@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../global/appCor.dart';
 import '../controllers/noticia_controller.dart';
 import '../models/noticia.dart';
-import '../models/usuario.dart';
+import '../providers/usuario_provider.dart';
 import '../services/supabase_service.dart';
 import '../widgets/noticia_card.dart';
 import '../widgets/bottom_navbar.dart';
@@ -12,9 +13,7 @@ import 'settings_screen.dart';
 import 'calendar_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  final UserModel usuario;
-
-  const HomeScreen({super.key, required this.usuario});
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -144,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCidadeChips() {
-    final cidadeUsuario = widget.usuario.localizacao;
+    final cidadeUsuario = context.read<UsuarioProvider>().usuario!.localizacao;
     final temFiltroAtivo = _cidadesFiltro.isNotEmpty;
     final cidadeUsuarioValida = cidadeUsuario.isNotEmpty &&
         cidadeUsuario != 'Não informado' &&
@@ -244,7 +243,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildChipFiltro() {
     final temExtra = _cidadesFiltro.any((c) {
-      final cidadeUsuario = widget.usuario.localizacao;
+      final cidadeUsuario = context.read<UsuarioProvider>().usuario!.localizacao;
       return c != cidadeUsuario;
     });
     return Padding(
@@ -291,6 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final usuario = context.watch<UsuarioProvider>().usuario!;
     final String tituloSessao = _newsController.getTituloSessao(_categoryIndex);
 
     return Scaffold(
@@ -299,7 +299,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           children: [
             NoticiasHeader(
-              nome: widget.usuario.nome,
+              nome: usuario.nome,
               onSearch: (query) => setState(() => _searchQuery = query),
               onNotifications: () {
                 Navigator.push(
@@ -321,7 +321,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => SettingsScreen(usuario: widget.usuario),
+                    builder: (context) => const SettingsScreen(),
                   ),
                 );
               },
@@ -402,7 +402,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             padding: const EdgeInsets.only(bottom: 20.0),
                             child: NoticiaCard(
                               noticia: noticias[index],
-                              userEmail: widget.usuario.email,
+                              userEmail: usuario.email,
                             ),
                           );
                         },

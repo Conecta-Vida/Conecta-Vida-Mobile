@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
 import '../global/appCor.dart';
 import '../models/usuario.dart';
+import '../providers/usuario_provider.dart';
 import '../services/supabase_service.dart';
 import 'news_page.dart';
 
@@ -109,12 +111,13 @@ class _SignupScreenState extends State<SignupScreen> {
         );
 
         if (!mounted) return;
+        // ignore: use_build_context_synchronously
+        context.read<UsuarioProvider>().setUsuario(usuarioOficialComId ?? usuarioLocal);
+        // ignore: use_build_context_synchronously
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            // Passa o usuário oficial para a Home. Se der erro, usa o local como fallback.
-            builder: (context) =>
-                HomeScreen(usuario: usuarioOficialComId ?? usuarioLocal),
+            builder: (context) => const HomeScreen(),
           ),
         );
       } catch (error) {

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/screens/news_page.dart';
 import 'package:mobile_app/screens/forgot_password_screen.dart';
 import 'package:mobile_app/screens/signup_screen.dart';
+import 'package:provider/provider.dart';
 import '../global/appCor.dart';
 import '../controllers/login_controller.dart';
+import '../providers/usuario_provider.dart';
 import '../services/supabase_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -126,11 +128,12 @@ class _LoginScreenState extends State<LoginScreen> {
                               );
                               if (!mounted) return;
                               // ignore: use_build_context_synchronously
+                              context.read<UsuarioProvider>().setUsuario(usuario);
+                              // ignore: use_build_context_synchronously
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) =>
-                                      HomeScreen(usuario: usuario),
+                                  builder: (context) => const HomeScreen(),
                                 ),
                               );
                             } catch (error) {

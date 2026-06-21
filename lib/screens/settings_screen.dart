@@ -1,18 +1,19 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
-import 'package:geolocator/geolocator.dart'; // Importante para o GPS
+import 'package:provider/provider.dart';
 
 import '../global/appCor.dart';
 import '../models/usuario.dart';
+import '../providers/usuario_provider.dart';
 import '../services/supabase_service.dart';
-import 'login_screen.dart'; // Importante para o redirecionamento de Logout
+import 'login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
-  final UserModel usuario;
-
-  const SettingsScreen({super.key, required this.usuario});
+  const SettingsScreen({super.key});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -40,21 +41,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     // Inicializa campos de texto com os dados do usuário atual
-    _nomeController = TextEditingController(text: widget.usuario.nome);
+    final usuario = context.read<UsuarioProvider>().usuario!;
+    _nomeController = TextEditingController(text: usuario.nome);
     _idadeController = TextEditingController(
-      text: widget.usuario.dataNascimento?.toString() ?? '',
+      text: usuario.dataNascimento?.toString() ?? '',
     );
-    _cidadeController = TextEditingController(text: widget.usuario.localizacao);
+    _cidadeController = TextEditingController(text: usuario.localizacao);
 
-    String sexoBanco = widget.usuario.sexo;
+    String sexoBanco = usuario.sexo;
     if (sexoBanco == 'Feminino' || sexoBanco == 'Masculino') {
       _sexo = sexoBanco;
     } else {
-      _sexo = 'Não informado'; // Fallback padrão seguro
+      _sexo = 'Não informado';
     }
 
     _preferenciasBox = Hive.box('preferencias');
-    _carregarConfiguracoesLocais();
+    _carregarConfiguracoesLocais(usuario);
     _buscarRegioesDoBanco();
   }
 
@@ -113,16 +115,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _salvando = true);
     try {
+      final usuarioAtual = context.read<UsuarioProvider>().usuario!;
       final userAtt = UserModel(
-        id: widget.usuario.id,
+        id: usuarioAtual.id,
         nome: _nomeController.text.trim(),
-        email: widget.usuario.email, // Email não editável
+        email: usuarioAtual.email,
         dataNascimento: int.tryParse(_idadeController.text.trim()),
         sexo: _sexo,
         localizacao: _cidadeController.text.trim(),
       );
 
       await SupabaseService.upsertUsuario(userAtt);
+      context.read<UsuarioProvider>().setUsuario(userAtt);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -145,6 +149,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _fazerLogout() {
     SupabaseService.signOut();
+    context.read<UsuarioProvider>().limpar();
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (context) => const LoginScreen()),
       (route) => false,
@@ -169,7 +174,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () async {
               Navigator.of(ctx).pop();
               try {
-                await SupabaseService.deleteUsuario(widget.usuario.email);
+                await SupabaseService.deleteUsuario(context.read<UsuarioProvider>().usuario!.email);
                 _fazerLogout();
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -188,7 +193,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   // --- MÉTODOS DO HIVE (MANTIDOS INTACTOS) ---
-  void _carregarConfiguracoesLocais() {
+  void _carregarConfiguracoesLocais(UserModel usuario) {
     setState(() {
       _notificacoesAtivas = _preferenciasBox.get(
         'notificacoes_ligadas',
@@ -196,7 +201,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
       _usarLocalizacao = _preferenciasBox.get(
         'usar_gps',
-        defaultValue: widget.usuario.localizacao != 'Não autorizado',
+        defaultValue: usuario.localizacao != 'Não autorizado',
       );
       _regioesSelecionadas = List<String>.from(
         _preferenciasBox.get('regioes_interesse', defaultValue: <String>[]),
@@ -370,7 +375,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   style: TextStyle(color: Colors.grey, fontSize: 13),
                 ),
                 subtitle: Text(
-                  widget.usuario.email,
+                  context.watch<UsuarioProvider>().usuario!.email,
                   style: const TextStyle(color: Colors.black, fontSize: 16),
                 ),
               ),
