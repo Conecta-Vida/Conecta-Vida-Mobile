@@ -29,6 +29,10 @@ class NewsDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String imagePath = noticia.imagem.trim();
+    final bool hasImage = imagePath.isNotEmpty;
+    final bool isNetworkImage = hasImage && imagePath.startsWith('http');
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -85,9 +89,19 @@ class NewsDetailsPage extends StatelessWidget {
               height: 320,
               child: Hero(
                 tag: noticia.titulo + noticia.data,
-                child: noticia.imagem.startsWith('http')
+                child: !hasImage
+                    ? Container(
+                        color: const Color(0xFFEAF3FB),
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.image_not_supported_outlined,
+                          color: Color(0xFF90A4AE),
+                          size: 48,
+                        ),
+                      )
+                    : isNetworkImage
                     ? Image.network(
-                        noticia.imagem,
+                        imagePath,
                         fit: BoxFit.cover,
                         loadingBuilder: (context, child, loadingProgress) {
                           if (loadingProgress == null) return child;
@@ -98,7 +112,7 @@ class NewsDetailsPage extends StatelessWidget {
                           );
                         },
                       )
-                    : Image.asset(noticia.imagem, fit: BoxFit.cover),
+                    : Image.asset(imagePath, fit: BoxFit.cover),
               ),
             ),
 

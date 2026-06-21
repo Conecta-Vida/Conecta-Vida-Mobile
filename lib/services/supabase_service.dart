@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../models/noticia.dart';
 import '../models/usuario.dart';
@@ -9,11 +10,24 @@ class SupabaseService {
   // IMPORTANTE:
   // Se rodar no Emulador Android, use 'http://10.0.2.2:8080/api'
   // Se rodar no Chrome (Web), use 'http://localhost:8080/api'
-  static const String baseUrl = 'http://localhost:8080/api';
+  static String baseUrl = 'http://localhost:8080/api';
   static String? jwtToken;
 
   // Mantém a compatibilidade de inicialização de credenciais com as chamadas antigas do main
-  static Future<void> initializeCredentials(String url, String anonKey) async {}
+  static Future<void> initializeCredentials(String url, String anonKey) async {
+    final envBaseUrl = dotenv.env['API_BASE_URL']?.trim();
+
+    if (envBaseUrl != null && envBaseUrl.isNotEmpty) {
+      baseUrl = envBaseUrl;
+      return;
+    }
+
+    // Compatibilidade: só reaproveita o parâmetro url se apontar para endpoint HTTP da API
+    if (url.startsWith('http') && url.contains('/api')) {
+      baseUrl = url;
+    }
+  }
+
   static Future<void> init() async {}
   static Future<void> syncDefaultNoticias() async {}
 
@@ -266,17 +280,135 @@ class SupabaseService {
     }
   }
 
-  // Aciona o fluxo de recuperação de senha enviando um e-mail com as instruções
-  static Future<void> resetPassword(String email) async {
-    developer.log('Reset de senha para $email', name: 'ApiService');
+  // Recupera notificações dinâmicas da API para alimentar a tela de notificações
+  static Future<List<Map<String, dynamic>>> fetchNotificacoes() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/comunicacoes'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
+        },
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Falha ao carregar notificações: ${response.statusCode}');
+      }
+
+      final List<dynamic> dynamicList = jsonDecode(response.body);
+
+      final notificacoes = dynamicList.map((item) {
+        final tipo = (item['tipo'] ?? 'COMUNICACAO').toString().toUpperCase();
+        final categoriaOriginal = (item['categoria'] ?? '').toString();
+        final categoria = _normalizarCategoriaNotificacao(tipo, categoriaOriginal);
+        final data = (item['data_postada'] ?? item['dataPostada'] ?? '').toString();
+
+        return {
+          'id': (item['id'] ?? '${tipo}_${item['titulo'] ?? ''}_$data').toString(),
+          'titulo': (item['titulo'] ?? 'Notificação').toString(),
+          'descricao': (item['descricao'] ?? 'Sem detalhes adicionais.').toString(),
+          'categoria': categoria,
+          'data': data,
+          'localizacao': (item['localizacao'] ?? '').toString(),
+          'tipo': tipo,
+        };
+      }).toList();
+
+      notificacoes.sort((a, b) {
+        final dataA = DateTime.tryParse((a['data'] ?? '').toString());
+        final dataB = DateTime.tryParse((b['data'] ?? '').toString());
+        if (dataA == null && dataB == null) return 0;
+        if (dataA == null) return 1;
+        if (dataB == null) return -1;
+        return dataB.compareTo(dataA);
+      });
+
+      return notificacoes;
+    } catch (e) {
+      developer.log('Erro ao buscar notificações: $e', name: 'ApiService');
+      rethrow;
+    }
   }
 
-  // Salva no banco de dados o registro de que uma notícia foi compartilhada
+  static String _normalizarCategoriaNotificacao(
+    String tipo,
+    String categoriaOriginal,
+  ) {
+    final categoria = categoriaOriginal.toLowerCase();
+    if (tipo == 'ALERTA' || categoria.contains('urg') || categoria.contains('alert')) {
+      return 'Urgentes';
+    }
+    if (categoria.contains('vacin')) {
+      return 'Vacinação';
+    }
+    if (categoria.contains('doa') || categoria.contains('sangue')) {
+      return 'Doações';
+    }
+    if (categoria.contains('evento')) {
+      return 'Eventos';
+    }
+    if (tipo == 'CAMPANHA') {
+      return 'Eventos';
+    }
+    return 'Todas';
+  }
+
+  // Aciona o fluxo de recuperação de senha enviando um e-mail com as instruções
+  static Future<void> resetPassword(String email) async {
+    final emailLimpo = email.trim();
+    if (emailLimpo.isEmpty) {
+      throw Exception('Informe um e-mail válido para recuperação.');
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/reset-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': emailLimpo}),
+      );
+
+      if (response.statusCode == 200) {
+        return;
+      }
+
+      final body = jsonDecode(response.body);
+      throw Exception(body['mensagem'] ?? 'Falha ao solicitar recuperação de senha.');
+    } catch (e) {
+      developer.log('Erro no reset de senha: $e', name: 'ApiService');
+      rethrow;
+    }
+  }
+
+  // Salva no backend o registro de que uma notícia foi compartilhada pelo usuário
   static Future<void> trackNewsShare(
     NewsModel noticia, {
     String sharedBy = 'app_user',
   }) async {
-    developer.log('Compartilhamento rastreado localmente', name: 'ApiService');
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/comunicacoes/compartilhamentos'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
+        },
+        body: jsonEncode({
+          'titulo': noticia.titulo,
+          'categoria': noticia.categoria,
+          'localizacao': noticia.local,
+          'sharedBy': sharedBy,
+          'data': noticia.data,
+        }),
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        developer.log(
+          'Falha ao registrar compartilhamento. Status: ${response.statusCode}',
+          name: 'ApiService',
+        );
+      }
+    } catch (e) {
+      developer.log('Erro ao rastrear compartilhamento: $e', name: 'ApiService');
+    }
   }
 
   // Converte coordenadas GPS em nome de cidade usando Nominatim (OpenStreetMap)

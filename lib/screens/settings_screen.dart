@@ -206,7 +206,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _buscarRegioesDoBanco() async {
     final Set<String> localizacoesUnicas = {};
-    const String baseUrl = SupabaseService.baseUrl;
+    final String baseUrl = SupabaseService.baseUrl;
     try {
       final resComunicacoes = await http.get(
         Uri.parse('$baseUrl/comunicacoes'),
