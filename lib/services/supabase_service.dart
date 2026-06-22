@@ -53,7 +53,7 @@ class SupabaseService {
       if (response.statusCode != 200 && response.statusCode != 201) {
         developer.log('Erro do Servidor: ${response.body}', name: 'ApiService');
         throw Exception(
-          'Falha no cadastro (Erro ${response.statusCode}): O email já existe ou os dados são inválidos.',
+          'Erro REAL da API (${response.statusCode}): ${response.body}',
         );
       }
     } catch (e) {
@@ -87,8 +87,9 @@ class SupabaseService {
           localizacao: data['localizacao'] ?? 'Não informado',
         );
       } else {
-        final body = jsonDecode(response.body);
-        throw Exception(body['mensagem'] ?? 'Credenciais inválidas');
+        throw Exception(
+          'Erro REAL da API (${response.statusCode}): ${response.body}',
+        );
       }
     } catch (e) {
       developer.log('Erro ao fazer login: $e', name: 'ApiService');
@@ -295,7 +296,9 @@ class SupabaseService {
       );
 
       if (response.statusCode != 200) {
-        throw Exception('Falha ao carregar notificações: ${response.statusCode}');
+        throw Exception(
+          'Falha ao carregar notificações: ${response.statusCode}',
+        );
       }
 
       final List<dynamic> dynamicList = jsonDecode(response.body);
@@ -303,14 +306,20 @@ class SupabaseService {
       final notificacoes = dynamicList.map((item) {
         final tipo = (item['tipo'] ?? 'COMUNICACAO').toString().toUpperCase();
         final categoriaOriginal = (item['categoria'] ?? '').toString();
-        final categoria = _normalizarCategoriaNotificacao(tipo, categoriaOriginal);
-        final dataBruta = (item['data_postada'] ?? item['dataPostada'] ?? '').toString();
+        final categoria = _normalizarCategoriaNotificacao(
+          tipo,
+          categoriaOriginal,
+        );
+        final dataBruta = (item['data_postada'] ?? item['dataPostada'] ?? '')
+            .toString();
         final data = _normalizarDataIso(dataBruta);
 
         return {
-          'id': (item['id'] ?? '${tipo}_${item['titulo'] ?? ''}_$data').toString(),
+          'id': (item['id'] ?? '${tipo}_${item['titulo'] ?? ''}_$data')
+              .toString(),
           'titulo': (item['titulo'] ?? 'Notificação').toString(),
-          'descricao': (item['descricao'] ?? 'Sem detalhes adicionais.').toString(),
+          'descricao': (item['descricao'] ?? 'Sem detalhes adicionais.')
+              .toString(),
           'categoria': categoria,
           'data': data,
           'localizacao': (item['localizacao'] ?? '').toString(),
@@ -341,7 +350,9 @@ class SupabaseService {
     if (v.isEmpty) return v;
 
     final normalized = v.replaceFirst(' ', 'T');
-    final match = RegExp(r'^(.*\.)(\d+)(Z|[+-]\d{2}:?\d{2})?$').firstMatch(normalized);
+    final match = RegExp(
+      r'^(.*\.)(\d+)(Z|[+-]\d{2}:?\d{2})?$',
+    ).firstMatch(normalized);
     if (match == null) return normalized;
 
     final prefixo = match.group(1)!;
@@ -356,7 +367,9 @@ class SupabaseService {
     String categoriaOriginal,
   ) {
     final categoria = categoriaOriginal.toLowerCase();
-    if (tipo == 'ALERTA' || categoria.contains('urg') || categoria.contains('alert')) {
+    if (tipo == 'ALERTA' ||
+        categoria.contains('urg') ||
+        categoria.contains('alert')) {
       return 'Urgentes';
     }
     if (categoria.contains('vacin')) {
@@ -393,7 +406,9 @@ class SupabaseService {
       }
 
       final body = jsonDecode(response.body);
-      throw Exception(body['mensagem'] ?? 'Falha ao solicitar recuperação de senha.');
+      throw Exception(
+        body['mensagem'] ?? 'Falha ao solicitar recuperação de senha.',
+      );
     } catch (e) {
       developer.log('Erro no reset de senha: $e', name: 'ApiService');
       rethrow;
@@ -428,7 +443,10 @@ class SupabaseService {
         );
       }
     } catch (e) {
-      developer.log('Erro ao rastrear compartilhamento: $e', name: 'ApiService');
+      developer.log(
+        'Erro ao rastrear compartilhamento: $e',
+        name: 'ApiService',
+      );
     }
   }
 
@@ -456,7 +474,9 @@ class SupabaseService {
       } catch (_) {
         detalhe = response.body;
       }
-      throw Exception('Falha ao inscrever em campanha (${response.statusCode}): $detalhe');
+      throw Exception(
+        'Falha ao inscrever em campanha (${response.statusCode}): $detalhe',
+      );
     }
   }
 
@@ -484,7 +504,9 @@ class SupabaseService {
       } catch (_) {
         detalhe = response.body;
       }
-      throw Exception('Falha ao desinscrever da campanha (${response.statusCode}): $detalhe');
+      throw Exception(
+        'Falha ao desinscrever da campanha (${response.statusCode}): $detalhe',
+      );
     }
   }
 
@@ -536,7 +558,9 @@ class SupabaseService {
   }
 
   // Campanhas ativas do usuário, ordenadas por fim mais próximo primeiro
-  static Future<List<NewsModel>> fetchCampanhasAtivasDoUsuario(int usuarioId) async {
+  static Future<List<NewsModel>> fetchCampanhasAtivasDoUsuario(
+    int usuarioId,
+  ) async {
     final campanhas = await fetchNoticiasPorCategoria(4);
     final List<NewsModel> inscritas = [];
     final hoje = DateTime.now();
@@ -581,9 +605,11 @@ class SupabaseService {
   ) async {
     final campanhas = await fetchCampanhasAtivasDoUsuario(usuarioId);
     final hoje = DateTime.now();
-    final amanha = DateTime(hoje.year, hoje.month, hoje.day).add(
-      const Duration(days: 1),
-    );
+    final amanha = DateTime(
+      hoje.year,
+      hoje.month,
+      hoje.day,
+    ).add(const Duration(days: 1));
 
     final lembretes = <Map<String, dynamic>>[];
 
@@ -596,9 +622,11 @@ class SupabaseService {
           fimDia.month == amanha.month &&
           fimDia.day == amanha.day) {
         lembretes.add({
-          'id': 'fim_campanha_${campanha.id ?? campanha.titulo}_${campanha.dataFim}',
+          'id':
+              'fim_campanha_${campanha.id ?? campanha.titulo}_${campanha.dataFim}',
           'titulo': 'Campanha termina amanhã',
-          'descricao': 'A campanha "${campanha.titulo}" encerra em breve. Confira os detalhes.',
+          'descricao':
+              'A campanha "${campanha.titulo}" encerra em breve. Confira os detalhes.',
           'categoria': 'Urgentes',
           'data': campanha.dataFim,
           'localizacao': campanha.local,
