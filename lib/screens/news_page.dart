@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import '../global/appCor.dart';
 import '../controllers/noticia_controller.dart';
 import '../models/noticia.dart';
@@ -28,14 +29,83 @@ class _HomeScreenState extends State<HomeScreen> {
   Set<String> _cidadesFiltro = {};
   List<NewsModel> _noticiasCache = [];
   bool _popupAlertaExibido = false;
+  bool _usarGps = true;
 
   @override
   void initState() {
     super.initState();
+    _carregarFiltrosSalvos();
     _refreshNoticias();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _mostrarPopupAlertaCritico();
     });
+  }
+
+  Future<void> _carregarFiltrosSalvos() async {
+    try {
+      final box = Hive.isBoxOpen('preferencias')
+          ? Hive.box('preferencias')
+          : await Hive.openBox('preferencias');
+
+      final regioesSalvas = List<String>.from(
+        box.get('regioes_interesse', defaultValue: <String>[]),
+      );
+      final gpsLigado = box.get('usar_gps', defaultValue: true);
+
+      if (mounted) {
+        setState(() {
+          _usarGps = gpsLigado;
+          _cidadesFiltro = regioesSalvas.toSet();
+
+          final cidadeUsuario = widget.usuario.localizacao;
+          final cidadeValida =
+              cidadeUsuario.isNotEmpty &&
+              cidadeUsuario != 'Não informado' &&
+              cidadeUsuario != 'Não disponível';
+
+          // Se a chave GPS estiver ativa nos ajustes, injeta a cidade do usuário nos filtros
+          if (_usarGps && cidadeValida) {
+            _cidadesFiltro.add(cidadeUsuario);
+          } else if (!_usarGps && cidadeValida) {
+            _cidadesFiltro.remove(cidadeUsuario);
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Erro ao carregar filtros do Hive: $e');
+    }
+  }
+
+  // NOVO: Sincroniza qualquer clique na tela principal com o cofre de preferências
+  Future<void> _salvarFiltros() async {
+    try {
+      final box = Hive.isBoxOpen('preferencias')
+          ? Hive.box('preferencias')
+          : await Hive.openBox('preferencias');
+
+      final cidadeUsuario = widget.usuario.localizacao;
+      final cidadeValida =
+          cidadeUsuario.isNotEmpty &&
+          cidadeUsuario != 'Não informado' &&
+          cidadeUsuario != 'Não disponível';
+
+      // Atualiza o toggle de GPS (SettingsScreen) se o usuário adicionou ou removeu a própria cidade na Home
+      if (cidadeValida) {
+        bool isGpsAtivo = _cidadesFiltro.contains(cidadeUsuario);
+        await box.put('usar_gps', isGpsAtivo);
+        _usarGps = isGpsAtivo;
+      }
+
+      // Atualiza as regiões de interesse, garantindo que a cidade do GPS não se misture
+      List<String> regioes = _cidadesFiltro.toList();
+      if (cidadeValida) {
+        regioes.remove(cidadeUsuario);
+      }
+
+      await box.put('regioes_interesse', regioes);
+    } catch (e) {
+      debugPrint('Erro ao salvar filtros no Hive: $e');
+    }
   }
 
   Future<void> _mostrarPopupAlertaCritico() async {
@@ -57,9 +127,13 @@ class _HomeScreenState extends State<HomeScreen> {
         barrierDismissible: false,
         builder: (ctx) {
           return AlertDialog(
-            title: Text((alertaCritico['titulo'] ?? 'ALERTA CRÍTICO').toString()),
+            title: Text(
+              (alertaCritico['titulo'] ?? 'ALERTA CRÍTICO').toString(),
+            ),
             content: Text(
-              (alertaCritico['descricao'] ?? 'Mensagem crítica de saúde pública.').toString(),
+              (alertaCritico['descricao'] ??
+                      'Mensagem crítica de saúde pública.')
+                  .toString(),
             ),
             actions: [
               TextButton(
@@ -83,26 +157,34 @@ class _HomeScreenState extends State<HomeScreen> {
     var lista = noticias;
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
-      lista = lista.where((n) =>
-        n.titulo.toLowerCase().contains(q) ||
-        n.descricao.toLowerCase().contains(q)
-      ).toList();
+      lista = lista
+          .where(
+            (n) =>
+                n.titulo.toLowerCase().contains(q) ||
+                n.descricao.toLowerCase().contains(q),
+          )
+          .toList();
     }
     if (_cidadesFiltro.isNotEmpty) {
-      lista = lista.where((n) =>
-        _cidadesFiltro.any((c) => n.local.toLowerCase().contains(c.toLowerCase()))
-      ).toList();
+      lista = lista
+          .where(
+            (n) => _cidadesFiltro.any(
+              (c) => n.local.toLowerCase().contains(c.toLowerCase()),
+            ),
+          )
+          .toList();
     }
     return lista;
   }
 
   List<String> _cidadesDisponiveis() {
-    final cidades = _noticiasCache
-        .map((n) => n.local)
-        .where((l) => l.isNotEmpty && l != 'Região Geral')
-        .toSet()
-        .toList()
-      ..sort();
+    final cidades =
+        _noticiasCache
+            .map((n) => n.local)
+            .where((l) => l.isNotEmpty && l != 'Região Geral')
+            .toSet()
+            .toList()
+          ..sort();
     return cidades;
   }
 
@@ -127,13 +209,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 maxHeight: MediaQuery.of(ctx).size.height * 0.6,
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
                       'Filtrar por cidades',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Expanded(
@@ -168,6 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         onPressed: () {
                           setState(() => _cidadesFiltro = selecao);
+                          _salvarFiltros(); // Salva a seleção do Modal!
                           Navigator.pop(ctx);
                         },
                         child: const Text('Aplicar'),
@@ -187,7 +276,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildCidadeChips() {
     final cidadeUsuario = widget.usuario.localizacao;
     final temFiltroAtivo = _cidadesFiltro.isNotEmpty;
-    final cidadeUsuarioValida = cidadeUsuario.isNotEmpty &&
+
+    // Sempre permitimos que a cidade do usuário apareça para que ele possa ativar/desativar
+    final cidadeUsuarioValida =
+        cidadeUsuario.isNotEmpty &&
         cidadeUsuario != 'Não informado' &&
         cidadeUsuario != 'Não disponível';
 
@@ -201,9 +293,15 @@ class _HomeScreenState extends State<HomeScreen> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 24),
         children: [
-          _buildChip('Todas', selecionado: !temFiltroAtivo, onTap: () {
-            setState(() => _cidadesFiltro = {});
-          }),
+          _buildChip(
+            'Todas',
+            selecionado: !temFiltroAtivo,
+            onTap: () {
+              setState(() => _cidadesFiltro.clear());
+              _salvarFiltros(); // Limpou tudo na Home -> Salva no banco!
+            },
+          ),
+
           if (cidadeUsuarioValida)
             _buildChip(
               cidadeUsuario,
@@ -214,8 +312,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? _cidadesFiltro.remove(cidadeUsuario)
                       : _cidadesFiltro.add(cidadeUsuario);
                 });
+                _salvarFiltros(); // Clicou no chip de GPS -> Salva no banco!
               },
             ),
+
           ...cidadesExtras.map((cidade) => _buildChipRemovivel(cidade)),
           _buildChipFiltro(),
         ],
@@ -223,7 +323,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildChip(String label, {required bool selecionado, required VoidCallback onTap}) {
+  Widget _buildChip(
+    String label, {
+    required bool selecionado,
+    required VoidCallback onTap,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: GestureDetector(
@@ -274,7 +378,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(width: 4),
             GestureDetector(
-              onTap: () => setState(() => _cidadesFiltro.remove(cidade)),
+              onTap: () {
+                setState(() => _cidadesFiltro.remove(cidade));
+                _salvarFiltros(); // Fechou um chip extra -> Salva no banco!
+              },
               child: const Icon(Icons.close, size: 14, color: Colors.white),
             ),
           ],
@@ -305,8 +412,11 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.tune, size: 14,
-                  color: temExtra ? Colors.white : AppCor.textoCinza),
+              Icon(
+                Icons.tune,
+                size: 14,
+                color: temExtra ? Colors.white : AppCor.textoCinza,
+              ),
               const SizedBox(width: 4),
               Text(
                 'Filtrar',
@@ -346,7 +456,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => NotificationsScreen(usuario: widget.usuario),
+                    builder: (context) =>
+                        NotificationsScreen(usuario: widget.usuario),
                   ),
                 );
               },
@@ -354,17 +465,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => CalendarScreen(usuario: widget.usuario),
+                    builder: (context) =>
+                        CalendarScreen(usuario: widget.usuario),
                   ),
                 );
               },
-              onSettings: () {
-                Navigator.push(
+              onSettings: () async {
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => SettingsScreen(usuario: widget.usuario),
+                    builder: (context) =>
+                        SettingsScreen(usuario: widget.usuario),
                   ),
                 );
+                // Quando voltar das configurações, aplica o que foi alterado lá
+                _carregarFiltrosSalvos();
               },
             ),
             const SizedBox(height: 36),
@@ -408,8 +523,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       }
 
-                      final todas = snapshot.data ??
-                          _newsController.getNoticiasPorCategoria(_categoryIndex);
+                      final todas =
+                          snapshot.data ??
+                          _newsController.getNoticiasPorCategoria(
+                            _categoryIndex,
+                          );
                       if (_noticiasCache != todas) {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (mounted) setState(() => _noticiasCache = todas);

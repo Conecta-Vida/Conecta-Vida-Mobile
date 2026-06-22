@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
+import 'package:hive/hive.dart'; //Adicionado para ler as configurações locais
 
 // Handler executado quando o app está FECHADO ou em BACKGROUND
 // DEVE ficar fora de qualquer classe (nível global)
@@ -51,8 +52,9 @@ class PushNotificationService {
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@drawable/ifsp_logo');
 
-    const InitializationSettings initSettings =
-        InitializationSettings(android: androidSettings);
+    const InitializationSettings initSettings = InitializationSettings(
+      android: androidSettings,
+    );
 
     await _localNotifications.initialize(
       initSettings,
@@ -62,13 +64,15 @@ class PushNotificationService {
     // Solicita permissão de notificação no Android (13+)
     await _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.requestNotificationsPermission();
 
     // Cria canal de notificação no Android
     await _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(_canal);
 
     // Solicita permissão do FCM
@@ -94,8 +98,9 @@ class PushNotificationService {
     });
 
     // Push recebido com o app ABERTO → exibe notificação local
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      _exibirNotificacaoLocal(message);
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+      // Atualizado para async
+      await _exibirNotificacaoLocal(message);
     });
 
     // Push clicado com o app em BACKGROUND (não fechado)
@@ -107,8 +112,30 @@ class PushNotificationService {
     });
   }
 
+  /// Verifica se o usuário permitiu notificações no SettingsScreen
+  static Future<bool> _notificacoesAtivas() async {
+    try {
+      if (!Hive.isBoxOpen('preferencias')) {
+        await Hive.openBox('preferencias');
+      }
+      final box = Hive.box('preferencias');
+      return box.get('notificacoes_ligadas', defaultValue: true);
+    } catch (e) {
+      developer.log('Erro ao ler Hive no FCM: $e', name: 'FCM');
+      return true; // Fallback de segurança
+    }
+  }
+
   /// Exibe notificação local na bandeja do sistema
-  static void _exibirNotificacaoLocal(RemoteMessage message) {
+  static Future<void> _exibirNotificacaoLocal(RemoteMessage message) async {
+    if (!await _notificacoesAtivas()) {
+      developer.log(
+        'Push silenciado pelas configurações do usuário.',
+        name: 'FCM',
+      );
+      return;
+    }
+
     final notification = message.notification;
     if (notification == null) return;
 
@@ -124,7 +151,15 @@ class PushNotificationService {
     String notificationTitle,
     String notificationBody, {
     String? payload,
-  }) {
+  }) async {
+    if (!await _notificacoesAtivas()) {
+      developer.log(
+        'Push local silenciado pelas configurações do usuário.',
+        name: 'FCM',
+      );
+      return;
+    }
+
     final int idNotification = DateTime.now().millisecondsSinceEpoch.remainder(
       100000,
     );

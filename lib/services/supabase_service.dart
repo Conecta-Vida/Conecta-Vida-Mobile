@@ -303,7 +303,7 @@ class SupabaseService {
 
       final List<dynamic> dynamicList = jsonDecode(response.body);
 
-      final notificacoes = dynamicList.map((item) {
+      final notificacoes = dynamicList.map<Map<String, dynamic>>((item) {
         final tipo = (item['tipo'] ?? 'COMUNICACAO').toString().toUpperCase();
         final categoriaOriginal = (item['categoria'] ?? '').toString();
         final categoria = _normalizarCategoriaNotificacao(
