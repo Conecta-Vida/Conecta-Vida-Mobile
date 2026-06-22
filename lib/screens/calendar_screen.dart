@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import '../global/appCor.dart';
 import '../models/noticia.dart';
 import '../models/usuario.dart';
 import '../services/supabase_service.dart';
+import 'news_details_page.dart';
 
 class CalendarScreen extends StatefulWidget {
   final UserModel usuario;
@@ -15,248 +15,239 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
-  static const String _boxPreferencias = 'preferencias';
-  static const String _keyLembretesCampanhas = 'lembretes_campanhas';
-
-  late Future<List<NewsModel>> _campanhasFuture;
-  late Future<List<String>> _lembretesFuture;
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _todosOsEventos = [];
 
   @override
   void initState() {
     super.initState();
-    _campanhasFuture = _carregarCampanhas();
-    _lembretesFuture = _carregarLembretesSalvos();
+    _carregarDadosUnificados();
   }
 
-  Future<Box> _obterBoxPreferencias() async {
-    if (Hive.isBoxOpen(_boxPreferencias)) {
-      return Hive.box(_boxPreferencias);
-    }
-    return Hive.openBox(_boxPreferencias);
-  }
+  Future<void> _carregarDadosUnificados() async {
+    setState(() => _isLoading = true);
+    List<Map<String, dynamic>> eventosCarregados = [];
 
-  Future<List<NewsModel>> _carregarCampanhas() async {
-    if (widget.usuario.id == null) return [];
     try {
-      return await SupabaseService.fetchCampanhasAtivasDoUsuario(widget.usuario.id!);
-    } catch (_) {
-      return [];
+      // CARREGAR INSCRIÇÕES DA API (ONLINE)
+      if (widget.usuario.id != null) {
+        final campanhasInscritas =
+            await SupabaseService.fetchCampanhasAtivasDoUsuario(
+              widget.usuario.id!,
+            );
+        for (var campanha in campanhasInscritas) {
+          eventosCarregados.add({
+            'objeto': campanha,
+            'titulo': campanha.titulo,
+            'data': _formatarDataFim(campanha.dataFim),
+            'local': campanha.local,
+            'tipo': 'campanha',
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Erro ao carregar calendário: $e');
+    }
+
+    if (mounted) {
+      setState(() {
+        _todosOsEventos = eventosCarregados;
+        _isLoading = false;
+      });
     }
   }
 
-  Future<List<String>> _carregarLembretesSalvos() async {
-    final box = await _obterBoxPreferencias();
-    return List<String>.from(box.get(_keyLembretesCampanhas, defaultValue: <String>[]));
-  }
-
-  Future<void> _atualizar() async {
-    setState(() {
-      _campanhasFuture = _carregarCampanhas();
-      _lembretesFuture = _carregarLembretesSalvos();
-    });
-    await _campanhasFuture;
+  String _formatarDataFim(String valor) {
+    if (valor.isEmpty) return 'Sem data final definida';
+    final d = DateTime.tryParse(valor);
+    if (d == null) return valor;
+    final dia = d.day.toString().padLeft(2, '0');
+    final mes = d.month.toString().padLeft(2, '0');
+    final ano = d.year.toString();
+    return 'Termina em $dia/$mes/$ano';
   }
 
   Future<void> _desinscrever(NewsModel campanha) async {
     if (widget.usuario.id == null || campanha.id == null) return;
 
-    await SupabaseService.desinscreverUsuarioDaCampanha(
-      comunicacaoId: campanha.id!,
-      usuarioId: widget.usuario.id!,
-    );
+    setState(() => _isLoading = true);
+    try {
+      await SupabaseService.desinscreverUsuarioDaCampanha(
+        comunicacaoId: campanha.id!,
+        usuarioId: widget.usuario.id!,
+      );
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Você se desinscreveu de "${campanha.titulo}".'),
-        backgroundColor: AppCor.primary,
-      ),
-    );
-    await _atualizar();
-  }
-
-  String _formatarDataFim(String valor) {
-    final d = DateTime.tryParse(valor);
-    if (d == null) return valor.isEmpty ? 'Sem data final definida' : valor;
-    final dia = d.day.toString().padLeft(2, '0');
-    final mes = d.month.toString().padLeft(2, '0');
-    final ano = d.year.toString();
-    return '$dia/$mes/$ano';
-  }
-
-  String _formatarLembreteLocal(String chave) {
-    final semPrefixo = chave.startsWith('campanha_')
-        ? chave.substring('campanha_'.length)
-        : chave;
-
-    if (RegExp(r'^\d+$').hasMatch(semPrefixo)) {
-      return 'Campanha #$semPrefixo';
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Lembrete e inscrição removidos: "${campanha.titulo}".',
+          ),
+          backgroundColor: AppCor.primary,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao desinscrever: $e'),
+          backgroundColor: AppCor.error,
+        ),
+      );
     }
 
-    return semPrefixo.replaceAll('_', ' ').trim();
+    await _carregarDadosUnificados(); // Recarrega a lista
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Calendário')),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Campanhas ativas',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            FutureBuilder<List<String>>(
-              future: _lembretesFuture,
-              builder: (context, snapshot) {
-                final lembretes = snapshot.data ?? const <String>[];
-                if (lembretes.isEmpty) return const SizedBox.shrink();
-
-                return Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEAF3FB),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'Você tem ${lembretes.length} lembrete(s) salvo(s) no relógio.',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 8),
-            FutureBuilder<List<String>>(
-              future: _lembretesFuture,
-              builder: (context, snapshot) {
-                final lembretes = snapshot.data ?? const <String>[];
-                if (lembretes.isEmpty) return const SizedBox.shrink();
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Lembretes salvos localmente',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 12),
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: lembretes.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final lembrete = lembretes[index];
-                        return Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 16,
-                            ),
-                            leading: const Icon(Icons.alarm_on, color: AppCor.catVacinacao),
-                            title: Text(_formatarLembreteLocal(lembrete)),
-                            subtitle: const Text('Salvo localmente no aparelho'),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 18),
-                  ],
-                );
-              },
-            ),
-            Expanded(
-              child: FutureBuilder<List<NewsModel>>(
-                future: _campanhasFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(color: AppCor.primary),
-                    );
-                  }
-
-                  final campanhas = snapshot.data ?? [];
-                  if (campanhas.isEmpty) {
-                    return RefreshIndicator(
-                      onRefresh: _atualizar,
-                      child: ListView(
-                        children: const [
-                          SizedBox(height: 140),
-                          Icon(Icons.event_busy_outlined, size: 52, color: AppCor.textSubtitle),
-                          SizedBox(height: 12),
-                          Center(
-                            child: Text(
-                              'Você ainda não está inscrito em campanhas ativas.',
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ],
+      backgroundColor: AppCor.background,
+      appBar: AppBar(
+        title: const Text(
+          'Meu Cronograma',
+          style: TextStyle(
+            color: AppCor.textoPrimario,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: AppCor.primary),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: AppCor.primary),
+            onPressed: _carregarDadosUnificados,
+          ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: AppCor.primary),
+            )
+          : RefreshIndicator(
+              onRefresh: _carregarDadosUnificados,
+              color: AppCor.primary,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Compromissos Agendados',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppCor.textoPrimario,
+                        ),
                       ),
-                    );
-                  }
-
-                  return RefreshIndicator(
-                    onRefresh: _atualizar,
-                    child: ListView.separated(
-                      itemCount: campanhas.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 16),
-                      itemBuilder: (context, index) {
-                        final campanha = campanhas[index];
-                        return Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
+                      const SizedBox(height: 16),
+                      _todosOsEventos.isEmpty
+                          ? const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 40.0),
+                              child: Center(
+                                child: Text(
+                                  'Nenhum evento ou lembrete agendado.',
+                                  style: TextStyle(color: AppCor.textoCinza),
+                                ),
                               ),
-                            ],
-                          ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 16,
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _todosOsEventos.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 16),
+                              itemBuilder: (context, index) {
+                                final evento = _todosOsEventos[index];
+
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(18),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 16,
+                                    ),
+                                    leading: const Icon(
+                                      Icons.alarm_on,
+                                      color: AppCor.catVacinacao,
+                                    ),
+                                    title: Text(
+                                      evento['titulo'] ?? 'Sem Título',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppCor.textoPrimario,
+                                      ),
+                                    ),
+                                    subtitle: Padding(
+                                      padding: const EdgeInsets.only(top: 6.0),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            evento['data'] ?? '',
+                                            style: const TextStyle(
+                                              color: AppCor.textSubtitle,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            evento['local'] ?? '',
+                                            style: const TextStyle(
+                                              color: AppCor.textoCinza,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    trailing: IconButton(
+                                      tooltip: 'Desinscrever',
+                                      icon: const Icon(
+                                        Icons.remove_circle_outline,
+                                        color: AppCor.error,
+                                      ),
+                                      onPressed: () =>
+                                          _desinscrever(evento['objeto']),
+                                    ),
+                                    onTap: () {
+                                      if (evento['objeto'] != null) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                NewsDetailsPage(
+                                                  noticia: evento['objeto'],
+                                                  userId: widget.usuario.id,
+                                                  sharedBy:
+                                                      widget.usuario.email,
+                                                ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                );
+                              },
                             ),
-                            leading: const Icon(Icons.event, color: AppCor.primary),
-                            title: Text(campanha.titulo),
-                            subtitle: Text(
-                              'Termina em ${_formatarDataFim(campanha.dataFim)} • ${campanha.local}',
-                            ),
-                            trailing: IconButton(
-                              tooltip: 'Desinscrever',
-                              icon: const Icon(Icons.remove_circle_outline, color: AppCor.error),
-                              onPressed: () => _desinscrever(campanha),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
+                    ],
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }

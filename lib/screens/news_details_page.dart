@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/noticia.dart';
@@ -25,92 +24,15 @@ class NewsDetailsPage extends StatefulWidget {
 }
 
 class _NewsDetailsPageState extends State<NewsDetailsPage> {
-  static const String _boxPreferencias = 'preferencias';
-  static const String _keyLembretesCampanhas = 'lembretes_campanhas';
-
   bool _processandoCampanha = false;
   bool _inscrito = false;
-  bool _lembreteSalvo = false;
 
   bool get _ehCampanha => widget.noticia.tag.toUpperCase() == 'CAMPANHA';
 
   @override
   void initState() {
     super.initState();
-    _carregarStatusLembrete();
     _carregarStatusInscricao();
-  }
-
-  Future<Box> _obterBoxPreferencias() async {
-    if (Hive.isBoxOpen(_boxPreferencias)) {
-      return Hive.box(_boxPreferencias);
-    }
-    return Hive.openBox(_boxPreferencias);
-  }
-
-  String _chaveLembrete() {
-    return widget.noticia.id != null
-        ? 'campanha_${widget.noticia.id}'
-        : 'campanha_${widget.noticia.titulo}_${widget.noticia.data}';
-  }
-
-  Future<void> _carregarStatusLembrete() async {
-    try {
-      final box = await _obterBoxPreferencias();
-      final lembretes = List<String>.from(
-        box.get(_keyLembretesCampanhas, defaultValue: <String>[]),
-      );
-      if (!mounted) return;
-      setState(() {
-        _lembreteSalvo = lembretes.contains(_chaveLembrete());
-      });
-    } catch (_) {
-      // Sem bloqueio caso Hive não esteja disponível por algum motivo.
-    }
-  }
-
-  Future<void> _alternarLembreteCampanha() async {
-    if (!_ehCampanha) return;
-
-    try {
-      final box = await _obterBoxPreferencias();
-      final lembretes = List<String>.from(
-        box.get(_keyLembretesCampanhas, defaultValue: <String>[]),
-      );
-      final chave = _chaveLembrete();
-
-      if (lembretes.contains(chave)) {
-        lembretes.remove(chave);
-        await box.put(_keyLembretesCampanhas, lembretes);
-        if (!mounted) return;
-        setState(() => _lembreteSalvo = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lembrete removido: ${widget.noticia.titulo}'),
-            backgroundColor: AppCor.primary,
-          ),
-        );
-      } else {
-        lembretes.add(chave);
-        await box.put(_keyLembretesCampanhas, lembretes);
-        if (!mounted) return;
-        setState(() => _lembreteSalvo = true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lembrete salvo para ${widget.noticia.titulo}'),
-            backgroundColor: AppCor.primary,
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Não foi possível salvar o lembrete: $e'),
-          backgroundColor: AppCor.error,
-        ),
-      );
-    }
   }
 
   Future<void> _carregarStatusInscricao() async {
@@ -135,7 +57,9 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Esta campanha ainda não possui ID válido para inscrição.'),
+          content: Text(
+            'Esta campanha ainda não possui ID válido para inscrição.',
+          ),
         ),
       );
       return;
@@ -145,7 +69,9 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
 
     // Fallback: se o id não veio da sessão, tenta resolver pelo e-mail autenticado.
     if (usuarioId == null && (widget.sharedBy ?? '').trim().isNotEmpty) {
-      final user = await SupabaseService.fetchUsuarioByEmail(widget.sharedBy!.trim());
+      final user = await SupabaseService.fetchUsuarioByEmail(
+        widget.sharedBy!.trim(),
+      );
       usuarioId = user?.id;
     }
 
@@ -153,7 +79,9 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Não foi possível identificar o usuário para inscrição.'),
+          content: Text(
+            'Não foi possível identificar o usuário para inscrição.',
+          ),
         ),
       );
       return;
@@ -171,7 +99,9 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
         setState(() => _inscrito = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Você se desinscreveu de "${widget.noticia.titulo}".'),
+            content: Text(
+              'Lembrete removido. Inscrição cancelada para: "${widget.noticia.titulo}".',
+            ),
             backgroundColor: AppCor.primary,
           ),
         );
@@ -184,7 +114,9 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
         setState(() => _inscrito = true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Campanha adicionada ao seu calendário: ${widget.noticia.titulo}'),
+            content: Text(
+              'Lembrete Ativo! Você está inscrito em: ${widget.noticia.titulo}',
+            ),
             backgroundColor: AppCor.primary,
           ),
         );
@@ -193,7 +125,7 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro ao atualizar inscrição da campanha: $e'),
+          content: Text('Erro ao processar sua inscrição: $e'),
           backgroundColor: AppCor.error,
         ),
       );
@@ -357,11 +289,17 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                       children: [
                         NoticiasInfoBotao(
                           icone: Icons.calendar_month,
-                          titulo: 'Data e Hora',
+                          titulo: 'Data e Hora (Toque no ícone para inscrever)',
                           valor: widget.noticia.data,
-                          iconeAcao: _lembreteSalvo ? Icons.alarm_on : Icons.add_alarm,
-                          corAcao: _lembreteSalvo ? AppCor.catVacinacao : AppCor.catDoacoes,
-                          aoClicar: _ehCampanha ? _alternarLembreteCampanha : null,
+                          iconeAcao: _processandoCampanha
+                              ? Icons.hourglass_top
+                              : (_inscrito ? Icons.alarm_on : Icons.add_alarm),
+                          corAcao: _inscrito
+                              ? AppCor.catVacinacao
+                              : AppCor.catDoacoes,
+                          aoClicar: (_ehCampanha && !_processandoCampanha)
+                              ? _alternarInscricaoCampanha
+                              : null,
                         ),
                         const Divider(height: 1),
                         NoticiasInfoBotao(
@@ -420,40 +358,6 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  if (_ehCampanha)
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _processandoCampanha
-                            ? null
-                            : _alternarInscricaoCampanha,
-                        icon: Icon(
-                          _inscrito
-                              ? Icons.event_busy_outlined
-                              : Icons.event_available_outlined,
-                          color: Colors.white,
-                        ),
-                        label: Text(
-                          _processandoCampanha
-                              ? 'Processando...'
-                              : _inscrito
-                              ? 'Remover do calendário (desinscrever)'
-                              : 'Adicionar ao calendário (inscrever)',
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _inscrito ? AppCor.error : AppCor.catVacinacao,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                      ),
-                    ),
-
-                  if (_ehCampanha) const SizedBox(height: 16),
-
                   const Text(
                     'Detalhes',
                     style: TextStyle(
@@ -482,28 +386,28 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                       onPressed: () async {
                         final shareText =
                             '${widget.noticia.titulo}\n\n${widget.noticia.subtitulo}\n\n${widget.noticia.descricao}\n\nÓrgão: ${widget.noticia.orgao}\nContato: ${widget.noticia.orgaoTelefone}';
-                        await Share.share(shareText, subject: widget.noticia.titulo);
+                        await Share.share(
+                          shareText,
+                          subject: widget.noticia.titulo,
+                        );
                         await SupabaseService.trackNewsShare(
                           widget.noticia,
                           sharedBy: widget.sharedBy ?? 'app_user',
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _corDaCategoria(widget.noticia.categoria),
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 14,
-                        ), // Botão mais alto e elegante
+                        backgroundColor: _corDaCategoria(
+                          widget.noticia.categoria,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.share,
-                            color: Colors.white,
-                          ), // Ícone de compartilhamento
+                          Icon(Icons.share, color: Colors.white),
                           SizedBox(width: 8),
                           Text(
-                            'Compartilhar', // Texto fixo corrigido
+                            'Compartilhar',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,

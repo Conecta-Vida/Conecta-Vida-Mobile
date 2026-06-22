@@ -27,9 +27,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     'Eventos',
   ];
   String _filtroSelecionado = 'Todas';
+
   Set<String> _idsLidos = {};
   bool _notificacoesAtivas = true;
   bool _inicializando = true;
+
   late Future<List<_NotificacaoItem>> _notificacoesFuture;
 
   @override
@@ -70,27 +72,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<List<_NotificacaoItem>> _buscarNotificacoes() async {
-    List<Map<String, dynamic>> data = [];
+    // 1. Busca as notificações padrão da API
+    final data = await SupabaseService.fetchNotificacoes();
 
-    try {
-      data = await SupabaseService.fetchNotificacoes();
-    } catch (e) {
-      debugPrint('Falha ao carregar notificações base: $e');
-    }
-
+    // 2. Busca lembretes automáticos de campanhas inscritas (que acabam amanhã)
     if (widget.usuario?.id != null) {
-      try {
-        final lembretes =
-            await SupabaseService.fetchLembretesCampanhaUmDiaAntes(
-              widget.usuario!.id!,
-            );
-        data.insertAll(0, lembretes);
-      } catch (e) {
-        debugPrint('Falha ao carregar lembretes de campanha: $e');
-      }
+      final lembretes = await SupabaseService.fetchLembretesCampanhaUmDiaAntes(
+        widget.usuario!.id!,
+      );
+      data.insertAll(0, lembretes);
     }
 
+    // 3. Mapeia e ordena as notificações da mais recente para a mais antiga
     final itens = data.map(_NotificacaoItem.fromMap).toList();
+
     itens.sort((a, b) {
       final da = DateTime.tryParse(a.data);
       final db = DateTime.tryParse(b.data);
@@ -99,6 +94,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (db == null) return -1;
       return db.compareTo(da);
     });
+
     return itens;
   }
 
@@ -121,6 +117,55 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
     });
     await _persistirLidas();
+  }
+
+  Future<void> _abrirNoticia(_NotificacaoItem item) async {
+    // 1. Mostra um indicador de carregamento rápido
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) =>
+          const Center(child: CircularProgressIndicator(color: AppCor.primary)),
+    );
+
+    try {
+      // 2. Baixa todas as notícias do feed (Categoria 0 pega todas)
+      final todasAsNoticias = await SupabaseService.fetchNoticiasPorCategoria(
+        0,
+      );
+
+      // 3. Procura a notícia que tem o mesmo título da notificação
+      final noticiaEncontrada = todasAsNoticias.firstWhere(
+        (n) => n.titulo.trim() == item.tituloOriginal.trim(),
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Remove o popup de carregamento
+
+      // 4. Manda o usuário para a tela de detalhes
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => NewsDetailsPage(
+            noticia: noticiaEncontrada,
+            userId: widget.usuario?.id,
+            sharedBy: widget.usuario?.email,
+          ),
+        ),
+      );
+    } catch (e) {
+      // Se não encontrou a notícia (pode ser um alerta apagado)
+      if (!mounted) return;
+      Navigator.pop(context); // Remove o popup de carregamento
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Os detalhes completos deste alerta não estão disponíveis.',
+          ),
+          backgroundColor: AppCor.textoCinza,
+        ),
+      );
+    }
   }
 
   Future<void> _marcarTodasComoLidas(
@@ -165,51 +210,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Icons.event_available_outlined;
       default:
         return Icons.notifications_outlined;
-    }
-  }
-
-  Future<void> _abrirNoticia(_NotificacaoItem item) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) =>
-          const Center(child: CircularProgressIndicator(color: AppCor.primary)),
-    );
-
-    try {
-      final todasAsNoticias = await SupabaseService.fetchNoticiasPorCategoria(
-        0,
-      );
-
-      final noticiaEncontrada = todasAsNoticias.firstWhere(
-        (n) => n.titulo.trim() == item.tituloOriginal.trim(),
-      );
-
-      if (!mounted) return;
-      Navigator.pop(context); // Remove o popup de carregamento
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => NewsDetailsPage(
-            noticia: noticiaEncontrada,
-            userId: widget.usuario?.id,
-            sharedBy: widget.usuario?.email,
-          ),
-        ),
-      );
-    } catch (e) {
-      // Se não encontrou a notícia (pode ser um alerta geral apagado ou sem link)
-      if (!mounted) return;
-      Navigator.pop(context); // Remove o popup de carregamento
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Os detalhes completos deste alerta não estão disponíveis.',
-          ),
-          backgroundColor: AppCor.textoCinza,
-        ),
-      );
     }
   }
 
@@ -332,6 +332,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   final notificacoes = _filtrarNotificacoes(
                     snapshot.data ?? [],
                   );
+
                   if (notificacoes.isEmpty) {
                     return RefreshIndicator(
                       onRefresh: _atualizar,
@@ -367,8 +368,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         return InkWell(
                           borderRadius: BorderRadius.circular(16),
                           onTap: () {
-                            _alternarLida(item); // Marca a bolinha como lida
-                            _abrirNoticia(item); // Direciona para a notícia
+                            _alternarLida(item);
+                            _abrirNoticia(item); // Redireciona para a notícia
                           },
                           child: Container(
                             padding: const EdgeInsets.all(14),
@@ -378,11 +379,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               border: Border.all(
                                 color: lida
                                     ? Colors.grey.shade200
-                                    : AppCor.primary.withValues(alpha: 0.35),
+                                    : AppCor.primary.withOpacity(0.35),
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.04),
+                                  color: Colors.black.withOpacity(0.04),
                                   blurRadius: 10,
                                   offset: const Offset(0, 3),
                                 ),
@@ -397,7 +398,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   decoration: BoxDecoration(
                                     color: lida
                                         ? Colors.grey.shade100
-                                        : AppCor.primary.withValues(alpha: 0.1),
+                                        : AppCor.primary.withOpacity(0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
@@ -509,7 +510,8 @@ class _NotificacaoItem {
   final String categoria;
   final String data;
   final String localizacao;
-  final String tituloOriginal; // Guarda o título real para buscar a notícia
+  final String
+  tituloOriginal; // Guardará o título real para podermos buscar a notícia
 
   const _NotificacaoItem({
     required this.id,
@@ -526,17 +528,13 @@ class _NotificacaoItem {
     String desc = (map['descricao'] ?? 'Sem detalhes').toString();
     String original = title;
 
-    // Se for o alerta de "termina amanhã", pegamos o título original de dentro da descrição
+    // Se for o alerta de "termina amanhã", extraímos o título original de dentro da descrição
     if (title == 'Campanha termina amanhã') {
       final regex = RegExp(r'A campanha "(.*?)" encerra');
       final match = regex.firstMatch(desc);
       if (match != null) {
         original = match.group(1) ?? original;
       }
-    }
-    // Se for lembrete manual, removemos o sino e o prefixo
-    else if (title.startsWith('🔔 Lembrete Ativo: ')) {
-      original = title.replaceAll('🔔 Lembrete Ativo: ', '').trim();
     }
 
     return _NotificacaoItem(
