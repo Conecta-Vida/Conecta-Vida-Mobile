@@ -504,9 +504,37 @@ class SupabaseService {
       throw Exception('Falha ao buscar inscritos: ${response.statusCode}');
     }
 
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    final lista = data['inscritos'] as List<dynamic>? ?? [];
-    return lista.map((e) => Map<String, dynamic>.from(e)).toList();
+    final body = jsonDecode(response.body);
+
+    // Compatibilidade com formatos de resposta diferentes do backend.
+    if (body is List) {
+      return body
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+
+    if (body is Map<String, dynamic>) {
+      final inscritos = body['inscritos'];
+      if (inscritos is List) {
+        return inscritos
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+
+      // Alguns endpoints podem devolver uma lista em outro campo.
+      final candidatosLista = body.values.whereType<List>();
+      if (candidatosLista.isNotEmpty) {
+        final primeiraLista = candidatosLista.first;
+        return primeiraLista
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+    }
+
+    return <Map<String, dynamic>>[];
   }
 
   static Future<bool> isUsuarioInscritoEmCampanha({
@@ -537,77 +565,87 @@ class SupabaseService {
 
   // Campanhas ativas do usuário, ordenadas por fim mais próximo primeiro
   static Future<List<NewsModel>> fetchCampanhasAtivasDoUsuario(int usuarioId) async {
-    final campanhas = await fetchNoticiasPorCategoria(4);
-    final List<NewsModel> inscritas = [];
-    final hoje = DateTime.now();
-    final inicioHoje = DateTime(hoje.year, hoje.month, hoje.day);
+    try {
+      final campanhas = await fetchNoticiasPorCategoria(4);
+      final List<NewsModel> inscritas = [];
+      final hoje = DateTime.now();
+      final inicioHoje = DateTime(hoje.year, hoje.month, hoje.day);
 
-    for (final campanha in campanhas) {
-      if (campanha.id == null) continue;
+      for (final campanha in campanhas) {
+        if (campanha.id == null) continue;
 
-      bool inscrito;
-      try {
-        inscrito = await isUsuarioInscritoEmCampanha(
-          comunicacaoId: campanha.id!,
-          usuarioId: usuarioId,
-        );
-      } catch (e) {
-        developer.log(
-          'Erro ao verificar inscrição da campanha ${campanha.id}: $e',
-          name: 'ApiService',
-        );
-        continue;
+        bool inscrito;
+        try {
+          inscrito = await isUsuarioInscritoEmCampanha(
+            comunicacaoId: campanha.id!,
+            usuarioId: usuarioId,
+          );
+        } catch (e) {
+          developer.log(
+            'Erro ao verificar inscrição da campanha ${campanha.id}: $e',
+            name: 'ApiService',
+          );
+          continue;
+        }
+        if (!inscrito) continue;
+
+        final fim = _parseDateFlexible(campanha.dataFim);
+        if (fim != null && fim.isBefore(inicioHoje)) continue;
+
+        inscritas.add(campanha);
       }
-      if (!inscrito) continue;
 
-      final fim = _parseDateFlexible(campanha.dataFim);
-      if (fim != null && fim.isBefore(inicioHoje)) continue;
+      inscritas.sort((a, b) {
+        final dataA = _parseDateFlexible(a.dataFim) ?? DateTime(9999, 12, 31);
+        final dataB = _parseDateFlexible(b.dataFim) ?? DateTime(9999, 12, 31);
+        return dataA.compareTo(dataB);
+      });
 
-      inscritas.add(campanha);
+      return inscritas;
+    } catch (e) {
+      developer.log('Falha ao carregar campanhas ativas: $e', name: 'ApiService');
+      return <NewsModel>[];
     }
-
-    inscritas.sort((a, b) {
-      final dataA = _parseDateFlexible(a.dataFim) ?? DateTime(9999, 12, 31);
-      final dataB = _parseDateFlexible(b.dataFim) ?? DateTime(9999, 12, 31);
-      return dataA.compareTo(dataB);
-    });
-
-    return inscritas;
   }
 
   // Gera notificações (in-app) para campanhas que acabam amanhã
   static Future<List<Map<String, dynamic>>> fetchLembretesCampanhaUmDiaAntes(
     int usuarioId,
   ) async {
-    final campanhas = await fetchCampanhasAtivasDoUsuario(usuarioId);
-    final hoje = DateTime.now();
-    final amanha = DateTime(hoje.year, hoje.month, hoje.day).add(
-      const Duration(days: 1),
-    );
+    try {
+      final campanhas = await fetchCampanhasAtivasDoUsuario(usuarioId);
+      final hoje = DateTime.now();
+      final amanha = DateTime(hoje.year, hoje.month, hoje.day).add(
+        const Duration(days: 1),
+      );
 
-    final lembretes = <Map<String, dynamic>>[];
+      final lembretes = <Map<String, dynamic>>[];
 
-    for (final campanha in campanhas) {
-      final fim = _parseDateFlexible(campanha.dataFim);
-      if (fim == null) continue;
+      for (final campanha in campanhas) {
+        final fim = _parseDateFlexible(campanha.dataFim);
+        if (fim == null) continue;
 
-      final fimDia = DateTime(fim.year, fim.month, fim.day);
-      if (fimDia.year == amanha.year &&
-          fimDia.month == amanha.month &&
-          fimDia.day == amanha.day) {
-        lembretes.add({
-          'id': 'fim_campanha_${campanha.id ?? campanha.titulo}_${campanha.dataFim}',
-          'titulo': 'Campanha termina amanhã',
-          'descricao': 'A campanha "${campanha.titulo}" encerra em breve. Confira os detalhes.',
-          'categoria': 'Urgentes',
-          'data': campanha.dataFim,
-          'localizacao': campanha.local,
-          'tipo': 'CAMPANHA',
-        });
+        final fimDia = DateTime(fim.year, fim.month, fim.day);
+        if (fimDia.year == amanha.year &&
+            fimDia.month == amanha.month &&
+            fimDia.day == amanha.day) {
+          lembretes.add({
+            'id': 'fim_campanha_${campanha.id ?? campanha.titulo}_${campanha.dataFim}',
+            'titulo': 'Campanha termina amanhã',
+            'descricao': 'A campanha "${campanha.titulo}" encerra em breve. Confira os detalhes.',
+            'categoria': 'Urgentes',
+            'data': campanha.dataFim,
+            'localizacao': campanha.local,
+            'tipo': 'CAMPANHA',
+          });
+        }
       }
-    }
 
-    return lembretes;
+      return lembretes;
+    } catch (e) {
+      developer.log('Falha ao montar lembretes de campanha: $e', name: 'ApiService');
+      return <Map<String, dynamic>>[];
+    }
   }
 
   // Converte coordenadas GPS em nome de cidade usando Nominatim (OpenStreetMap)

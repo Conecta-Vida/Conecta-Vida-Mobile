@@ -46,7 +46,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Future<List<String>> _carregarLembretesSalvos() async {
     final box = await _obterBoxPreferencias();
-    return List<String>.from(box.get(_keyLembretesCampanhas, defaultValue: <String>[]));
+    final raw = box.get(_keyLembretesCampanhas, defaultValue: <dynamic>[]);
+    if (raw is! List) return <String>[];
+    return raw.map((item) => item.toString()).toList();
   }
 
   Future<void> _atualizar() async {
@@ -60,19 +62,29 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Future<void> _desinscrever(NewsModel campanha) async {
     if (widget.usuario.id == null || campanha.id == null) return;
 
-    await SupabaseService.desinscreverUsuarioDaCampanha(
-      comunicacaoId: campanha.id!,
-      usuarioId: widget.usuario.id!,
-    );
+    try {
+      await SupabaseService.desinscreverUsuarioDaCampanha(
+        comunicacaoId: campanha.id!,
+        usuarioId: widget.usuario.id!,
+      );
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Você se desinscreveu de "${campanha.titulo}".'),
-        backgroundColor: AppCor.primary,
-      ),
-    );
-    await _atualizar();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Você se desinscreveu de "${campanha.titulo}".'),
+          backgroundColor: AppCor.primary,
+        ),
+      );
+      await _atualizar();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Não foi possível desinscrever agora: $e'),
+          backgroundColor: AppCor.error,
+        ),
+      );
+    }
   }
 
   String _formatarDataFim(String valor) {

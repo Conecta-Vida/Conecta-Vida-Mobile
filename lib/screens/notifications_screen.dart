@@ -35,7 +35,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _inicializarTela() async {
     try {
       final box = await _obterBoxPreferencias();
-      final lidas = List<String>.from(box.get(_keyLidas, defaultValue: <String>[]));
+      final lidasRaw = box.get(_keyLidas, defaultValue: <dynamic>[]);
+      final lidas = lidasRaw is List
+          ? lidasRaw.map((item) => item.toString()).toList()
+          : <String>[];
       final notificacoesAtivas = box.get(_keyNotificacoesAtivas, defaultValue: true) == true;
 
       setState(() {

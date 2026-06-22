@@ -57,9 +57,10 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
   Future<void> _carregarStatusLembrete() async {
     try {
       final box = await _obterBoxPreferencias();
-      final lembretes = List<String>.from(
-        box.get(_keyLembretesCampanhas, defaultValue: <String>[]),
-      );
+      final raw = box.get(_keyLembretesCampanhas, defaultValue: <dynamic>[]);
+      final lembretes = raw is List
+          ? raw.map((item) => item.toString()).toList()
+          : <String>[];
       if (!mounted) return;
       setState(() {
         _lembreteSalvo = lembretes.contains(_chaveLembrete());
@@ -74,9 +75,10 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
 
     try {
       final box = await _obterBoxPreferencias();
-      final lembretes = List<String>.from(
-        box.get(_keyLembretesCampanhas, defaultValue: <String>[]),
-      );
+      final raw = box.get(_keyLembretesCampanhas, defaultValue: <dynamic>[]);
+      final lembretes = raw is List
+          ? raw.map((item) => item.toString()).toList()
+          : <String>[];
       final chave = _chaveLembrete();
 
       if (lembretes.contains(chave)) {
