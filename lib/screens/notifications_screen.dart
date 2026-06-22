@@ -3,6 +3,7 @@ import 'package:hive/hive.dart';
 import '../global/appCor.dart';
 import '../models/usuario.dart';
 import '../services/supabase_service.dart';
+import 'news_details_page.dart';
 
 class NotificationsScreen extends StatefulWidget {
   final UserModel? usuario;
@@ -18,11 +19,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   static const String _keyLidas = 'notificacoes_lidas';
   static const String _keyNotificacoesAtivas = 'notificacoes_ligadas';
 
-  final List<String> _filtros = ['Todas', 'Vacinação', 'Doações', 'Urgentes', 'Eventos'];
+  final List<String> _filtros = [
+    'Todas',
+    'Vacinação',
+    'Doações',
+    'Urgentes',
+    'Eventos',
+  ];
   String _filtroSelecionado = 'Todas';
+
   Set<String> _idsLidos = {};
   bool _notificacoesAtivas = true;
   bool _inicializando = true;
+
   late Future<List<_NotificacaoItem>> _notificacoesFuture;
 
   @override
@@ -35,11 +44,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _inicializarTela() async {
     try {
       final box = await _obterBoxPreferencias();
-      final lidasRaw = box.get(_keyLidas, defaultValue: <dynamic>[]);
-      final lidas = lidasRaw is List
-          ? lidasRaw.map((item) => item.toString()).toList()
-          : <String>[];
-      final notificacoesAtivas = box.get(_keyNotificacoesAtivas, defaultValue: true) == true;
+      final lidas = List<String>.from(
+        box.get(_keyLidas, defaultValue: <String>[]),
+      );
+      final notificacoesAtivas =
+          box.get(_keyNotificacoesAtivas, defaultValue: true) == true;
 
       setState(() {
         _idsLidos = lidas.toSet();
@@ -63,26 +72,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<List<_NotificacaoItem>> _buscarNotificacoes() async {
-    List<Map<String, dynamic>> data = [];
+    // 1. Busca as notificações padrão da API
+    final data = await SupabaseService.fetchNotificacoes();
 
-    try {
-      data = await SupabaseService.fetchNotificacoes();
-    } catch (e) {
-      debugPrint('Falha ao carregar notificações base: $e');
-    }
-
+    // 2. Busca lembretes automáticos de campanhas inscritas (que acabam amanhã)
     if (widget.usuario?.id != null) {
-      try {
-        final lembretes = await SupabaseService.fetchLembretesCampanhaUmDiaAntes(
-          widget.usuario!.id!,
-        );
-        data.insertAll(0, lembretes);
-      } catch (e) {
-        debugPrint('Falha ao carregar lembretes de campanha: $e');
-      }
+      final lembretes = await SupabaseService.fetchLembretesCampanhaUmDiaAntes(
+        widget.usuario!.id!,
+      );
+      data.insertAll(0, lembretes);
     }
 
+    // 3. Mapeia e ordena as notificações da mais recente para a mais antiga
     final itens = data.map(_NotificacaoItem.fromMap).toList();
+
     itens.sort((a, b) {
       final da = DateTime.tryParse(a.data);
       final db = DateTime.tryParse(b.data);
@@ -91,6 +94,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (db == null) return -1;
       return db.compareTo(da);
     });
+
     return itens;
   }
 
@@ -115,7 +119,58 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     await _persistirLidas();
   }
 
-  Future<void> _marcarTodasComoLidas(List<_NotificacaoItem> notificacoes) async {
+  Future<void> _abrirNoticia(_NotificacaoItem item) async {
+    // 1. Mostra um indicador de carregamento rápido
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) =>
+          const Center(child: CircularProgressIndicator(color: AppCor.primary)),
+    );
+
+    try {
+      // 2. Baixa todas as notícias do feed (Categoria 0 pega todas)
+      final todasAsNoticias = await SupabaseService.fetchNoticiasPorCategoria(
+        0,
+      );
+
+      // 3. Procura a notícia que tem o mesmo título da notificação
+      final noticiaEncontrada = todasAsNoticias.firstWhere(
+        (n) => n.titulo.trim() == item.tituloOriginal.trim(),
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Remove o popup de carregamento
+
+      // 4. Manda o usuário para a tela de detalhes
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => NewsDetailsPage(
+            noticia: noticiaEncontrada,
+            userId: widget.usuario?.id,
+            sharedBy: widget.usuario?.email,
+          ),
+        ),
+      );
+    } catch (e) {
+      // Se não encontrou a notícia (pode ser um alerta apagado)
+      if (!mounted) return;
+      Navigator.pop(context); // Remove o popup de carregamento
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Os detalhes completos deste alerta não estão disponíveis.',
+          ),
+          backgroundColor: AppCor.textoCinza,
+        ),
+      );
+    }
+  }
+
+  Future<void> _marcarTodasComoLidas(
+    List<_NotificacaoItem> notificacoes,
+  ) async {
     setState(() {
       _idsLidos.addAll(notificacoes.map((n) => n.id));
     });
@@ -162,9 +217,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     if (_inicializando) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(color: AppCor.primary),
-        ),
+        body: Center(child: CircularProgressIndicator(color: AppCor.primary)),
       );
     }
 
@@ -230,9 +283,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   selectedColor: AppCor.primary,
                   backgroundColor: Colors.grey.shade200,
                   labelStyle: TextStyle(
-                    color: _filtroSelecionado == filtro ? Colors.white : AppCor.textTitle,
+                    color: _filtroSelecionado == filtro
+                        ? Colors.white
+                        : AppCor.textTitle,
                   ),
-                  onSelected: (_) => setState(() => _filtroSelecionado = filtro),
+                  onSelected: (_) =>
+                      setState(() => _filtroSelecionado = filtro),
                 );
               }).toList(),
             ),
@@ -252,7 +308,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.wifi_off, size: 48, color: AppCor.textSubtitle),
+                          const Icon(
+                            Icons.wifi_off,
+                            size: 48,
+                            color: AppCor.textSubtitle,
+                          ),
                           const SizedBox(height: 12),
                           const Text(
                             'Não foi possível carregar as notificações.',
@@ -269,14 +329,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     );
                   }
 
-                  final notificacoes = _filtrarNotificacoes(snapshot.data ?? []);
+                  final notificacoes = _filtrarNotificacoes(
+                    snapshot.data ?? [],
+                  );
+
                   if (notificacoes.isEmpty) {
                     return RefreshIndicator(
                       onRefresh: _atualizar,
                       child: ListView(
                         children: const [
                           SizedBox(height: 120),
-                          Icon(Icons.notifications_off_outlined, size: 52, color: AppCor.textSubtitle),
+                          Icon(
+                            Icons.notifications_off_outlined,
+                            size: 52,
+                            color: AppCor.textSubtitle,
+                          ),
                           SizedBox(height: 12),
                           Center(
                             child: Text(
@@ -300,18 +367,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
                         return InkWell(
                           borderRadius: BorderRadius.circular(16),
-                          onTap: () => _alternarLida(item),
+                          onTap: () {
+                            _alternarLida(item);
+                            _abrirNoticia(item); // Redireciona para a notícia
+                          },
                           child: Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: lida ? Colors.grey.shade200 : AppCor.primary.withValues(alpha: 0.35),
+                                color: lida
+                                    ? Colors.grey.shade200
+                                    : AppCor.primary.withOpacity(0.35),
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.04),
+                                  color: Colors.black.withOpacity(0.04),
                                   blurRadius: 10,
                                   offset: const Offset(0, 3),
                                 ),
@@ -326,18 +398,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   decoration: BoxDecoration(
                                     color: lida
                                         ? Colors.grey.shade100
-                                        : AppCor.primary.withValues(alpha: 0.1),
+                                        : AppCor.primary.withOpacity(0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
                                     _iconePorCategoria(item.categoria),
-                                    color: lida ? AppCor.textSubtitle : AppCor.primary,
+                                    color: lida
+                                        ? AppCor.textSubtitle
+                                        : AppCor.primary,
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
@@ -345,7 +420,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                             child: Text(
                                               item.titulo,
                                               style: TextStyle(
-                                                fontWeight: lida ? FontWeight.w500 : FontWeight.bold,
+                                                fontWeight: lida
+                                                    ? FontWeight.w500
+                                                    : FontWeight.bold,
                                                 color: AppCor.textTitle,
                                               ),
                                             ),
@@ -364,7 +441,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                       const SizedBox(height: 4),
                                       Text(
                                         item.descricao,
-                                        style: const TextStyle(color: AppCor.textSubtitle),
+                                        style: const TextStyle(
+                                          color: AppCor.textSubtitle,
+                                        ),
                                       ),
                                       const SizedBox(height: 8),
                                       Wrap(
@@ -372,7 +451,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                         runSpacing: 6,
                                         children: [
                                           _TagInfo(text: item.categoria),
-                                          _TagInfo(text: _formatarData(item.data)),
+                                          _TagInfo(
+                                            text: _formatarData(item.data),
+                                          ),
                                           if (item.localizacao.isNotEmpty)
                                             _TagInfo(text: item.localizacao),
                                         ],
@@ -429,6 +510,8 @@ class _NotificacaoItem {
   final String categoria;
   final String data;
   final String localizacao;
+  final String
+  tituloOriginal; // Guardará o título real para podermos buscar a notícia
 
   const _NotificacaoItem({
     required this.id,
@@ -437,16 +520,31 @@ class _NotificacaoItem {
     required this.categoria,
     required this.data,
     required this.localizacao,
+    required this.tituloOriginal,
   });
 
   factory _NotificacaoItem.fromMap(Map<String, dynamic> map) {
+    String title = (map['titulo'] ?? 'Notificação').toString();
+    String desc = (map['descricao'] ?? 'Sem detalhes').toString();
+    String original = title;
+
+    // Se for o alerta de "termina amanhã", extraímos o título original de dentro da descrição
+    if (title == 'Campanha termina amanhã') {
+      final regex = RegExp(r'A campanha "(.*?)" encerra');
+      final match = regex.firstMatch(desc);
+      if (match != null) {
+        original = match.group(1) ?? original;
+      }
+    }
+
     return _NotificacaoItem(
       id: (map['id'] ?? '').toString(),
-      titulo: (map['titulo'] ?? 'Notificação').toString(),
-      descricao: (map['descricao'] ?? 'Sem detalhes').toString(),
+      titulo: title,
+      descricao: desc,
       categoria: (map['categoria'] ?? 'Todas').toString(),
       data: (map['data'] ?? '').toString(),
       localizacao: (map['localizacao'] ?? '').toString(),
+      tituloOriginal: original,
     );
   }
 }
