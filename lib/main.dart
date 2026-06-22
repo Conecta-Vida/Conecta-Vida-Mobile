@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -5,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'global/appCor.dart';
 import 'providers/usuario_provider.dart';
 import 'screens/splash_screen.dart';
+import 'services/push_notification_service.dart';
 import 'services/supabase_service.dart';
 
 Future<void> main() async {
@@ -29,6 +31,12 @@ Future<void> main() async {
     // Inicia ligação com banco de dados
     await SupabaseService.init();
     await SupabaseService.syncDefaultNoticias();
+
+    // Inicializa Firebase e serviço de push notification
+    await Firebase.initializeApp();
+    await PushNotificationService.inicializar(
+      apiBaseUrl: dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080/api',
+    );
   } catch (e) {
     // Se esquecer do ficheiro .env ou a net falhar, dá erro
     print('🚨 ERRO FATAL NO ARRANQUE: $e');

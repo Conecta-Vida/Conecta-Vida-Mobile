@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import '../global/appCor.dart';
@@ -24,6 +25,29 @@ class _SignupScreenState extends State<SignupScreen> {
   String _sexo = 'Feminino';
   bool _localizacaoAtiva = false;
   bool _carregandoLocalizacao = false;
+
+  DateTime? _parseDataNascimento(String valor) {
+    final partes = valor.trim().split('/');
+    if (partes.length != 3) return null;
+
+    final dia = int.tryParse(partes[0]);
+    final mes = int.tryParse(partes[1]);
+    final ano = int.tryParse(partes[2]);
+    if (dia == null || mes == null || ano == null) return null;
+
+    final agora = DateTime.now();
+    if (ano < 1900 || ano > agora.year) return null;
+
+    try {
+      final data = DateTime(ano, mes, dia);
+      if (data.year != ano || data.month != mes || data.day != dia) {
+        return null;
+      }
+      return data;
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   void dispose() {
@@ -82,7 +106,8 @@ class _SignupScreenState extends State<SignupScreen> {
   void _cadastro() async {
     if (_formKey.currentState!.validate()) {
       try {
-        int? anoNascimento = int.tryParse(_idadeController.text.trim());
+        final dataNascimento = _parseDataNascimento(_idadeController.text);
+        final anoNascimento = dataNascimento?.year;
         String localizacaoLimpa =
             _localizacaoAtiva || _cidadeController.text.isNotEmpty
             ? _cidadeController.text.trim()
@@ -207,8 +232,13 @@ class _SignupScreenState extends State<SignupScreen> {
               TextFormField(
                 controller: _idadeController,
                 keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  const _DataNascimentoFormatter(),
+                ],
                 decoration: const InputDecoration(
-                  labelText: 'Data de Nascimento',
+                  labelText: 'Data de Nascimento (DD/MM/AAAA)',
+                  hintText: 'Ex.: 15/08/2001',
                   counterText: "",
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.all(Radius.circular(15.0)),
@@ -218,8 +248,9 @@ class _SignupScreenState extends State<SignupScreen> {
                   if (value == null || value.trim().isEmpty) {
                     return 'Digite sua data de nascimento';
                   }
-                  if (int.tryParse(value.trim()) == null) {
-                    return 'Digite um número válido';
+                  final data = _parseDataNascimento(value);
+                  if (data == null) {
+                    return 'Digite uma data válida no formato DD/MM/AAAA';
                   }
                   return null;
                 },
@@ -289,6 +320,31 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DataNascimentoFormatter extends TextInputFormatter {
+  const _DataNascimentoFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final limitado = digits.length > 8 ? digits.substring(0, 8) : digits;
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < limitado.length; i++) {
+      if (i == 2 || i == 4) buffer.write('/');
+      buffer.write(limitado[i]);
+    }
+
+    final textoFormatado = buffer.toString();
+    return TextEditingValue(
+      text: textoFormatado,
+      selection: TextSelection.collapsed(offset: textoFormatado.length),
     );
   }
 }

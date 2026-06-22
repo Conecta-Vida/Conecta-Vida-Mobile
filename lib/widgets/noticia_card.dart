@@ -6,12 +6,20 @@ import '../screens/news_details_page.dart';
 class NoticiaCard extends StatelessWidget {
   final NewsModel noticia;
   final String? userEmail;
+  final int? userId;
 
-  const NoticiaCard({super.key, required this.noticia, this.userEmail});
+  const NoticiaCard({
+    super.key,
+    required this.noticia,
+    this.userEmail,
+    this.userId,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final bool isNetworkImage = noticia.imagem.startsWith('http');
+    final String imagePath = noticia.imagem.trim();
+    final bool hasImage = imagePath.isNotEmpty;
+    final bool isNetworkImage = hasImage && imagePath.startsWith('http');
 
     return GestureDetector(
       onTap: () {
@@ -20,7 +28,11 @@ class NoticiaCard extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (context) =>
-                NewsDetailsPage(noticia: noticia, sharedBy: userEmail),
+                NewsDetailsPage(
+                  noticia: noticia,
+                  sharedBy: userEmail,
+                  userId: userId,
+                ),
           ),
         );
       },
@@ -46,15 +58,27 @@ class NoticiaCard extends StatelessWidget {
               ),
               child: Hero(
                 tag: noticia.titulo + noticia.data,
-                child: isNetworkImage
+                child: !hasImage
+                    ? Container(
+                        height: 140,
+                        width: double.infinity,
+                        color: const Color(0xFFEAF3FB),
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.image_not_supported_outlined,
+                          color: Color(0xFF90A4AE),
+                          size: 34,
+                        ),
+                      )
+                    : isNetworkImage
                     ? Image.network(
-                        noticia.imagem,
+                        imagePath,
                         height: 140,
                         width: double.infinity,
                         fit: BoxFit.cover,
                       )
                     : Image.asset(
-                        noticia.imagem,
+                        imagePath,
                         height: 140,
                         width: double.infinity,
                         fit: BoxFit.cover,

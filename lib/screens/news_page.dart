@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
 import '../global/appCor.dart';
 import '../controllers/noticia_controller.dart';
@@ -26,11 +27,126 @@ class _HomeScreenState extends State<HomeScreen> {
   String _searchQuery = '';
   Set<String> _cidadesFiltro = {};
   List<NewsModel> _noticiasCache = [];
+  bool _popupAlertaExibido = false;
+  bool _usarGps = true;
 
   @override
   void initState() {
     super.initState();
+    _carregarFiltrosSalvos();
     _refreshNoticias();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _mostrarPopupAlertaCritico();
+    });
+  }
+
+  Future<void> _carregarFiltrosSalvos() async {
+    try {
+      final box = Hive.isBoxOpen('preferencias')
+          ? Hive.box('preferencias')
+          : await Hive.openBox('preferencias');
+
+      final regioesSalvas = List<String>.from(
+        box.get('regioes_interesse', defaultValue: <String>[]),
+      );
+      final gpsLigado = box.get('usar_gps', defaultValue: true);
+
+      if (mounted) {
+        setState(() {
+          _usarGps = gpsLigado;
+          _cidadesFiltro = regioesSalvas.toSet();
+
+          // Acessa o usuário através do Provider em vez do widget.usuario
+          final usuario = context.read<UsuarioProvider>().usuario!;
+          final cidadeUsuario = usuario.localizacao;
+          final cidadeValida =
+              cidadeUsuario.isNotEmpty &&
+              cidadeUsuario != 'Não informado' &&
+              cidadeUsuario != 'Não disponível';
+
+          // Se a chave GPS estiver ativa nos ajustes, injeta a cidade do usuário nos filtros
+          if (_usarGps && cidadeValida) {
+            _cidadesFiltro.add(cidadeUsuario);
+          } else if (!_usarGps && cidadeValida) {
+            _cidadesFiltro.remove(cidadeUsuario);
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Erro ao carregar filtros do Hive: $e');
+    }
+  }
+
+  Future<void> _salvarFiltros() async {
+    try {
+      final box = Hive.isBoxOpen('preferencias')
+          ? Hive.box('preferencias')
+          : await Hive.openBox('preferencias');
+
+      // Acessa o usuário através do Provider em vez do widget.usuario
+      final usuario = context.read<UsuarioProvider>().usuario!;
+      final cidadeUsuario = usuario.localizacao;
+      final cidadeValida =
+          cidadeUsuario.isNotEmpty &&
+          cidadeUsuario != 'Não informado' &&
+          cidadeUsuario != 'Não disponível';
+
+      if (cidadeValida) {
+        bool isGpsAtivo = _cidadesFiltro.contains(cidadeUsuario);
+        await box.put('usar_gps', isGpsAtivo);
+        _usarGps = isGpsAtivo;
+      }
+
+      List<String> regioes = _cidadesFiltro.toList();
+      if (cidadeValida) {
+        regioes.remove(cidadeUsuario);
+      }
+
+      await box.put('regioes_interesse', regioes);
+    } catch (e) {
+      debugPrint('Erro ao salvar filtros no Hive: $e');
+    }
+  }
+
+  Future<void> _mostrarPopupAlertaCritico() async {
+    if (!mounted || _popupAlertaExibido) return;
+
+    try {
+      final notificacoes = await SupabaseService.fetchNotificacoes();
+      final alertaCritico = notificacoes.firstWhere(
+        (item) => (item['tipo'] ?? '').toString().toUpperCase() == 'ALERTA',
+        orElse: () => <String, dynamic>{},
+      );
+
+      if (alertaCritico.isEmpty || !mounted || _popupAlertaExibido) return;
+
+      _popupAlertaExibido = true;
+
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) {
+          return AlertDialog(
+            title: Text(
+              (alertaCritico['titulo'] ?? 'ALERTA CRÍTICO').toString(),
+            ),
+            content: Text(
+              (alertaCritico['descricao'] ??
+                      'Mensagem crítica de saúde pública.')
+                  .toString(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Fechar'),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (_) {
+      // Se a API falhar, apenas não mostra o popup.
+    }
   }
 
   void _refreshNoticias() {
@@ -41,26 +157,34 @@ class _HomeScreenState extends State<HomeScreen> {
     var lista = noticias;
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
-      lista = lista.where((n) =>
-        n.titulo.toLowerCase().contains(q) ||
-        n.descricao.toLowerCase().contains(q)
-      ).toList();
+      lista = lista
+          .where(
+            (n) =>
+                n.titulo.toLowerCase().contains(q) ||
+                n.descricao.toLowerCase().contains(q),
+          )
+          .toList();
     }
     if (_cidadesFiltro.isNotEmpty) {
-      lista = lista.where((n) =>
-        _cidadesFiltro.any((c) => n.local.toLowerCase().contains(c.toLowerCase()))
-      ).toList();
+      lista = lista
+          .where(
+            (n) => _cidadesFiltro.any(
+              (c) => n.local.toLowerCase().contains(c.toLowerCase()),
+            ),
+          )
+          .toList();
     }
     return lista;
   }
 
   List<String> _cidadesDisponiveis() {
-    final cidades = _noticiasCache
-        .map((n) => n.local)
-        .where((l) => l.isNotEmpty && l != 'Região Geral')
-        .toSet()
-        .toList()
-      ..sort();
+    final cidades =
+        _noticiasCache
+            .map((n) => n.local)
+            .where((l) => l.isNotEmpty && l != 'Região Geral')
+            .toSet()
+            .toList()
+          ..sort();
     return cidades;
   }
 
@@ -85,13 +209,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 maxHeight: MediaQuery.of(ctx).size.height * 0.6,
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
                       'Filtrar por cidades',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Expanded(
@@ -126,6 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         onPressed: () {
                           setState(() => _cidadesFiltro = selecao);
+                          _salvarFiltros();
                           Navigator.pop(ctx);
                         },
                         child: const Text('Aplicar'),
@@ -145,7 +276,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildCidadeChips() {
     final cidadeUsuario = context.read<UsuarioProvider>().usuario!.localizacao;
     final temFiltroAtivo = _cidadesFiltro.isNotEmpty;
-    final cidadeUsuarioValida = cidadeUsuario.isNotEmpty &&
+
+    final cidadeUsuarioValida =
+        cidadeUsuario.isNotEmpty &&
         cidadeUsuario != 'Não informado' &&
         cidadeUsuario != 'Não disponível';
 
@@ -159,9 +292,15 @@ class _HomeScreenState extends State<HomeScreen> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 24),
         children: [
-          _buildChip('Todas', selecionado: !temFiltroAtivo, onTap: () {
-            setState(() => _cidadesFiltro = {});
-          }),
+          _buildChip(
+            'Todas',
+            selecionado: !temFiltroAtivo,
+            onTap: () {
+              setState(() => _cidadesFiltro.clear());
+              _salvarFiltros();
+            },
+          ),
+
           if (cidadeUsuarioValida)
             _buildChip(
               cidadeUsuario,
@@ -172,8 +311,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? _cidadesFiltro.remove(cidadeUsuario)
                       : _cidadesFiltro.add(cidadeUsuario);
                 });
+                _salvarFiltros();
               },
             ),
+
           ...cidadesExtras.map((cidade) => _buildChipRemovivel(cidade)),
           _buildChipFiltro(),
         ],
@@ -181,7 +322,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildChip(String label, {required bool selecionado, required VoidCallback onTap}) {
+  Widget _buildChip(
+    String label, {
+    required bool selecionado,
+    required VoidCallback onTap,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: GestureDetector(
@@ -232,7 +377,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(width: 4),
             GestureDetector(
-              onTap: () => setState(() => _cidadesFiltro.remove(cidade)),
+              onTap: () {
+                setState(() => _cidadesFiltro.remove(cidade));
+                _salvarFiltros();
+              },
               child: const Icon(Icons.close, size: 14, color: Colors.white),
             ),
           ],
@@ -243,7 +391,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildChipFiltro() {
     final temExtra = _cidadesFiltro.any((c) {
-      final cidadeUsuario = context.read<UsuarioProvider>().usuario!.localizacao;
+      final cidadeUsuario = context
+          .read<UsuarioProvider>()
+          .usuario!
+          .localizacao;
       return c != cidadeUsuario;
     });
     return Padding(
@@ -263,8 +414,11 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.tune, size: 14,
-                  color: temExtra ? Colors.white : AppCor.textoCinza),
+              Icon(
+                Icons.tune,
+                size: 14,
+                color: temExtra ? Colors.white : AppCor.textoCinza,
+              ),
               const SizedBox(width: 4),
               Text(
                 'Filtrar',
@@ -290,6 +444,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Aqui pegamos o usuário atual de forma correta e síncrona
     final usuario = context.watch<UsuarioProvider>().usuario!;
     final String tituloSessao = _newsController.getTituloSessao(_categoryIndex);
 
@@ -305,7 +460,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const NotificationsScreen(),
+                    // Passamos 'usuario' lido do provider para as telas que ainda o pedem no construtor
+                    builder: (context) => NotificationsScreen(usuario: usuario),
                   ),
                 );
               },
@@ -313,17 +469,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const CalendarScreen(),
+                    // Passamos 'usuario' lido do provider
+                    builder: (context) => CalendarScreen(usuario: usuario),
                   ),
                 );
               },
-              onSettings: () {
-                Navigator.push(
+              onSettings: () async {
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
+                    // Corrigido para const SettingsScreen() sem passar 'usuario'
                     builder: (context) => const SettingsScreen(),
                   ),
                 );
+                // Quando voltar das configurações, aplica o que foi alterado lá
+                _carregarFiltrosSalvos();
               },
             ),
             const SizedBox(height: 36),
@@ -367,8 +527,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       }
 
-                      final todas = snapshot.data ??
-                          _newsController.getNoticiasPorCategoria(_categoryIndex);
+                      final todas =
+                          snapshot.data ??
+                          _newsController.getNoticiasPorCategoria(
+                            _categoryIndex,
+                          );
                       if (_noticiasCache != todas) {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (mounted) setState(() => _noticiasCache = todas);
@@ -402,7 +565,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             padding: const EdgeInsets.only(bottom: 20.0),
                             child: NoticiaCard(
                               noticia: noticias[index],
+                              // Pegando ID e Email diretamente do Provider
                               userEmail: usuario.email,
+                              userId: usuario.id,
                             ),
                           );
                         },

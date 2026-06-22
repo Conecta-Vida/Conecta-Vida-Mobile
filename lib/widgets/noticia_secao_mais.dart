@@ -6,8 +6,15 @@ import '../screens/news_details_page.dart';
 
 class NoticiasSecaoMais extends StatelessWidget {
   final NewsModel noticiaAtual;
+  final int? userId;
+  final String? userEmail;
 
-  const NoticiasSecaoMais({super.key, required this.noticiaAtual});
+  const NoticiasSecaoMais({
+    super.key,
+    required this.noticiaAtual,
+    this.userId,
+    this.userEmail,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +70,11 @@ class NoticiasSecaoMais extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => NewsDetailsPage(noticia: noticiaRelacionada),
+            builder: (context) => NewsDetailsPage(
+              noticia: noticiaRelacionada,
+              userId: userId,
+              sharedBy: userEmail,
+            ),
           ),
         );
       },

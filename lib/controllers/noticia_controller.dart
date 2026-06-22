@@ -89,8 +89,7 @@ class NewsController {
       subtitulo: 'A campanha percorre bairros da cidade.',
       descricao:
           'A ação educativa orienta moradores a eliminar águas paradas e distruibui kits de prevenção.',
-      imagem:
-          'https://images.unsplash.com/photo-1584438781843-3be91c98a8d4?q=80&w=800&auto=format&fit=crop',
+        imagem: 'assets/images/vacina_banner.png',
       categoria: 'Urgente',
       local: 'Vários bairros',
       publicoAlvo: 'População em geral',
