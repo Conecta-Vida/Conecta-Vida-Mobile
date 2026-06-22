@@ -304,7 +304,8 @@ class SupabaseService {
         final tipo = (item['tipo'] ?? 'COMUNICACAO').toString().toUpperCase();
         final categoriaOriginal = (item['categoria'] ?? '').toString();
         final categoria = _normalizarCategoriaNotificacao(tipo, categoriaOriginal);
-        final data = (item['data_postada'] ?? item['dataPostada'] ?? '').toString();
+        final dataBruta = (item['data_postada'] ?? item['dataPostada'] ?? '').toString();
+        final data = _normalizarDataIso(dataBruta);
 
         return {
           'id': (item['id'] ?? '${tipo}_${item['titulo'] ?? ''}_$data').toString(),
@@ -331,6 +332,23 @@ class SupabaseService {
       developer.log('Erro ao buscar notificações: $e', name: 'ApiService');
       rethrow;
     }
+  }
+
+  // Alguns bancos retornam nanossegundos com mais de 6 casas; o parser do Dart
+  // pode falhar. Esta normalização mantém o formato ISO parseável.
+  static String _normalizarDataIso(String valor) {
+    final v = valor.trim();
+    if (v.isEmpty) return v;
+
+    final normalized = v.replaceFirst(' ', 'T');
+    final match = RegExp(r'^(.*\.)(\d+)(Z|[+-]\d{2}:?\d{2})?$').firstMatch(normalized);
+    if (match == null) return normalized;
+
+    final prefixo = match.group(1)!;
+    final frac = match.group(2)!;
+    final sufixo = match.group(3) ?? '';
+    final frac6 = frac.length > 6 ? frac.substring(0, 6) : frac;
+    return '$prefixo$frac6$sufixo';
   }
 
   static String _normalizarCategoriaNotificacao(
@@ -527,10 +545,19 @@ class SupabaseService {
     for (final campanha in campanhas) {
       if (campanha.id == null) continue;
 
-      final inscrito = await isUsuarioInscritoEmCampanha(
-        comunicacaoId: campanha.id!,
-        usuarioId: usuarioId,
-      );
+      bool inscrito;
+      try {
+        inscrito = await isUsuarioInscritoEmCampanha(
+          comunicacaoId: campanha.id!,
+          usuarioId: usuarioId,
+        );
+      } catch (e) {
+        developer.log(
+          'Erro ao verificar inscrição da campanha ${campanha.id}: $e',
+          name: 'ApiService',
+        );
+        continue;
+      }
       if (!inscrito) continue;
 
       final fim = _parseDateFlexible(campanha.dataFim);

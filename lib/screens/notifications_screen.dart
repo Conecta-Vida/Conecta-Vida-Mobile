@@ -60,13 +60,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<List<_NotificacaoItem>> _buscarNotificacoes() async {
-    final data = await SupabaseService.fetchNotificacoes();
+    List<Map<String, dynamic>> data = [];
+
+    try {
+      data = await SupabaseService.fetchNotificacoes();
+    } catch (e) {
+      debugPrint('Falha ao carregar notificações base: $e');
+    }
 
     if (widget.usuario?.id != null) {
-      final lembretes = await SupabaseService.fetchLembretesCampanhaUmDiaAntes(
-        widget.usuario!.id!,
-      );
-      data.insertAll(0, lembretes);
+      try {
+        final lembretes = await SupabaseService.fetchLembretesCampanhaUmDiaAntes(
+          widget.usuario!.id!,
+        );
+        data.insertAll(0, lembretes);
+      } catch (e) {
+        debugPrint('Falha ao carregar lembretes de campanha: $e');
+      }
     }
 
     final itens = data.map(_NotificacaoItem.fromMap).toList();

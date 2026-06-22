@@ -37,7 +37,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Future<List<NewsModel>> _carregarCampanhas() async {
     if (widget.usuario.id == null) return [];
-    return SupabaseService.fetchCampanhasAtivasDoUsuario(widget.usuario.id!);
+    try {
+      return await SupabaseService.fetchCampanhasAtivasDoUsuario(widget.usuario.id!);
+    } catch (_) {
+      return [];
+    }
   }
 
   Future<List<String>> _carregarLembretesSalvos() async {
@@ -80,6 +84,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return '$dia/$mes/$ano';
   }
 
+  String _formatarLembreteLocal(String chave) {
+    final semPrefixo = chave.startsWith('campanha_')
+        ? chave.substring('campanha_'.length)
+        : chave;
+
+    if (RegExp(r'^\d+$').hasMatch(semPrefixo)) {
+      return 'Campanha #$semPrefixo';
+    }
+
+    return semPrefixo.replaceAll('_', ' ').trim();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -115,6 +131,57 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 );
               },
             ),
+            const SizedBox(height: 8),
+            FutureBuilder<List<String>>(
+              future: _lembretesFuture,
+              builder: (context, snapshot) {
+                final lembretes = snapshot.data ?? const <String>[];
+                if (lembretes.isEmpty) return const SizedBox.shrink();
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Lembretes salvos localmente',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 12),
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: lembretes.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final lembrete = lembretes[index];
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 16,
+                            ),
+                            leading: const Icon(Icons.alarm_on, color: AppCor.catVacinacao),
+                            title: Text(_formatarLembreteLocal(lembrete)),
+                            subtitle: const Text('Salvo localmente no aparelho'),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 18),
+                  ],
+                );
+              },
+            ),
             Expanded(
               child: FutureBuilder<List<NewsModel>>(
                 future: _campanhasFuture,
@@ -122,25 +189,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
                       child: CircularProgressIndicator(color: AppCor.primary),
-                    );
-                  }
-
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'Não foi possível carregar seu calendário de campanhas.',
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 10),
-                          ElevatedButton(
-                            onPressed: _atualizar,
-                            child: const Text('Tentar novamente'),
-                          ),
-                        ],
-                      ),
                     );
                   }
 

@@ -27,11 +27,52 @@ class _HomeScreenState extends State<HomeScreen> {
   String _searchQuery = '';
   Set<String> _cidadesFiltro = {};
   List<NewsModel> _noticiasCache = [];
+  bool _popupAlertaExibido = false;
 
   @override
   void initState() {
     super.initState();
     _refreshNoticias();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _mostrarPopupAlertaCritico();
+    });
+  }
+
+  Future<void> _mostrarPopupAlertaCritico() async {
+    if (!mounted || _popupAlertaExibido) return;
+
+    try {
+      final notificacoes = await SupabaseService.fetchNotificacoes();
+      final alertaCritico = notificacoes.firstWhere(
+        (item) => (item['tipo'] ?? '').toString().toUpperCase() == 'ALERTA',
+        orElse: () => <String, dynamic>{},
+      );
+
+      if (alertaCritico.isEmpty || !mounted || _popupAlertaExibido) return;
+
+      _popupAlertaExibido = true;
+
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) {
+          return AlertDialog(
+            title: Text((alertaCritico['titulo'] ?? 'ALERTA CRÍTICO').toString()),
+            content: Text(
+              (alertaCritico['descricao'] ?? 'Mensagem crítica de saúde pública.').toString(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Fechar'),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (_) {
+      // Se a API falhar, apenas não mostra o popup.
+    }
   }
 
   void _refreshNoticias() {
