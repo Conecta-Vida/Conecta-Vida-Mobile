@@ -1,106 +1,163 @@
-# Conecta Vida Mobile
-Aplicativo Flutter de conteúdo e campanhas de saúde.
+# 📱 Conecta Vida - Aplicativo Móvel Cidadão
 
-## O que está no app
-Conecta Vida Mobile é uma versão mobile do projeto que apresenta:
+<p align="center">
+<strong>A interface reativa, portátil e o ponto de contato direto do cidadão com o ecossistema de saúde pública regional. Responsável pela captação de geolocalização ativa, consumo assíncrono de informativos regionalizados, inscrição em mutirões comunitários e interceptação impositiva de alertas epidemiológicos críticos.</strong>
+</p>
 
-- Tela de splash animada
-- Login por email e senha
-- Cadastro de usuário com solicitação de localização opcional
-- Tela de recuperação de senha
-- Feed de notícias categorizadas (Vacinação, Doações, Urgentes, Eventos)
-- Detalhes da notícia com informações de órgão, contato e local
-- Navegação para notificações e calendário
-- Tela de configurações com perfil do usuário e equipe do projeto
+<p align="center">
+<img src="https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter">
+<img src="https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white" alt="Dart">
+<img src="https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android">
+<img src="https://img.shields.io/badge/iOS-000000?style=for-the-badge&logo=ios&logoColor=white" alt="iOS">
+<img src="https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 17">
+<img src="https://img.shields.io/badge/Spring%20Boot-4.0.5-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" alt="Spring Boot 4.0.5">
+<img src="https://img.shields.io/badge/PostgreSQL-17-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL 17">
+<img src="https://img.shields.io/badge/Supabase-Pooler-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase">
+<img src="https://img.shields.io/badge/Gradle-8.x-02303A?style=for-the-badge&logo=gradle&logoColor=white" alt="Gradle">
+</p>
 
-## Tecnologias e pacotes usados
+<p align="center">
+  <a href="" title="Clique para assistir à demonstração">
+    <img src="https://img.shields.io/badge/Assista%20à%20Demonstração-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Assista à Demonstração">
+  </a>
+</p>
 
-- Flutter
-- `google_fonts`
-- `url_launcher`
-- `geolocator`
-- `supabase_flutter`
-- `share_plus`
-- `flutter_lints`
+---
 
-## Estrutura de pastas
+## 👥 Autores e Instituição
+* **Luiz Henrique Gonçalves**
+* **Gustavo**
+* **Gabriel**
+* **Renan**
+* **Maycon**
 
-- `lib/screens/`: telas completas do aplicativo.
-- `lib/widgets/`: componentes reutilizáveis como cards, botões e barras.
-- `lib/controllers/`: lógica de negócio e dados do app.
-- `lib/models/`: modelos de dados utilizados nas telas.
-- `lib/global/`: estilo global e paleta de cores.
+**IFSP - Câmpus Bragança Paulista** *Curso Superior de Tecnologia em Análise e Desenvolvimento de Sistemas*
 
-## Como executar o app Flutter
+---
 
-Antes de rodar, configure o arquivo `lib/services/supabase_service.dart` com seu:
-- `supabaseUrl`
-- `supabaseAnonKey`
+## 📖 Sobre o Módulo Mobile (Aplicativo)
 
-Passos:
+O aplicativo móvel do **Conecta Vida** foi desenvolvido em **Flutter** para entregar uma experiência fluida, reativa e descentralizada de utilidade pública. Ele adota uma arquitetura modularizada dividida em telas (`Screens`), componentes reaproveitáveis (`Widgets`), controladores de estado e lógica (`Controllers`) e modelos de dados estruturados (`Models`).
 
-1. Abra o terminal na pasta raiz do projeto.
-2. Rode `flutter pub get`.
-3. Liste dispositivos com `flutter devices` (opcional).
-4. Rode `flutter run` ou, para escolher um dispositivo, `flutter run -d <device_id>`.
+A aplicação interage de forma assíncrona com os microsserviços da nossa infraestrutura, consumindo dados geográficos locais para reconstruir dinamicamente o feed de notícias do usuário, além de garantir barreira de segurança local contra crises biológicas na comunidade.
 
-> Se estiver usando emulador Android, inicie o emulador antes de rodar.
+---
 
-## Admin PC em Java
+## Pré-requisitos
 
-O app de administração está em `admin/` e permite gerenciar dados do Supabase via interface Swing.
+Antes de compilar e executar o aplicativo móvel, certifique-se de que o seu ambiente de desenvolvimento possui os seguintes componentes configurados:
 
-Pré-requisitos:
-- Java JDK 17+
-- Apache Maven
-- IDE com suporte a Maven/Java (opcional)
+* **Flutter SDK (Versão estável mais recente)**: Engine para renderização nativa multiplataforma.
+* **Dart SDK**: Linguagem base do projeto.
+* **Java JDK 17**: Obrigatório para o funcionamento do pipeline de compilação do Gradle do Android.
+* **Android Studio / VS Code**: Ambientes recomendados com as extensões do Flutter instaladas.
+* **Emulador Ativo ou Smartphone Físico**: Com a depuração USB ativa para execução dos testes.
 
-Opção 1: terminal
+---
 
-1. Abra o terminal em `admin/`.
-2. Rode `mvn clean package`.
-3. Rode `mvn exec:java -Dexec.mainClass=com.conectavida.admin.SupabaseAdminApp`.
+## Passo 1: Configuração do Ambiente
 
-Opção 2: IDE
+1. **Clone o repositório mobile** para a sua máquina corporativa:
+   ```bash
+   git clone <URL_DO_SEU_REPOSITORIO>
+   cd conecta-vida-mobile
 
-1. Importe a pasta `admin/` como projeto Maven.
-2. Defina `com.conectavida.admin.SupabaseAdminApp` como classe principal.
-3. Execute o aplicativo a partir da IDE.
+```
 
-> Dica: se estiver usando VS Code, abra o workspace `admin-java.code-workspace` para que o Java reconheça `admin/src/main/java` corretamente.
+2. **Configure as credenciais de infraestrutura**:
+Abra o arquivo de serviço localizado em `lib/services/supabase_service.dart` e configure as chaves públicas da sua instância do Supabase para inicialização dos módulos locais:
+```dart
+String supabaseUrl = "SUA_URL_DO_SUPABASE";
+String supabaseAnonKey = "SUA_CHAVE_ANON_DO_SUPABASE";
 
-Uso do admin:
+```
 
-1. Informe seu `Supabase URL`.
-2. Informe a `Chave Anon` e a `Service Role Key`.
-3. Teste a conexão.
-4. Use os botões para atualizar tabelas e sincronizar dados de exemplo.
 
-Tabelas suportadas pelo admin:
-- `noticias`
-- `usuarios`
-- `noticias_compartilhadas`
-- `compromissos`
 
-O arquivo de exemplo está em `admin/example_data.json`.
+---
 
-## Backend e compartilhamento
+## Passo 2: Executando a Aplicação (Modo Simples - Cloud)
 
-- Integração com Supabase para sincronizar usuários, notícias e histórico de compartilhamentos.
-- Login e cadastro usando autenticação Supabase.
-- Recuperação de senha via Supabase na tela de recuperação.
-- Notícias carregadas dinamicamente de Supabase por categoria.
-- Compartilhamento de notícias via `share_plus` e registro de compartilhamento no Supabase.
-- Ajuste `lib/services/supabase_service.dart` com `supabaseUrl` e `supabaseAnonKey` do seu projeto Supabase.
+Para rodar a aplicação em modo padrão, consumindo a infraestrutura centralizada da nuvem (Supabase e API de Produção), abra o terminal na raiz do projeto mobile e execute:
 
-## Equipe
+1. **Baixe os pacotes de dependência** declarados no pubspec:
+```bash
+flutter pub get
 
-- Gustavo Tenorio
-- Tsarco Gabriel Dias
-- RenanVKoashi
-- Luiz Henrique Gon
-- Maycon Cabral
+```
 
-## Observações
 
-A aplicação agora inclui suporte para sincronização com Supabase e rastreamento de notícias compartilhadas, além dos dados locais existentes como fallback.
+2. **Verifique se o seu dispositivo de testes está ativo**:
+```bash
+flutter devices
+
+```
+
+
+3. **Inicie o aplicativo**:
+```bash
+flutter run
+
+```
+
+
+*(Caso possua mais de um dispositivo conectado, adicione `-d <device_id>` ao final do comando).*
+
+---
+
+## Passo 3: Executando com API Local (Ambiente de Testes)
+
+Para realizar testes avançados ou simular alterações em tempo real feitas na sua API Java local sem depender do servidor do Render, configure a rota base no arquivo do provedor de conexões HTTP:
+
+### 🤖 1. Se estiver testando no Emulador Android
+
+Os emuladores operam em uma sub-rede isolada. Para que ele enxergue o Spring Boot rodando no seu computador (localhost), altere a URL base para o IP de loopback alternativo:
+
+```dart
+String apiBaseUrl = "[http://10.0.2.2:8080/api](http://10.0.2.2:8080/api)";
+
+```
+
+### 📱 2. Se estiver testando em um Smartphone Físico (Wi-Fi)
+
+1. Certifique-se de que o celular e o computador estão na mesma rede sem fio.
+2. Descubra o IP local da sua máquina (ex: `192.168.1.50`).
+3. Altere a rota base do aplicativo:
+
+```dart
+String apiBaseUrl = "[http://192.168.1.50:8080/api](http://192.168.1.50:8080/api)";
+
+```
+
+Execute o comando `flutter run` para testar os fluxos integrados localmente.
+
+---
+
+## Passo 4: Testando as Funcionalidades Core
+
+Com o aplicativo em execução no seu dispositivo ou emulador, valide os fluxos projetados de ponta a ponta:
+
+* **Módulo de Entrada:** Splash Animada, Cadastro de Usuário e Recuperação de Conta integrados ao módulo de autenticação.
+* **Validação de GPS:** Clique em "Detectar minha cidade" para capturar as coordenadas e injetar dinamicamente o município do usuário no preenchimento geolocalizado.
+* **Navegação por Feed Semântico:** Filtre os informativos nas abas *Vacinação, Doações, Urgentes e Eventos* para checar o polimorfismo de dados.
+* **Inscrição Relacional (CR7):** Acesse um mutirão público de saúde e clique no ícone de calendário para agendar sua participação na tabela associativa.
+* **Pop-up de Intercepção Emergencial:** Simule um login com alertas críticos ativos não lidos na região para atestar o travamento reativo da interface.
+
+---
+
+## Passo 5: Compilando para Produção (Build APK)
+
+Se você precisar gerar o artefato binário final de distribuição do aplicativo Android para submissão ou instalação manual via pendrive, execute na raiz do projeto:
+
+```bash
+flutter build apk --release
+
+```
+
+O arquivo de instalação otimizado será compilado e disponibilizado no diretório:
+
+`build/app/outputs/flutter-apk/app-release.apk`
+
+---
+
+© 2026 Conecta à Vida. Sistema homologado para fins acadêmicos. IFSP Bragança Paulista.
