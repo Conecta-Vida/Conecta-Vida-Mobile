@@ -35,6 +35,27 @@
 
 ---
 
+## 📊 Composição do Código (Languages)
+
+A distribuição das linguagens no repositório reflete a estrutura de uma aplicação Flutter multiplataforma nativa, contendo a lógica em Dart e os runners de compilação específicos:
+
+```text
+Dart ───────────────────────────────────────────── 76.9% ███████████████████████████████████░░░░░░░░░░
+C++ ────────────────────────────────────────────── 11.4% █████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+CMake ────────────────────────────────────────────  8.8% ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+Swift ────────────────────────────────────────────  1.4% █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+HTML ─────────────────────────────────────────────  0.7% ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+C ────────────────────────────────────────────────  0.7% ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+Outros ───────────────────────────────────────────  0.1% ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+
+```
+
+* **Dart (76.9%):** Core design do ecossistema móvel, contemplando todas as views, controllers, gerência de estados e consumo assíncrono.
+* **C++ / CMake (20.2%):** Vinculados às engines de compilação nativa de baixo nível e renderização do Flutter Desktop/Android Shell.
+* **Swift (1.4%):** Arquivos de manifesto e delegates nativos do ecossistema iOS.
+
+---
+
 ## 📖 Sobre o Módulo Mobile (Aplicativo)
 
 O aplicativo móvel do **Conecta Vida** foi desenvolvido em **Flutter** para entregar uma experiência fluida, reativa e descentralizada de utilidade pública. Ele adota uma arquitetura modularizada dividida em telas (`Screens`), componentes reaproveitáveis (`Widgets`), controladores de estado e lógica (`Controllers`) e modelos de dados estruturados (`Models`).
@@ -58,11 +79,12 @@ Antes de compilar e executar o aplicativo móvel, certifique-se de que o seu amb
 ## Passo 1: Configuração do Ambiente
 
 1. **Clone o repositório mobile** para a sua máquina corporativa:
-   ```bash
-   git clone <URL_DO_SEU_REPOSITORIO>
-   cd conecta-vida-mobile
+```bash
+git clone <URL_DO_SEU_REPOSITORIO>
+cd conecta-vida-mobile
 
 ```
+
 
 2. **Configure as credenciais de infraestrutura**:
 Abra o arquivo de serviço localizado em `lib/services/supabase_service.dart` e configure as chaves públicas da sua instância do Supabase para inicialização dos módulos locais:
@@ -157,6 +179,15 @@ flutter build apk --release
 O arquivo de instalação otimizado será compilado e disponibilizado no diretório:
 
 `build/app/outputs/flutter-apk/app-release.apk`
+
+---
+
+© 2026 Conecta à Vida. Sistema homologado para fins acadêmicos. IFSP Bragança Paulista.
+
+```
+`build/app/outputs/flutter-apk/app-release.apk`
+```
+
 
 ---
 
