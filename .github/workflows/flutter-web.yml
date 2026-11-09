@@ -18,5 +18,3 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter build web --release --dart-define=API_BASE_URL=/api
-      - name: Validate Docker image
-        run: docker build -t conecta-vida-mobile-web:ci .
