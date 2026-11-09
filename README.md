@@ -78,23 +78,19 @@ Antes de compilar e executar o aplicativo móvel, certifique-se de que o seu amb
 
 ## Passo 1: Configuração do Ambiente
 
-1. **Clone o repositório mobile** para a sua máquina corporativa:
-```bash
-git clone <URL_DO_SEU_REPOSITORIO>
-cd conecta-vida-mobile
+O aplicativo cidadão consome a **Mobile API** Java/Spring Boot, que por sua vez acessa o PostgreSQL do Supabase. O Flutter não precisa receber a senha do banco nem a chave de serviço do Supabase.
 
+Configure somente a URL da API em `assets/config/app.env` quando não quiser usar `--dart-define`:
+
+```env
+# Desenvolvimento Web com API local:
+API_BASE_URL=http://localhost:8081/api
+
+# Web publicada com API em outro domínio:
+# API_BASE_URL=https://SUA-API.onrender.com/api
 ```
 
-
-2. **Configure as credenciais de infraestrutura**:
-Abra o arquivo de serviço localizado em `lib/services/supabase_service.dart` e configure as chaves públicas da sua instância do Supabase para inicialização dos módulos locais:
-```dart
-String supabaseUrl = "SUA_URL_DO_SUPABASE";
-String supabaseAnonKey = "SUA_CHAVE_ANON_DO_SUPABASE";
-
-```
-
-
+O arquivo versionado não deve conter senhas nem tokens. As credenciais do Supabase ficam exclusivamente no ambiente do backend.
 
 ---
 
@@ -136,7 +132,7 @@ Para realizar testes avançados ou simular alterações em tempo real feitas na 
 Os emuladores operam em uma sub-rede isolada. Para que ele enxergue o Spring Boot rodando no seu computador (localhost), altere a URL base para o IP de loopback alternativo:
 
 ```dart
-String apiBaseUrl = "[http://10.0.2.2:8080/api](http://10.0.2.2:8080/api)";
+String apiBaseUrl = "[http://10.0.2.2:8081/api](http://10.0.2.2:8081/api)";
 
 ```
 
@@ -147,7 +143,7 @@ String apiBaseUrl = "[http://10.0.2.2:8080/api](http://10.0.2.2:8080/api)";
 3. Altere a rota base do aplicativo:
 
 ```dart
-String apiBaseUrl = "[http://192.168.1.50:8080/api](http://192.168.1.50:8080/api)";
+String apiBaseUrl = "[http://192.168.1.50:8081/api](http://192.168.1.50:8081/api)";
 
 ```
 
@@ -196,24 +192,31 @@ O arquivo de instalação otimizado será compilado e disponibilizado no diretó
 
 ## Executar o aplicativo no navegador (Flutter Web)
 
-O projeto já contém o runner `web/`. Para executar a interface no Chrome e atualizar as telas durante o desenvolvimento:
+O repositório já inclui o runner `web/`. Para abrir a interface no Chrome com hot reload:
 
 ```bash
 flutter pub get
 flutter run -d chrome --web-port=5000 --dart-define=API_BASE_URL=http://localhost:8081/api
 ```
 
-Deixe a **mobile-api** em execução na porta `8081`. A API deve permitir a origem `http://localhost:5000` por meio de `CONECTA_MOBILE_CORS_ORIGINS`. Exemplo:
+Deixe a **Mobile API** em execução na porta `8081`. Permita as origens locais no backend:
 
 ```bash
 CONECTA_MOBILE_CORS_ORIGINS=http://localhost:5000,http://127.0.0.1:5000
 ```
 
-Quando o app for servido pelo container Nginx deste repositório, o padrão Web é `/api`, que mantém o tráfego na mesma origem e deixa o proxy encaminhar as chamadas à mobile-api. Para publicar o Web separadamente, compile informando a URL HTTPS da API:
+Para compilar o site:
 
 ```bash
-flutter build web --release --dart-define=API_BASE_URL=https://SUA-API.example.com/api
+flutter build web --release --dart-define=API_BASE_URL=https://SUA-API.onrender.com/api
 ```
 
-**Limitações do navegador:** notificações Firebase e notificações locais continuam habilitadas apenas nas plataformas nativas. A detecção de localização no Web requer contexto seguro (HTTPS; `localhost` funciona durante o desenvolvimento) e permissão concedida pelo navegador. Para habilitar push Web será necessário configurar Firebase para Web, gerar as opções de inicialização e configurar o service worker.
+Para build e teste locais sem domínio publicado, use `http://localhost:8081/api` como `API_BASE_URL`.
+
+### Limitações específicas do navegador
+
+- Push Firebase e notificações locais continuam disponíveis apenas nos apps nativos. A inicialização foi desativada no navegador para evitar dependência de configuração Firebase Web.
+- A localização do navegador exige HTTPS (ou `localhost`) e permissão do usuário.
+- A recuperação de senha ainda não está implementada na Mobile API; a tela informa que o serviço não está configurado.
+- A API deve estar acessível por HTTPS quando o app Web estiver publicado em HTTPS. Prefira servir a API sob o mesmo domínio em `/api` ou configurar CORS para o domínio exato do site.
 
