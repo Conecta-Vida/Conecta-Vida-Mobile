@@ -3,11 +3,9 @@ import 'dart:developer' as developer;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:hive/hive.dart'; //Adicionado para ler as configurações locais
+import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 
-// Handler executado quando o app está FECHADO ou em BACKGROUND
-// DEVE ficar fora de qualquer classe (nível global)
 @pragma('vm:entry-point')
 Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
   developer.log(
@@ -44,39 +42,29 @@ class PushNotificationService {
     ),
   );
 
-  /// Inicializar o serviço — chamar no main() antes do runApp
+  /// Inicializar nas plataformas nativas antes do runApp.
   static Future<void> inicializar({required String apiBaseUrl}) async {
-    // Registra o handler de background
     FirebaseMessaging.onBackgroundMessage(firebaseBackgroundHandler);
 
-    // Configuração do plugin de notificações locais
-    const AndroidInitializationSettings androidSettings =
+    const androidSettings =
         AndroidInitializationSettings('@drawable/ifsp_logo');
-
-    const InitializationSettings initSettings = InitializationSettings(
-      android: androidSettings,
-    );
+    const initSettings = InitializationSettings(android: androidSettings);
 
     await _localNotifications.initialize(
       initSettings,
       onDidReceiveNotificationResponse: _onDidReceiveNotificationResponse,
     );
 
-    // Solicita permissão de notificação no Android (13+)
     await _localNotifications
         .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
+            AndroidFlutterLocalNotificationsPlugin>()
         ?.requestNotificationsPermission();
 
-    // Cria canal de notificação no Android
     await _localNotifications
         .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
+            AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(_canal);
 
-    // Solicita permissão do FCM
     final messaging = FirebaseMessaging.instance;
     await messaging.requestPermission(
       alert: true,
@@ -85,26 +73,20 @@ class PushNotificationService {
       criticalAlert: true,
     );
 
-    // Obtém e envia o token FCM para o backend
     final token = await messaging.getToken();
     if (token != null) {
-      developer.log('Token FCM obtido: $token', name: 'FCM');
+      developer.log('Token FCM obtido.', name: 'FCM');
       await _enviarTokenParaBackend(token, apiBaseUrl);
     }
 
-    // Atualiza token quando ele for renovado
     messaging.onTokenRefresh.listen((novoToken) {
-      developer.log('Token FCM renovado: $novoToken', name: 'FCM');
       _enviarTokenParaBackend(novoToken, apiBaseUrl);
     });
 
-    // Push recebido com o app ABERTO → exibe notificação local
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      // Atualizado para async
       await _exibirNotificacaoLocal(message);
     });
 
-    // Push clicado com o app em BACKGROUND (não fechado)
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       developer.log(
         'App aberto por push: ${message.notification?.title}',
@@ -113,60 +95,45 @@ class PushNotificationService {
     });
   }
 
-  /// Verifica se o usuário permitiu notificações no SettingsScreen
   static Future<bool> _notificacoesAtivas() async {
     try {
       if (!Hive.isBoxOpen('preferencias')) {
         await Hive.openBox('preferencias');
       }
-      final box = Hive.box('preferencias');
-      return box.get('notificacoes_ligadas', defaultValue: true);
+      return Hive.box('preferencias').get(
+        'notificacoes_ligadas',
+        defaultValue: true,
+      );
     } catch (e) {
-      developer.log('Erro ao ler Hive no FCM: $e', name: 'FCM');
-      return true; // Fallback de segurança
+      developer.log('Erro ao ler preferências de push: $e', name: 'FCM');
+      return true;
     }
   }
 
-  /// Exibe notificação local na bandeja do sistema
   static Future<void> _exibirNotificacaoLocal(RemoteMessage message) async {
-    if (!await _notificacoesAtivas()) {
-      developer.log(
-        'Push silenciado pelas configurações do usuário.',
-        name: 'FCM',
-      );
-      return;
-    }
+    if (!await _notificacoesAtivas()) return;
 
     final notification = message.notification;
     if (notification == null) return;
 
-    showNotification(
+    await showNotification(
       notification.title ?? 'Notificação',
       notification.body ?? '',
       payload: jsonEncode(message.data),
     );
   }
 
-  /// Exibe notificação local manualmente (como no exemplo de aula)
   static Future<void> showNotification(
     String notificationTitle,
     String notificationBody, {
     String? payload,
   }) async {
-    if (!await _notificacoesAtivas()) {
-      developer.log(
-        'Push local silenciado pelas configurações do usuário.',
-        name: 'FCM',
-      );
-      return;
-    }
+    if (!await _notificacoesAtivas()) return;
 
-    final int idNotification = DateTime.now().millisecondsSinceEpoch.remainder(
-      100000,
-    );
+    final idNotification =
+        DateTime.now().millisecondsSinceEpoch.remainder(100000);
 
-    developer.log('Chamando notificação local...', name: 'FCM');
-    return _localNotifications.show(
+    await _localNotifications.show(
       idNotification,
       notificationTitle,
       notificationBody,
@@ -175,31 +142,24 @@ class PushNotificationService {
     );
   }
 
-  static void _onDidReceiveNotificationResponse(NotificationResponse details) {
+  static void _onDidReceiveNotificationResponse(
+    NotificationResponse details,
+  ) {
     developer.log(
       'Selecionado: ${details.actionId} | ${details.payload}',
       name: 'FCM',
     );
-
-    if (details.actionId == '0') {
-      developer.log('Usuário clicou em Ok', name: 'FCM');
-    } else if (details.actionId == '1') {
-      developer.log('Usuário clicou em Cancelar', name: 'FCM');
-    } else {
-      developer.log('Usuário tocou na notificação', name: 'FCM');
-    }
   }
 
-  /// Envia o token FCM para o backend salvar
   static Future<void> _enviarTokenParaBackend(
     String token,
     String apiBaseUrl,
   ) async {
     try {
       await http.post(
-        Uri.parse('$apiBaseUrl/push/registrar-token'),
+        Uri.parse('$apiBaseUrl/mobile/notificacoes/registrar'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'token': token, 'plataforma': 'android'}),
+        body: jsonEncode({'token': token}),
       );
     } catch (e) {
       developer.log('Erro ao registrar token FCM: $e', name: 'FCM');
