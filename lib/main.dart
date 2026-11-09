@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -14,31 +15,29 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // Inicializa o Hive para o Flutter
     await Hive.initFlutter();
-
-    // Abre a "caixa" chamada 'preferencias' pra usar na pag. settings
     await Hive.openBox('preferencias');
-
-    // Configuração do app (versionada, sem segredos). Veja assets/config/app.env
     await dotenv.load(fileName: "assets/config/app.env", isOptional: true);
   } catch (e) {
-    print('⚠️ app.env não carregado, usando configuração padrão: $e');
+    debugPrint('⚠️ Configurações locais não carregadas: $e');
   }
 
-  // URL da mobile-api (dart-define > .env > padrão da plataforma)
+  // No navegador, /api usa a mesma origem e pode ser encaminhado pelo Nginx.
+  // Durante o desenvolvimento local, informe a URL da API com --dart-define.
   SupabaseService.baseUrl = ApiConfig.resolverBaseUrl();
-  print('🌐 API: ${SupabaseService.baseUrl}');
+  debugPrint('🌐 API: ${SupabaseService.baseUrl}');
 
-  try {
-    // Inicializa Firebase e serviço de push notification
-    await Firebase.initializeApp();
-    await PushNotificationService.inicializar(
-      apiBaseUrl: SupabaseService.baseUrl,
-    );
-  } catch (e) {
-    // Sem Firebase configurado o app continua funcionando, só sem push
-    print('⚠️ Push notifications indisponíveis: $e');
+  // Firebase Messaging e flutter_local_notifications ficam restritos às
+  // plataformas nativas. O app Web continua utilizável sem push.
+  if (!kIsWeb) {
+    try {
+      await Firebase.initializeApp();
+      await PushNotificationService.inicializar(
+        apiBaseUrl: SupabaseService.baseUrl,
+      );
+    } catch (e) {
+      debugPrint('⚠️ Push notifications indisponíveis: $e');
+    }
   }
 
   runApp(
@@ -57,22 +56,13 @@ class ConectaVidaApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Conecta Vida',
-
-      // ==================
-      // THEMEDATA GLOBAL
-      // ==================
       theme: ThemeData(
-        // Fundo padrão
         scaffoldBackgroundColor: AppCor.background,
-
-        // Cores Base
         colorScheme: const ColorScheme.light(
           primary: AppCor.primary,
           secondary: AppCor.secondary,
           error: AppCor.error,
         ),
-
-        // AppBar
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -84,24 +74,18 @@ class ConectaVidaApp extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-
-        //botões elevados
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppCor.primary, // Cor de fundo
-            foregroundColor: Colors.white, // Cor do texto
+            backgroundColor: AppCor.primary,
+            foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
           ),
         ),
-
-        //Cor primária
         iconTheme: const IconThemeData(color: AppCor.textoCinza),
       ),
-
-      // ==========================================
       home: const SplashScreen(),
     );
   }
