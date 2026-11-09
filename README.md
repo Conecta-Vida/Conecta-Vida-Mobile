@@ -192,3 +192,28 @@ O arquivo de instalação otimizado será compilado e disponibilizado no diretó
 ---
 
 © 2026 Conecta à Vida. Sistema homologado para fins acadêmicos. IFSP Bragança Paulista.
+
+
+## Executar o aplicativo no navegador (Flutter Web)
+
+O projeto já contém o runner `web/`. Para executar a interface no Chrome e atualizar as telas durante o desenvolvimento:
+
+```bash
+flutter pub get
+flutter run -d chrome --web-port=5000 --dart-define=API_BASE_URL=http://localhost:8081/api
+```
+
+Deixe a **mobile-api** em execução na porta `8081`. A API deve permitir a origem `http://localhost:5000` por meio de `CONECTA_MOBILE_CORS_ORIGINS`. Exemplo:
+
+```bash
+CONECTA_MOBILE_CORS_ORIGINS=http://localhost:5000,http://127.0.0.1:5000
+```
+
+Quando o app for servido pelo container Nginx deste repositório, o padrão Web é `/api`, que mantém o tráfego na mesma origem e deixa o proxy encaminhar as chamadas à mobile-api. Para publicar o Web separadamente, compile informando a URL HTTPS da API:
+
+```bash
+flutter build web --release --dart-define=API_BASE_URL=https://SUA-API.example.com/api
+```
+
+**Limitações do navegador:** notificações Firebase e notificações locais continuam habilitadas apenas nas plataformas nativas. A detecção de localização no Web requer contexto seguro (HTTPS; `localhost` funciona durante o desenvolvimento) e permissão concedida pelo navegador. Para habilitar push Web será necessário configurar Firebase para Web, gerar as opções de inicialização e configurar o service worker.
+
