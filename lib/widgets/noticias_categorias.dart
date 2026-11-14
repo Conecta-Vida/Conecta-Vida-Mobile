@@ -35,21 +35,23 @@ class Categorias extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Row(
             children: [
-              _categoryItem('Notícias', AppCor.catNoticias, Icons.article, 0),
+              _categoryItem(context, 'Notícias', AppCor.catNoticias, Icons.article, 0),
               _categoryItem(
+                context,
                 'Vacinação',
                 AppCor.catVacinacao,
                 Icons.vaccines,
                 1,
               ),
-              _categoryItem('Doações', AppCor.catDoacoes, Icons.water_drop, 2),
+              _categoryItem(context, 'Doações', AppCor.catDoacoes, Icons.water_drop, 2),
               _categoryItem(
+                context,
                 'Urgentes',
                 AppCor.catUrgentes,
                 Icons.warning_rounded,
                 3,
               ),
-              _categoryItem('Eventos', AppCor.catEventos, Icons.event, 4),
+              _categoryItem(context, 'Eventos', AppCor.catEventos, Icons.event, 4),
             ],
           ),
         ),
@@ -57,7 +59,13 @@ class Categorias extends StatelessWidget {
     );
   }
 
-  Widget _categoryItem(String label, Color color, IconData icon, int index) {
+  Widget _categoryItem(
+    BuildContext context,
+    String label,
+    Color color,
+    IconData icon,
+    int index,
+  ) {
     bool isSelected = categoryIndex == index;
 
     return GestureDetector(
@@ -92,7 +100,7 @@ class Categorias extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: colors.onSurfaceVariant,
