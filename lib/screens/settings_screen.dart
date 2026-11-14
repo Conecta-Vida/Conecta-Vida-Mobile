@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
 import '../global/appCor.dart';
+import 'accessibility_screen.dart';
 import '../models/usuario.dart';
 import '../providers/usuario_provider.dart';
 import '../services/supabase_service.dart';
@@ -269,6 +270,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
           children: [
+            _buildSecaoTitulo('ACESSIBILIDADE'),
+            _buildContainerGrupo([
+              ListTile(
+                leading: const Icon(Icons.accessibility_new),
+                title: const Text('Acessibilidade'),
+                subtitle: const Text(
+                  'Texto, contraste, tema, movimento e leitura em voz alta',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AccessibilityScreen(),
+                    ),
+                  );
+                },
+              ),
+            ]),
+            const SizedBox(height: 24),
+
             // 1. SECÇÃO NO TOPO: GERENCIAR CONTA
             _buildSecaoTitulo('GERENCIAR CONTA'),
             _buildContainerGrupo([
