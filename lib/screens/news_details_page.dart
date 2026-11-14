@@ -204,20 +204,33 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
               if (!preferences.speechEnabled) {
                 return const SizedBox.shrink();
               }
-              return IconButton(
-                tooltip: 'Ouvir notícia',
-                icon: const Icon(
-                  Icons.volume_up_outlined,
-                  color: AppCor.primary,
-                ),
-                onPressed: () {
-                  AccessibilitySpeechService.instance.speak(
-                    '${widget.noticia.titulo}. '
-                    '${widget.noticia.subtitulo}. '
-                    '${widget.noticia.descricao}. '
-                    'Local: ${widget.noticia.local}.',
-                  );
-                },
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: 'Ouvir notícia',
+                    icon: const Icon(
+                      Icons.volume_up_outlined,
+                      color: AppCor.primary,
+                    ),
+                    onPressed: () {
+                      AccessibilitySpeechService.instance.speak(
+                        '${widget.noticia.titulo}. '
+                        '${widget.noticia.subtitulo}. '
+                        '${widget.noticia.descricao}. '
+                        'Local: ${widget.noticia.local}.',
+                      );
+                    },
+                  ),
+                  IconButton(
+                    tooltip: 'Parar leitura',
+                    icon: const Icon(
+                      Icons.stop_circle_outlined,
+                      color: AppCor.primary,
+                    ),
+                    onPressed: AccessibilitySpeechService.instance.stop,
+                  ),
+                ],
               );
             },
           ),
