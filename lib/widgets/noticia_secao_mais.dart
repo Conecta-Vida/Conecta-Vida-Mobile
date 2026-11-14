@@ -99,7 +99,7 @@ class NoticiasSecaoMais extends StatelessWidget {
             Expanded(
               flex: 3,
               child: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                 ),
