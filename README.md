@@ -1,139 +1,231 @@
-# 📱 Conecta Vida - Aplicativo Móvel Cidadão
+# Conecta Vida — Aplicativo Mobile
 
-<p align="center">
-<strong>A interface reativa, portátil e o ponto de contato direto do cidadão com o ecossistema de saúde pública regional. Responsável pela captação de geolocalização ativa, consumo assíncrono de informativos regionalizados, inscrição em mutirões comunitários e interceptação impositiva de alertas epidemiológicos críticos.</strong>
-</p>
+Aplicativo cidadão do Conecta Vida, desenvolvido em Flutter para Android, iOS e execução local no navegador durante o desenvolvimento.
 
-<p align="center">
-<img src="https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter">
-<img src="https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white" alt="Dart">
-<img src="https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android">
-<img src="https://img.shields.io/badge/iOS-000000?style=for-the-badge&logo=ios&logoColor=white" alt="iOS">
-<img src="https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 17">
-<img src="https://img.shields.io/badge/Spring%20Boot-4.0.5-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" alt="Spring Boot 4.0.5">
-<img src="https://img.shields.io/badge/PostgreSQL-17-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL 17">
-<img src="https://img.shields.io/badge/Supabase-Pooler-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase">
-<img src="https://img.shields.io/badge/Gradle-8.x-02303A?style=for-the-badge&logo=gradle&logoColor=white" alt="Gradle">
-</p>
+[![Flutter](https://img.shields.io/badge/Flutter-3.44.0-02569B?logo=flutter&logoColor=white)](https://flutter.dev/)
+[![Dart](https://img.shields.io/badge/Dart-3.11.3-0175C2?logo=dart&logoColor=white)](https://dart.dev/)
+[![Android](https://img.shields.io/badge/Android-APK-3DDC84?logo=android&logoColor=white)](https://developer.android.com/)
 
-<p align="center">
-  <a href="https://youtu.be/s7eqyfYcr3E?si=003QmXc9TUCjPm9O" title="Clique para assistir à demonstração">
-    <img src="https://img.shields.io/badge/Assista%20à%20Demonstração-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Assista à Demonstração">
-  </a>
-</p>
+## Autores e instituição
 
----
+- Luiz Henrique Gonçalves
+- Gustavo
+- Gabriel
+- Renan
+- Maycon
 
-## 👥 Autores e Instituição
-* **Luiz Henrique Gonçalves**
-* **Gustavo**
-* **Gabriel**
-* **Renan**
-* **Maycon**
+**IFSP — Câmpus Bragança Paulista** · Curso Superior de Tecnologia em Análise e Desenvolvimento de Sistemas.
 
-**IFSP - Câmpus Bragança Paulista** *Curso Superior de Tecnologia em Análise e Desenvolvimento de Sistemas*
+[Assistir à demonstração do aplicativo](https://youtu.be/s7eqyfYcr3E?si=003QmXc9TUCjPm9O)
 
----
+> **Branch de trabalho:** `mobile`  
+> **API padrão:** `https://conecta-vida-backend-production.up.railway.app/api`  
+> **Pasta Flutter:** raiz deste repositório (a pasta que contém `pubspec.yaml`).
 
-## 📊 Composição do Código (Languages)
+## 1. Pré-requisitos
 
-A distribuição das linguagens no repositório reflete a estrutura de uma aplicação Flutter multiplataforma nativa, contendo a lógica em Dart e os runners de compilação específicos:
+Instale:
 
-```text
-Dart ───────────────────────────────────────────── 76.9% ███████████████████████████████████░░░░░░░░░░
-C++ ────────────────────────────────────────────── 11.4% █████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-CMake ────────────────────────────────────────────  8.8% ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-Swift ────────────────────────────────────────────  1.4% █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-HTML ─────────────────────────────────────────────  0.7% ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-C ────────────────────────────────────────────────  0.7% ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-Outros ───────────────────────────────────────────  0.1% ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+- Git;
+- Flutter SDK estável **3.44.0** ou compatível com o Dart exigido pelo `pubspec.yaml` (Dart `^3.11.3`);
+- Android Studio com Android SDK e, para executar no Android, um emulador configurado ou um celular com depuração USB;
+- Java/JDK 17 ou superior para a compilação Android;
+- VS Code ou Android Studio com os plugins Flutter e Dart (opcional, mas recomendado).
 
-```
-
-* **Dart (76.9%):** Core design do ecossistema móvel, contemplando todas as views, controllers, gerência de estados e consumo assíncrono.
-* **C++ / CMake (20.2%):** Vinculados às engines de compilação nativa de baixo nível e renderização do Flutter Desktop/Android Shell.
-* **Swift (1.4%):** Arquivos de manifesto e delegates nativos do ecossistema iOS.
-
----
-
-## 📖 Sobre o Módulo Mobile (Aplicativo)
-
-O aplicativo móvel do **Conecta Vida** foi desenvolvido em **Flutter** para entregar uma experiência fluida, reativa e descentralizada de utilidade pública. Ele adota uma arquitetura modularizada dividida em telas (`Screens`), componentes reaproveitáveis (`Widgets`), controladores de estado e lógica (`Controllers`) e modelos de dados estruturados (`Models`).
-
-A aplicação interage de forma assíncrona com os microsserviços da nossa infraestrutura, consumindo dados geográficos locais para reconstruir dinamicamente o feed de notícias do usuário, além de garantir barreira de segurança local contra crises biológicas na comunidade.
-
----
-
-## Pré-requisitos
-
-Antes de compilar e executar o aplicativo móvel, certifique-se de que o seu ambiente de desenvolvimento possui os seguintes componentes configurados:
-
-* **Flutter SDK (Versão estável mais recente)**: Engine para renderização nativa multiplataforma.
-* **Dart SDK**: Linguagem base do projeto.
-* **Java JDK 17**: Obrigatório para o funcionamento do pipeline de compilação do Gradle do Android.
-* **Android Studio / VS Code**: Ambientes recomendados com as extensões do Flutter instaladas.
-* **Emulador Ativo ou Smartphone Físico**: Com a depuração USB ativa para execução dos testes.
-
----
-
-## Passo 1: Configurar a API local
-
-O aplicativo Flutter usa a **Mobile API** Java/Spring Boot, que acessa o PostgreSQL do Supabase. A senha do banco fica somente no ambiente da API; não coloque credenciais do Supabase no Flutter.
-
-Para executar a demonstração no próprio computador, a API deve estar disponível em:
-
-```text
-http://localhost:8081/api
-```
-
-O CORS da Mobile API já permite, por padrão, `http://localhost:5000` e `http://127.0.0.1:5000`. As instruções para iniciar a API e configurar as variáveis do Supabase estão em [mobile-api/README.md](https://github.com/Conecta-Vida/conecta-vida-backend/blob/mobile/mobile-api/README.md).
-
-## Passo 2: Executar no celular ou emulador
-
-Na raiz do projeto:
+Confira a instalação:
 
 ```bash
+flutter doctor
+flutter --version
+dart --version
+```
+
+Resolva os itens necessários do `flutter doctor` antes de compilar para a plataforma desejada.
+
+## 2. Baixar o projeto e preparar dependências
+
+Clone o repositório:
+
+```bash
+git clone https://github.com/Conecta-Vida/Conecta-Vida-Mobile.git
+cd Conecta-Vida-Mobile
+git switch mobile
+git pull origin mobile
 flutter pub get
+```
+
+Se o repositório já estiver clonado, entre na pasta do projeto e execute:
+
+```bash
+git switch mobile
+git pull origin mobile
+flutter pub get
+```
+
+Confira os dispositivos disponíveis:
+
+```bash
+flutter devices
+```
+
+## 3. Configuração da API
+
+O endereço padrão está em `assets/config/app.env`, na variável `API_BASE_URL`:
+
+```env
+API_BASE_URL=https://conecta-vida-backend-production.up.railway.app/api
+```
+
+Esse endereço é público e não é um segredo. O arquivo é incluído nos assets do aplicativo. **Não coloque senhas, tokens privados ou credenciais do banco nesse arquivo.**
+
+Com essa configuração, o aplicativo usa a Mobile API hospedada no Railway. Portanto, para o fluxo normal de desenvolvimento e teste, não é necessário iniciar o backend Java nem o banco no computador: basta ter acesso à internet.
+
+### Sobrescrever o endereço da API
+
+A configuração passada por `--dart-define` tem prioridade sobre o arquivo `app.env`. Use-a somente quando precisar apontar para outra instância.
+
+| Cenário | Valor de `API_BASE_URL` |
+|---|---|
+| API compartilhada no Railway | `https://conecta-vida-backend-production.up.railway.app/api` |
+| API local no emulador Android | `http://10.0.2.2:8081/api` |
+| API local no Chrome | `http://localhost:8081/api` |
+| API local em celular físico | `http://IP_DO_COMPUTADOR:8081/api` |
+
+Exemplo para executar com a API local no emulador Android:
+
+```bash
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8081/api
+```
+
+No celular físico, computador e telefone precisam estar na mesma rede; substitua `IP_DO_COMPUTADOR` pelo IP local do computador e libere a porta 8081 no firewall, se necessário.
+
+Para iniciar a API local, siga as instruções do [README da Mobile API](https://github.com/Conecta-Vida/conecta-vida-backend/blob/main/mobile-api/README.md). A API usa credenciais e variáveis próprias no ambiente Java. Não copie credenciais do backend para o aplicativo Flutter.
+
+## 4. Executar o aplicativo
+
+### Android (emulador ou celular conectado)
+
+Com um dispositivo aberto/conectado:
+
+```bash
 flutter run
 ```
 
-O endereço padrão da API é `http://10.0.2.2:8081/api` no emulador Android e `http://localhost:8081/api` no desktop/iOS Simulator. Em um celular físico, informe o IP local do computador via `--dart-define=API_BASE_URL=http://IP_DO_PC:8081/api`.
-
-## Passo 3: Executar no navegador (demonstração local)
-
-1. Inicie a Mobile API na porta `8081`, conectada ao Supabase.
-2. Em outro terminal, na pasta do projeto Flutter, execute:
+Para selecionar um dispositivo específico:
 
 ```bash
-flutter pub get
+flutter devices
+flutter run -d ID_DO_DISPOSITIVO
+```
+
+A configuração padrão usa a API do Railway. Não use `localhost` para acessar a API online.
+
+### Chrome (Flutter Web local)
+
+Use uma porta fixa para que todos os desenvolvedores tenham a mesma origem local e para coincidir com a origem liberada no CORS da API:
+
+```bash
+flutter run -d chrome --web-port=5000
+```
+
+O navegador abrirá em:
+
+```text
+http://localhost:5000
+```
+
+A chamada à API vai para o domínio público do Railway definido em `app.env`. A origem `http://localhost:5000` já está prevista na configuração CORS da Mobile API. Se trocar a porta, a origem correspondente deverá ser liberada no Railway.
+
+Para usar a API Java local no Chrome:
+
+```bash
 flutter run -d chrome --web-port=5000 --dart-define=API_BASE_URL=http://localhost:8081/api
 ```
 
-O Chrome abrirá o aplicativo em `http://localhost:5000`. O hot reload permite alterar os arquivos Dart e visualizar as mudanças no navegador.
+Observações:
+- CORS é uma restrição do navegador; não se aplica à chamada HTTP feita pelo aplicativo Android nativo.
+- Recursos de Firebase Messaging e notificações locais são inicializados apenas em plataformas nativas.
+- A localização no navegador depende da permissão do usuário e de um contexto seguro; `localhost` é aceito pelos navegadores para desenvolvimento.
 
-Não é necessário Docker, Nginx, Render ou publicar o aplicativo na internet para esse fluxo. O servidor Web do Flutter e a API Java ficam rodando localmente.
+## 5. Gerar APK Android para testes
 
-### Observações sobre a Web
-
-- O Firebase Messaging e as notificações locais são recursos nativos e não são inicializados no navegador.
-- A localização funciona em `localhost`, desde que o usuário permita o acesso no navegador.
-- Caso altere a porta do Flutter, atualize a origem permitida no CORS da Mobile API.
-- A recuperação de senha ainda não está implementada na Mobile API.
-
-## Passo 4: Testar as funcionalidades principais
-
-Com o aplicativo em execução, valide o cadastro/login, a navegação pelo feed, os filtros de vacinação/doações/alertas/eventos e as inscrições em campanhas.
-
-## Passo 5: Compilar o aplicativo Android
-
-Para gerar o APK de distribuição nativa:
+Com a API padrão do Railway configurada em `assets/config/app.env`, gere a APK:
 
 ```bash
+flutter clean
+flutter pub get
 flutter build apk --release
 ```
 
-O arquivo será gerado em `build/app/outputs/flutter-apk/app-release.apk`.
+O arquivo será criado em:
+
+```text
+build/app/outputs/flutter-apk/app-release.apk
+```
+
+Copie o arquivo para o celular, abra-o e autorize a instalação quando o Android solicitar. O celular precisa de acesso à internet para falar com a API no Railway.
+
+Para gerar APKs separados por arquitetura:
+
+```bash
+flutter build apk --release --split-per-abi
+```
+
+Os arquivos serão gerados na mesma pasta `build/app/outputs/flutter-apk/`.
+
+> **Assinatura:** a configuração atual do Gradle usa a assinatura debug também para o build release, conforme indicado no próprio `android/app/build.gradle.kts`. Isso é suficiente para testes internos, mas **não é uma configuração de assinatura de produção nem apropriada para publicar na Play Store**. Antes de distribuir oficialmente, configure uma chave de assinatura release e proteja o keystore e suas senhas fora do Git.
+
+## 6. Verificações antes de enviar alterações
+
+Execute:
+
+```bash
+dart format .
+flutter analyze
+```
+
+Quando houver testes automatizados no projeto:
+
+```bash
+flutter test
+```
+
+No estado atual da branch, não há uma suíte de testes Flutter versionada em `test/`. Novas funcionalidades devem incluir testes de unidade/widget e, quando possível, testes de integração.
+
+O workflow do GitHub Actions em `.github/workflows/flutter-web.yml` executa a compilação Web para alterações na branch `mobile`; ele não substitui a análise estática, os testes de widget ou os testes em dispositivos Android.
+
+## 7. Estrutura principal
+
+```text
+lib/
+  controllers/   # lógica de apresentação e consulta
+  global/        # cores e configuração global da API
+  models/        # modelos de dados
+  providers/     # estado compartilhado
+  screens/       # telas do aplicativo
+  services/      # comunicação com API, notificações e serviços
+  widgets/       # componentes reutilizáveis
+assets/
+  config/app.env # URL pública da Mobile API (sem segredos)
+  images/        # imagens utilizadas pelo app
+android/         # configuração nativa Android
+ios/             # configuração nativa iOS
+```
+
+## 8. Limitações conhecidas no momento
+
+- A recuperação de senha da Mobile API ainda retorna HTTP 501; o fluxo de e-mail não está implementado.
+- O registro de tokens de push no backend utiliza armazenamento em memória e não é persistido após reiniciar a API.
+- A configuração de assinatura Android release ainda é de teste, conforme explicado acima.
+- A branch ainda precisa ampliar sua cobertura automatizada de testes.
+
+## 9. Serviços relacionados
+
+- [Repositório Flutter Mobile](https://github.com/Conecta-Vida/Conecta-Vida-Mobile/tree/mobile)
+- [Backend — Mobile API](https://github.com/Conecta-Vida/conecta-vida-backend/tree/main/mobile-api)
+- [README para executar a Mobile API localmente](https://github.com/Conecta-Vida/conecta-vida-backend/blob/main/mobile-api/README.md)
 
 ---
 
-© 2026 Conecta à Vida. Sistema homologado para fins acadêmicos. IFSP Bragança Paulista.
+IFSP — Câmpus Bragança Paulista · Curso Superior de Tecnologia em Análise e Desenvolvimento de Sistemas  
+© 2026 Conecta Vida
