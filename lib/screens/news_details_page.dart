@@ -48,10 +48,13 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
 
     try {
       final inscricoes = await SupabaseService.fetchInscritosCampanha(widget.noticia.id!);
-      final minha = inscricoes.cast<Map<String, dynamic>?>().firstWhere(
-        (item) => item != null && '${item['usuario_id'] ?? ''}' == '${widget.userId}',
-        orElse: () => null,
-      );
+      Map<String, dynamic>? minha;
+      for (final item in inscricoes) {
+        if ('${item['usuario_id'] ?? ''}' == '${widget.userId}') {
+          minha = item;
+          break;
+        }
+      }
       if (!mounted) return;
       setState(() {
         _inscrito = minha != null;
