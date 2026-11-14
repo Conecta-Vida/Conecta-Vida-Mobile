@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -26,17 +28,6 @@ Future<void> main() async {
   SupabaseService.baseUrl = ApiConfig.resolverBaseUrl();
   debugPrint('🌐 API: ${SupabaseService.baseUrl}');
 
-  if (!kIsWeb) {
-    try {
-      await Firebase.initializeApp();
-      await PushNotificationService.inicializar(
-        apiBaseUrl: SupabaseService.baseUrl,
-      );
-    } catch (e) {
-      debugPrint('⚠️ Push notifications indisponíveis: $e');
-    }
-  }
-
   runApp(
     MultiProvider(
       providers: [
@@ -48,6 +39,24 @@ Future<void> main() async {
       child: const ConectaVidaApp(),
     ),
   );
+
+  // O push não deve atrasar o primeiro frame do aplicativo. A inicialização
+  // do Firebase, a obtenção do token e o POST para a API acontecem em segundo
+  // plano depois que a interface já pode ser exibida.
+  if (!kIsWeb) {
+    unawaited(_inicializarNotificacoesPush());
+  }
+}
+
+Future<void> _inicializarNotificacoesPush() async {
+  try {
+    await Firebase.initializeApp();
+    await PushNotificationService.inicializar(
+      apiBaseUrl: SupabaseService.baseUrl,
+    );
+  } catch (e) {
+    debugPrint('⚠️ Push notifications indisponíveis: $e');
+  }
 }
 
 class ConectaVidaApp extends StatelessWidget {
