@@ -45,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Acesso rápido às notícias e campanhas de saúde.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16),
