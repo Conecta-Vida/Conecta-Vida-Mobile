@@ -20,6 +20,9 @@ class SupabaseService {
   static String? _cacheToken;
   static Future<List<Map<String, dynamic>>>? _comunicacoesRequest;
   static final Map<String, _CachedBool> _inscricaoStatusCache = {};
+  static final Map<int, _CachedIds> _inscricoesUsuarioCache = {};
+  static final Map<int, Future<Set<int>?>> _inscricoesUsuarioRequests = {};
+  static bool _endpointInscricoesEmLoteIndisponivel = false;
   static final Map<String, Future<bool>> _inscricaoStatusRequests = {};
 
   // Notifica telas que dependem das inscrições quando uma alteração é salva.
@@ -96,6 +99,7 @@ class SupabaseService {
     jwtToken = null;
     _limparCachesDeComunicacoes();
     _inscricaoStatusCache.clear();
+    _inscricoesUsuarioCache.clear();
 
     developer.log('Usuário deslogado com sucesso.', name: 'ApiService');
   }
@@ -617,6 +621,83 @@ class SupabaseService {
     _inscricaoStatusCache.removeWhere(
       (key, value) => key.startsWith('$usuarioId:'),
     );
+    _inscricoesUsuarioCache.remove(usuarioId);
+  }
+
+  /// Retorna os IDs das campanhas inscritas pelo usuário em uma única chamada.
+  ///
+  /// Retorna null apenas quando a versão do backend ainda não possui o endpoint;
+  /// nesse caso o chamador usa o fallback compatível com a API antiga.
+  static Future<Set<int>?> _fetchIdsInscricoesUsuario(
+    int usuarioId, {
+    bool forceRefresh = false,
+  }) async {
+    if (_endpointInscricoesEmLoteIndisponivel) return null;
+
+    final cached = _inscricoesUsuarioCache[usuarioId];
+    if (!forceRefresh &&
+        cached != null &&
+        DateTime.now().difference(cached.cachedAt) < _inscricaoCacheTtl) {
+      return Set<int>.from(cached.ids);
+    }
+
+    final ongoing = _inscricoesUsuarioRequests[usuarioId];
+    if (ongoing != null) return ongoing;
+
+    final request = () async {
+      final response = await _httpClient.get(
+        Uri.parse('$baseUrl/campanhas/minhas'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
+        },
+      );
+
+      if (response.statusCode == 404 || response.statusCode == 405) {
+        _endpointInscricoesEmLoteIndisponivel = true;
+        return null;
+      }
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          'Falha ao carregar inscrições do usuário: ${response.statusCode}',
+        );
+      }
+
+      final decoded = jsonDecode(response.body);
+      final List<dynamic> rows;
+      if (decoded is List) {
+        rows = decoded;
+      } else if (decoded is Map && decoded['inscricoes'] is List) {
+        rows = List<dynamic>.from(decoded['inscricoes'] as List);
+      } else {
+        throw const FormatException(
+          'A API retornou um formato inválido para as inscrições.',
+        );
+      }
+
+      final ids = <int>{};
+      for (final row in rows) {
+        if (row is! Map) continue;
+        final rawId = row['comunicacao_id'] ?? row['comunicacaoId'];
+        final id = rawId is num ? rawId.toInt() : int.tryParse('$rawId');
+        if (id != null) ids.add(id);
+      }
+      return ids;
+    }();
+
+    _inscricoesUsuarioRequests[usuarioId] = request;
+    try {
+      final ids = await request;
+      if (ids == null) return null;
+      _inscricoesUsuarioCache[usuarioId] = _CachedIds(
+        Set<int>.from(ids),
+        DateTime.now(),
+      );
+      return Set<int>.from(ids);
+    } finally {
+      _inscricoesUsuarioRequests.remove(usuarioId);
+    }
   }
 
   static Future<bool> isUsuarioInscritoEmCampanha({
@@ -682,34 +763,51 @@ class SupabaseService {
       final hoje = DateTime.now();
       final inicioHoje = DateTime(hoje.year, hoje.month, hoje.day);
 
-      // Verifica inscrições em paralelo. Antes, cada GET era aguardado em
-      // sequência, multiplicando o tempo total pelo número de campanhas.
-      final resultados = await Future.wait(
-        campanhas.map((campanha) async {
-          if (campanha.id == null) return null;
-
-          try {
-            final inscrito = await isUsuarioInscritoEmCampanha(
-              comunicacaoId: campanha.id!,
-              usuarioId: usuarioId,
-              forceRefresh: forceRefresh,
-            );
-            if (!inscrito) return null;
-
-            final fim = _parseDateFlexible(campanha.dataFim);
-            if (fim != null && fim.isBefore(inicioHoje)) return null;
-            return campanha;
-          } catch (e) {
-            developer.log(
-              'Erro ao verificar inscrição da campanha ${campanha.id}: $e',
-              name: 'ApiService',
-            );
-            return null;
-          }
-        }),
+      final idsInscritas = await _fetchIdsInscricoesUsuario(
+        usuarioId,
+        forceRefresh: forceRefresh,
       );
 
-      final inscritas = resultados.whereType<NewsModel>().toList();
+      late final List<NewsModel> inscritas;
+      if (idsInscritas != null) {
+        // Caminho otimizado: a API retorna todas as inscrições em uma chamada.
+        inscritas = campanhas.where((campanha) {
+          if (campanha.id == null || !idsInscritas.contains(campanha.id)) {
+            return false;
+          }
+          final fim = _parseDateFlexible(campanha.dataFim);
+          return fim == null || !fim.isBefore(inicioHoje);
+        }).toList();
+      } else {
+        // Compatibilidade com versões anteriores do backend.
+        // As consultas são paralelas e compartilham cache por campanha.
+        final resultados = await Future.wait(
+          campanhas.map((campanha) async {
+            if (campanha.id == null) return null;
+
+            try {
+              final inscrito = await isUsuarioInscritoEmCampanha(
+                comunicacaoId: campanha.id!,
+                usuarioId: usuarioId,
+                forceRefresh: forceRefresh,
+              );
+              if (!inscrito) return null;
+
+              final fim = _parseDateFlexible(campanha.dataFim);
+              if (fim != null && fim.isBefore(inicioHoje)) return null;
+              return campanha;
+            } catch (e) {
+              developer.log(
+                'Erro ao verificar inscrição da campanha ${campanha.id}: $e',
+                name: 'ApiService',
+              );
+              return null;
+            }
+          }),
+        );
+
+        inscritas = resultados.whereType<NewsModel>().toList();
+      }
 
       inscritas.sort((a, b) {
         final dataA = _parseDateFlexible(a.dataFim) ?? DateTime(9999, 12, 31);
@@ -807,5 +905,12 @@ class _CachedBool {
   const _CachedBool(this.value, this.cachedAt);
 
   final bool value;
+  final DateTime cachedAt;
+}
+
+class _CachedIds {
+  const _CachedIds(this.ids, this.cachedAt);
+
+  final Set<int> ids;
   final DateTime cachedAt;
 }
