@@ -4,6 +4,7 @@ import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
 import '../models/noticia.dart';
 import '../models/usuario.dart';
+import '../models/dependente.dart';
 import '../controllers/noticia_controller.dart';
 
 class SupabaseService {
@@ -507,9 +508,44 @@ class SupabaseService {
     }
   }
 
+  static Future<List<DependenteModel>> fetchDependentes(int usuarioId) async {
+    final response = await _httpClient.get(Uri.parse('$baseUrl/usuarios/$usuarioId/dependentes'), headers: {
+      'Content-Type': 'application/json',
+      if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
+    });
+    if (response.statusCode != 200) throw Exception('Falha ao carregar dependentes: ${response.statusCode}');
+    final decoded = jsonDecode(response.body);
+    if (decoded is! List) throw const FormatException('Lista de dependentes inválida.');
+    return decoded.whereType<Map>().map((e) => DependenteModel.fromMap(Map<String, dynamic>.from(e))).toList();
+  }
+
+  static Future<void> criarDependente(int usuarioId, DependenteModel item) =>
+      _salvarDependente(Uri.parse('$baseUrl/usuarios/$usuarioId/dependentes'), item, criar: true);
+
+  static Future<void> atualizarDependente(int usuarioId, DependenteModel item) {
+    if (item.id == null) throw Exception('ID do dependente ausente.');
+    return _salvarDependente(Uri.parse('$baseUrl/usuarios/$usuarioId/dependentes/${item.id}'), item, criar: false);
+  }
+
+  static Future<void> _salvarDependente(Uri uri, DependenteModel item, {required bool criar}) async {
+    final headers = {'Content-Type': 'application/json', if (jwtToken != null) 'Authorization': 'Bearer $jwtToken'};
+    final body = jsonEncode(item.toRequestMap());
+    final response = criar ? await _httpClient.post(uri, headers: headers, body: body) : await _httpClient.put(uri, headers: headers, body: body);
+    if (response.statusCode != 200 && response.statusCode != 201) throw Exception('Falha ao salvar dependente: ${response.statusCode} ${response.body}');
+  }
+
+  static Future<void> excluirDependente(int usuarioId, int dependenteId) async {
+    final response = await _httpClient.delete(Uri.parse('$baseUrl/usuarios/$usuarioId/dependentes/$dependenteId'), headers: {
+      'Content-Type': 'application/json',
+      if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
+    });
+    if (response.statusCode != 200 && response.statusCode != 204) throw Exception('Falha ao remover dependente: ${response.statusCode}');
+  }
+
   static Future<void> inscreverUsuarioEmCampanha({
     required int comunicacaoId,
     required int usuarioId,
+    int? dependenteId,
   }) async {
     final response = await _httpClient.post(
       Uri.parse('$baseUrl/campanhas/$comunicacaoId/inscrever'),
@@ -517,7 +553,7 @@ class SupabaseService {
         'Content-Type': 'application/json',
         if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
       },
-      body: jsonEncode({'usuario_id': usuarioId}),
+      body: jsonEncode({'usuario_id': usuarioId, if (dependenteId != null) 'dependente_id': dependenteId}),
     );
 
     if (response.statusCode != 200 && response.statusCode != 201) {
@@ -542,9 +578,11 @@ class SupabaseService {
   static Future<void> desinscreverUsuarioDaCampanha({
     required int comunicacaoId,
     required int usuarioId,
+    int? dependenteId,
   }) async {
-    final response = await _httpClient.delete(
-      Uri.parse('$baseUrl/campanhas/$comunicacaoId/desinscrever'),
+    final uri = Uri.parse('$baseUrl/campanhas/$comunicacaoId/desinscrever')
+        .replace(queryParameters: dependenteId == null ? null : {'dependente_id': '$dependenteId'});
+    final response = await _httpClient.delete(uri,
       headers: {
         'Content-Type': 'application/json',
         if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
@@ -898,6 +936,18 @@ class SupabaseService {
       developer.log('Erro no reverse geocoding: $e', name: 'ApiService');
     }
     return null;
+  }
+}
+
+  static Future<List<Map<String, dynamic>>> fetchMinhasInscricoes() async {
+    final response = await _httpClient.get(Uri.parse('$baseUrl/campanhas/minhas'), headers: {
+      'Content-Type': 'application/json',
+      if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
+    });
+    if (response.statusCode != 200) throw Exception('Falha ao carregar inscrições: ${response.statusCode}');
+    final decoded = jsonDecode(response.body);
+    if (decoded is! List) throw const FormatException('Lista de inscrições inválida.');
+    return decoded.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
   }
 }
 
