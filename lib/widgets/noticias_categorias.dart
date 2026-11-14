@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 
 class Categorias extends StatelessWidget {
@@ -13,6 +14,7 @@ class Categorias extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -23,7 +25,7 @@ class Categorias extends StatelessWidget {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: AppCor.textTitle,
+              color: colors.onSurface,
             ),
           ),
         ),
@@ -64,7 +66,7 @@ class Categorias extends StatelessWidget {
         margin: const EdgeInsets.only(right: 16),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AccessibilityPalette.surface(context),
           borderRadius: BorderRadius.circular(40),
           border: Border.all(
             color: isSelected ? color : Colors.transparent,
@@ -72,7 +74,7 @@ class Categorias extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha:0.03),
+              color: AccessibilityPalette.shadow(context),
               blurRadius: 10,
               offset: const Offset(0, 5),
             ),
@@ -93,7 +95,7 @@ class Categorias extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppCor.textSubtitle,
+                color: colors.onSurfaceVariant,
               ),
             ),
           ],
