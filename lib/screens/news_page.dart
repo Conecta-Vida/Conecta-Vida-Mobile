@@ -343,10 +343,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
-            color: selecionado ? AppCor.primary : Colors.white,
+            color: selecionado ? AppCor.primary : AccessibilityPalette.surface(context),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: selecionado ? AppCor.primary : Colors.grey.shade300,
+              color: selecionado ? AppCor.primary : AccessibilityPalette.border(context),
             ),
           ),
           child: Text(
@@ -419,10 +419,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: temExtra ? AppCor.primary : Colors.white,
+            color: temExtra ? AppCor.primary : AccessibilityPalette.surface(context),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: temExtra ? AppCor.primary : Colors.grey.shade300,
+              color: temExtra ? AppCor.primary : AccessibilityPalette.border(context),
             ),
           ),
           child: Row(
@@ -431,7 +431,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Icon(
                 Icons.tune,
                 size: 14,
-                color: temExtra ? Colors.white : AppCor.textoCinza,
+                color: temExtra ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 4),
               Text(
@@ -561,7 +561,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         return const Center(
                           child: Text(
                             'Não foi possível carregar as notícias. Puxe para atualizar.',
-                            style: TextStyle(color: AppCor.textoCinza),
+                            style: TextStyle(color: colors.onSurfaceVariant),
                             textAlign: TextAlign.center,
                           ),
                         );
