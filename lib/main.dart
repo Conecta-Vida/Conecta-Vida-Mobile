@@ -71,7 +71,8 @@ class ConectaVidaApp extends StatelessWidget {
       final current = style.fontWeight ?? FontWeight.w400;
       final index = weights.indexOf(current);
       final nextIndex = (index < 0 ? 3 : index + 1)
-          .clamp(0, weights.length - 1);
+          .clamp(0, weights.length - 1)
+          .toInt();
       return style.copyWith(fontWeight: weights[nextIndex]);
     }
 
