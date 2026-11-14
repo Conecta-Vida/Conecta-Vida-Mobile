@@ -126,7 +126,7 @@ class NoticiaCard extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(
                     noticia.titulo,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
                       color: colors.onSurface,
