@@ -505,7 +505,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   )
                 : _regioesDisponiveis.isEmpty
                 ? _buildContainerGrupo([
-                    const ListTile(
+                    ListTile(
                       title: Text(
                         'Nenhuma região encontrada',
                         style: TextStyle(color: colors.onSurfaceVariant),
