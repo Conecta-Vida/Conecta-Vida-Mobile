@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 import '../models/usuario.dart';
 import '../services/supabase_service.dart';
@@ -51,6 +50,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final notificacoesAtivas =
           box.get(_keyNotificacoesAtivas, defaultValue: true) == true;
 
+      if (!mounted) return;
       setState(() {
         _idsLidos = lidas.toSet();
         _notificacoesAtivas = notificacoesAtivas;
@@ -58,6 +58,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         _inicializando = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         _notificacoesFuture = _buscarNotificacoes();
         _inicializando = false;
@@ -72,14 +73,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Hive.openBox(_boxPreferencias);
   }
 
-  Future<List<_NotificacaoItem>> _buscarNotificacoes() async {
+  Future<List<_NotificacaoItem>> _buscarNotificacoes({
+    bool forceRefresh = false,
+  }) async {
     // As duas operações compartilham o GET /comunicacoes no serviço.
     // Future.wait evita aguardar os lembretes depois de baixar a lista principal.
     final resultados = await Future.wait([
-      SupabaseService.fetchNotificacoes(),
+      SupabaseService.fetchNotificacoes(forceRefresh: forceRefresh),
       if (widget.usuario?.id != null)
         SupabaseService.fetchLembretesCampanhaUmDiaAntes(
           widget.usuario!.id!,
+          forceRefresh: forceRefresh,
         )
       else
         Future.value(<Map<String, dynamic>>[]),
@@ -165,11 +169,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (!mounted) return;
       Navigator.pop(context); // Remove o popup de carregamento
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
+        SnackBar(
+          content: const Text(
             'Os detalhes completos deste alerta não estão disponíveis.',
           ),
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+          backgroundColor: colors.surfaceContainerHighest,
         ),
       );
     }
@@ -186,7 +190,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _atualizar() async {
     setState(() {
-      _notificacoesFuture = _buscarNotificacoes();
+      _notificacoesFuture = _buscarNotificacoes(forceRefresh: true);
     });
     await _notificacoesFuture;
   }
@@ -317,7 +321,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.wifi_off,
                             size: 48,
                             color: colors.onSurfaceVariant,
