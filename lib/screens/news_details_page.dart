@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../accessibility/accessibility_palette.dart';
 import '../accessibility/accessibility_provider.dart';
 import '../accessibility/accessibility_speech_service.dart';
 import '../models/noticia.dart';
@@ -169,7 +168,7 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
               color: colors.surface.withValues(alpha: 0.92),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.arrow_back,
               color: colors.onSurface,
               size: 20,
