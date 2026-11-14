@@ -41,11 +41,11 @@ class NoticiasHeader extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  _buildIconButton(Icons.notifications_outlined, onNotifications),
-                  const SizedBox(width: 10),
-                  _buildIconButton(Icons.calendar_month, onCalendar),
-                  const SizedBox(width: 10),
-                  _buildIconButton(Icons.settings, onSettings),
+                  _buildIconButton(Icons.notifications_outlined, 'Notificações', onNotifications),
+                  const SizedBox(width: 4),
+                  _buildIconButton(Icons.calendar_month, 'Meu cronograma', onCalendar),
+                  const SizedBox(width: 4),
+                  _buildIconButton(Icons.settings, 'Ajustes', onSettings),
                 ],
               ),
               const SizedBox(height: 20),
@@ -70,18 +70,20 @@ class NoticiasHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildIconButton(IconData icon, VoidCallback? action) {
-    return GestureDetector(
-      onTap: action,
-      child: Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha:0.2),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: Colors.white, size: 22),
+  Widget _buildIconButton(
+    IconData icon,
+    String label,
+    VoidCallback? action,
+  ) {
+    return IconButton(
+      tooltip: label,
+      onPressed: action,
+      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+      style: IconButton.styleFrom(
+        backgroundColor: Colors.white.withValues(alpha: 0.2),
+        foregroundColor: Colors.white,
       ),
+      icon: Icon(icon, color: Colors.white, size: 22),
     );
   }
 
