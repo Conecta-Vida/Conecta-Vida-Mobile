@@ -12,6 +12,15 @@ class SupabaseService {
   static String baseUrl = 'http://localhost:8081/api';
   static String? jwtToken;
 
+  static const Duration _comunicacoesCacheTtl = Duration(seconds: 30);
+  static const Duration _inscricaoCacheTtl = Duration(seconds: 20);
+  static List<Map<String, dynamic>>? _comunicacoesCache;
+  static DateTime? _comunicacoesCacheAt;
+  static String? _cacheToken;
+  static Future<List<Map<String, dynamic>>>? _comunicacoesRequest;
+  static final Map<String, _CachedBool> _inscricaoStatusCache = {};
+  static final Map<String, Future<bool>> _inscricaoStatusRequests = {};
+
   // Notifica telas que dependem das inscrições quando uma alteração é salva.
   static final StreamController<void> _inscricoesController =
       StreamController<void>.broadcast();
@@ -84,6 +93,9 @@ class SupabaseService {
 
   static void signOut() {
     jwtToken = null;
+    _limparCachesDeComunicacoes();
+    _inscricaoStatusCache.clear();
+
     developer.log('Usuário deslogado com sucesso.', name: 'ApiService');
   }
 
@@ -174,108 +186,176 @@ class SupabaseService {
     }
   }
 
-  static Future<List<NewsModel>> fetchNoticiasPorCategoria(
-    int categoryIndex,
-  ) async {
-    try {
-      developer.log(
-        'A tentar buscar notícias reais da API...',
-        name: 'ApiService',
-      );
+  static void _limparCachesDeComunicacoes() {
+    _comunicacoesCache = null;
+    _comunicacoesCacheAt = null;
+    _cacheToken = null;
+  }
 
+  static List<Map<String, dynamic>> _copiarComunicacoes(
+    List<Map<String, dynamic>> source,
+  ) {
+    return source.map((item) => Map<String, dynamic>.from(item)).toList();
+  }
+
+  /// Lista comum usada por notícias, notificações e filtros.
+  ///
+  /// Evita repetir GET /comunicacoes quando várias telas abrem juntas.
+  /// Cache curto (30 s) e compartilhamento da mesma Future durante a carga.
+  static Future<List<Map<String, dynamic>>> _fetchComunicacoes({
+    bool forceRefresh = false,
+  }) async {
+    final tokenAtual = jwtToken;
+    final agora = DateTime.now();
+    final cacheValido = _comunicacoesCache != null &&
+        _comunicacoesCacheAt != null &&
+        agora.difference(_comunicacoesCacheAt!) < _comunicacoesCacheTtl &&
+        _cacheToken == tokenAtual;
+
+    if (!forceRefresh && cacheValido) {
+      return _copiarComunicacoes(_comunicacoesCache!);
+    }
+
+    final requisicaoEmAndamento = _comunicacoesRequest;
+    if (requisicaoEmAndamento != null) {
+      return _copiarComunicacoes(await requisicaoEmAndamento);
+    }
+
+    final request = () async {
       final response = await http.get(
         Uri.parse('$baseUrl/comunicacoes'),
         headers: {
           'Content-Type': 'application/json',
-          if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
+          if (tokenAtual != null) 'Authorization': 'Bearer $tokenAtual',
         },
       );
 
-      if (response.statusCode == 200) {
-        final List dynamicList = jsonDecode(response.body);
-
-        var noticias = dynamicList.map((item) {
-          return NewsModel.fromMap({
-            'id': item['id'],
-            'tag': item['tipo'] ?? 'Comunicação',
-            'data': item['data_postada'] ?? item['dataPostada'] ?? '',
-            'data_inicio': item['data_inicio'] ?? item['dataInicio'] ?? '',
-            'data_fim': item['data_fim'] ?? item['dataFim'] ?? '',
-            'titulo': item['titulo'] ?? '',
-            'subtitulo': item['categoria'] ?? '',
-            'descricao': item['descricao'] ?? '',
-            'imagem': item['linkimagem'] ?? item['linkImagem'] ?? '',
-            'categoria': item['categoria'] ?? 'Notícia',
-            'local': item['localizacao'] ?? 'Região Geral',
-            'publicoAlvo':
-                item['publico_alvo'] ?? item['publicoAlvo'] ?? 'População',
-            'orgao': item['instituicao'] != null
-                ? item['instituicao']['nome']
-                : 'Secretaria de Saúde',
-          });
-        }).toList();
-
-        if (categoryIndex == 0) {
-          noticias = noticias
-              .where((n) => n.tag.toUpperCase() == 'NOTICIA')
-              .toList();
-        } else if (categoryIndex == 1) {
-          noticias = noticias
-              .where(
-                (n) =>
-                    n.tag.toUpperCase() == 'CAMPANHA' &&
-                    n.categoria.toLowerCase().contains('vacina'),
-              )
-              .toList();
-        } else if (categoryIndex == 2) {
-          noticias = noticias
-              .where(
-                (n) =>
-                    n.tag.toUpperCase() == 'CAMPANHA' &&
-                    n.categoria.toLowerCase().contains('doa'),
-              )
-              .toList();
-        } else if (categoryIndex == 3) {
-          noticias = noticias
-              .where((n) => n.tag.toUpperCase() == 'ALERTA')
-              .toList();
-        } else if (categoryIndex == 4) {
-          noticias = noticias
-              .where((n) => n.tag.toUpperCase() == 'CAMPANHA')
-              .toList();
-        }
-
-        noticias.sort((a, b) => b.data.compareTo(a.data));
-
-        return noticias;
+      if (response.statusCode != 200) {
+        throw Exception('Falha ao carregar comunicações: ${response.statusCode}');
       }
-      return NewsController().getNoticiasPorCategoria(categoryIndex);
+
+      final decoded = jsonDecode(response.body);
+      if (decoded is! List) {
+        throw const FormatException('A API retornou uma lista inválida.');
+      }
+
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }();
+
+    _comunicacoesRequest = request;
+    try {
+      final result = await request;
+      _comunicacoesCache = _copiarComunicacoes(result);
+      _comunicacoesCacheAt = DateTime.now();
+      _cacheToken = tokenAtual;
+      return _copiarComunicacoes(result);
+    } catch (e) {
+      // Se a rede oscilar, a tela pode usar a última resposta conhecida.
+      if (_comunicacoesCache != null && _cacheToken == tokenAtual) {
+        developer.log(
+          'Usando cache de comunicações após falha de rede: $e',
+          name: 'ApiService',
+        );
+        return _copiarComunicacoes(_comunicacoesCache!);
+      }
+      rethrow;
+    } finally {
+      _comunicacoesRequest = null;
+    }
+  }
+
+  static Future<Set<String>> fetchLocalizacoesComunicacoes() async {
+    final comunicacoes = await _fetchComunicacoes();
+    return comunicacoes
+        .map((item) => (item['localizacao'] ?? '').toString().trim())
+        .where((local) => local.isNotEmpty)
+        .toSet();
+  }
+
+  static Future<List<NewsModel>> fetchNoticiasPorCategoria(
+    int categoryIndex, {
+    bool forceRefresh = false,
+  }) async {
+    try {
+      final dynamicList = await _fetchComunicacoes(
+        forceRefresh: forceRefresh,
+      );
+
+      var noticias = dynamicList.map((item) {
+        final instituicao = item['instituicao'];
+        final instituicaoNome = instituicao is Map
+            ? (instituicao['nome'] ?? 'Secretaria de Saúde').toString()
+            : 'Secretaria de Saúde';
+
+        return NewsModel.fromMap({
+          'id': item['id'],
+          'tag': item['tipo'] ?? 'Comunicação',
+          'data': item['data_postada'] ?? item['dataPostada'] ?? '',
+          'data_inicio': item['data_inicio'] ?? item['dataInicio'] ?? '',
+          'data_fim': item['data_fim'] ?? item['dataFim'] ?? '',
+          'titulo': item['titulo'] ?? '',
+          'subtitulo': item['categoria'] ?? '',
+          'descricao': item['descricao'] ?? '',
+          'imagem': item['linkimagem'] ?? item['linkImagem'] ?? '',
+          'categoria': item['categoria'] ?? 'Notícia',
+          'local': item['localizacao'] ?? 'Região Geral',
+          'publicoAlvo':
+              item['publico_alvo'] ?? item['publicoAlvo'] ?? 'População',
+          'orgao': instituicaoNome,
+        });
+      }).toList();
+
+      if (categoryIndex == 0) {
+        noticias = noticias
+            .where((n) => n.tag.toUpperCase() == 'NOTICIA')
+            .toList();
+      } else if (categoryIndex == 1) {
+        noticias = noticias
+            .where(
+              (n) =>
+                  n.tag.toUpperCase() == 'CAMPANHA' &&
+                  n.categoria.toLowerCase().contains('vacina'),
+            )
+            .toList();
+      } else if (categoryIndex == 2) {
+        noticias = noticias
+            .where(
+              (n) =>
+                  n.tag.toUpperCase() == 'CAMPANHA' &&
+                  n.categoria.toLowerCase().contains('doa'),
+            )
+            .toList();
+      } else if (categoryIndex == 3) {
+        noticias = noticias
+            .where((n) => n.tag.toUpperCase() == 'ALERTA')
+            .toList();
+      } else if (categoryIndex == 4) {
+        noticias = noticias
+            .where((n) => n.tag.toUpperCase() == 'CAMPANHA')
+            .toList();
+      }
+
+      noticias.sort((a, b) => b.data.compareTo(a.data));
+      return noticias;
     } catch (e) {
       developer.log(
-        '🚨 ERRO FATAL DE CONEXÃO NAS NOTÍCIAS: $e',
+        'Falha ao carregar notícias da API: $e',
         name: 'ApiService',
       );
       return NewsController().getNoticiasPorCategoria(categoryIndex);
     }
   }
 
-  static Future<List<Map<String, dynamic>>> fetchNotificacoes() async {
+  static Future<List<Map<String, dynamic>>> fetchNotificacoes({
+    bool forceRefresh = false,
+  }) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/comunicacoes'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
-        },
+      final dynamicList = await _fetchComunicacoes(
+        forceRefresh: forceRefresh,
       );
-
-      if (response.statusCode != 200) {
-        throw Exception(
-          'Falha ao carregar notificações: ${response.statusCode}',
-        );
-      }
-
-      final List<dynamic> dynamicList = jsonDecode(response.body);
 
       final notificacoes = dynamicList.map<Map<String, dynamic>>((item) {
         final tipo = (item['tipo'] ?? 'COMUNICACAO').toString().toUpperCase();
@@ -450,6 +530,7 @@ class SupabaseService {
       );
     }
 
+    _invalidarStatusInscricoes(usuarioId);
     _inscricoesController.add(null);
   }
 
@@ -481,6 +562,7 @@ class SupabaseService {
       );
     }
 
+    _invalidarStatusInscricoes(usuarioId);
     _inscricoesController.add(null);
   }
 
@@ -530,12 +612,43 @@ class SupabaseService {
     return <Map<String, dynamic>>[];
   }
 
+  static void _invalidarStatusInscricoes(int usuarioId) {
+    _inscricaoStatusCache.removeWhere(
+      (key, value) => key.startsWith('$usuarioId:'),
+    );
+  }
+
   static Future<bool> isUsuarioInscritoEmCampanha({
     required int comunicacaoId,
     required int usuarioId,
+    bool forceRefresh = false,
   }) async {
-    final inscritos = await fetchInscritosCampanha(comunicacaoId);
-    return inscritos.any((i) => '${i['usuario_id'] ?? ''}' == '$usuarioId');
+    final key = '$usuarioId:$comunicacaoId';
+    final cached = _inscricaoStatusCache[key];
+    if (!forceRefresh &&
+        cached != null &&
+        DateTime.now().difference(cached.cachedAt) < _inscricaoCacheTtl) {
+      return cached.value;
+    }
+
+    final ongoing = _inscricaoStatusRequests[key];
+    if (ongoing != null) return ongoing;
+
+    final request = () async {
+      final inscritos = await fetchInscritosCampanha(comunicacaoId);
+      return inscritos.any(
+        (item) => '${item['usuario_id'] ?? ''}' == '$usuarioId',
+      );
+    }();
+
+    _inscricaoStatusRequests[key] = request;
+    try {
+      final result = await request;
+      _inscricaoStatusCache[key] = _CachedBool(result, DateTime.now());
+      return result;
+    } finally {
+      _inscricaoStatusRequests.remove(key);
+    }
   }
 
   static DateTime? _parseDateFlexible(String value) {
@@ -561,33 +674,36 @@ class SupabaseService {
   ) async {
     try {
       final campanhas = await fetchNoticiasPorCategoria(4);
-      final List<NewsModel> inscritas = [];
       final hoje = DateTime.now();
       final inicioHoje = DateTime(hoje.year, hoje.month, hoje.day);
 
-      for (final campanha in campanhas) {
-        if (campanha.id == null) continue;
+      // Verifica inscrições em paralelo. Antes, cada GET era aguardado em
+      // sequência, multiplicando o tempo total pelo número de campanhas.
+      final resultados = await Future.wait(
+        campanhas.map((campanha) async {
+          if (campanha.id == null) return null;
 
-        bool inscrito;
-        try {
-          inscrito = await isUsuarioInscritoEmCampanha(
-            comunicacaoId: campanha.id!,
-            usuarioId: usuarioId,
-          );
-        } catch (e) {
-          developer.log(
-            'Erro ao verificar inscrição da campanha ${campanha.id}: $e',
-            name: 'ApiService',
-          );
-          continue;
-        }
-        if (!inscrito) continue;
+          try {
+            final inscrito = await isUsuarioInscritoEmCampanha(
+              comunicacaoId: campanha.id!,
+              usuarioId: usuarioId,
+            );
+            if (!inscrito) return null;
 
-        final fim = _parseDateFlexible(campanha.dataFim);
-        if (fim != null && fim.isBefore(inicioHoje)) continue;
+            final fim = _parseDateFlexible(campanha.dataFim);
+            if (fim != null && fim.isBefore(inicioHoje)) return null;
+            return campanha;
+          } catch (e) {
+            developer.log(
+              'Erro ao verificar inscrição da campanha ${campanha.id}: $e',
+              name: 'ApiService',
+            );
+            return null;
+          }
+        }),
+      );
 
-        inscritas.add(campanha);
-      }
+      final inscritas = resultados.whereType<NewsModel>().toList();
 
       inscritas.sort((a, b) {
         final dataA = _parseDateFlexible(a.dataFim) ?? DateTime(9999, 12, 31);
@@ -675,4 +791,11 @@ class SupabaseService {
     }
     return null;
   }
+}
+
+class _CachedBool {
+  const _CachedBool(this.value, this.cachedAt);
+
+  final bool value;
+  final DateTime cachedAt;
 }
