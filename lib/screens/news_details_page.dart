@@ -306,7 +306,7 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
 
                   Text(
                     widget.noticia.titulo,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
                       color: colors.onSurface,
