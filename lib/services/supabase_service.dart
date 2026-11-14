@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
@@ -10,6 +11,11 @@ class SupabaseService {
   // (dart-define API_BASE_URL > .env > padrão da plataforma, porta 8081).
   static String baseUrl = 'http://localhost:8081/api';
   static String? jwtToken;
+
+  // Notifica telas que dependem das inscrições quando uma alteração é salva.
+  static final StreamController<void> _inscricoesController =
+      StreamController<void>.broadcast();
+  static Stream<void> get inscricoesAlteradas => _inscricoesController.stream;
 
   static Future<void> init() async {}
   static Future<void> syncDefaultNoticias() async {}
@@ -443,6 +449,8 @@ class SupabaseService {
         'Falha ao inscrever em campanha (${response.statusCode}): $detalhe',
       );
     }
+
+    _inscricoesController.add(null);
   }
 
   static Future<void> desinscreverUsuarioDaCampanha({
@@ -472,6 +480,8 @@ class SupabaseService {
         'Falha ao desinscrever da campanha (${response.statusCode}): $detalhe',
       );
     }
+
+    _inscricoesController.add(null);
   }
 
   static Future<List<Map<String, dynamic>>> fetchInscritosCampanha(
@@ -525,7 +535,7 @@ class SupabaseService {
     required int usuarioId,
   }) async {
     final inscritos = await fetchInscritosCampanha(comunicacaoId);
-    return inscritos.any((i) => (i['usuario_id'] ?? -1) == usuarioId);
+    return inscritos.any((i) => '${i['usuario_id'] ?? ''}' == '$usuarioId');
   }
 
   static DateTime? _parseDateFlexible(String value) {
