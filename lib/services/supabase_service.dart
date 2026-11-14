@@ -937,7 +937,6 @@ class SupabaseService {
     }
     return null;
   }
-}
 
   static Future<List<Map<String, dynamic>>> fetchMinhasInscricoes() async {
     final response = await _httpClient.get(Uri.parse('$baseUrl/campanhas/minhas'), headers: {
