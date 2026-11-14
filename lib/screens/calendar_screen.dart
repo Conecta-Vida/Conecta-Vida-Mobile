@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 import '../models/noticia.dart';
 import '../models/usuario.dart';
@@ -124,17 +125,18 @@ class _CalendarScreenState extends State<CalendarScreen>
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppCor.background,
+      backgroundColor: colors.surface,
       appBar: AppBar(
         title: const Text(
           'Meu Cronograma',
           style: TextStyle(
-            color: AppCor.textoPrimario,
+            color: colors.onSurface,
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: colors.surface,
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: AppCor.primary),
@@ -189,11 +191,11 @@ class _CalendarScreenState extends State<CalendarScreen>
 
                                 return Container(
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: AccessibilityPalette.surface(context),
                                     borderRadius: BorderRadius.circular(18),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.05),
+                                        color: AccessibilityPalette.shadow(context),
                                         blurRadius: 12,
                                         offset: const Offset(0, 4),
                                       ),
@@ -224,14 +226,14 @@ class _CalendarScreenState extends State<CalendarScreen>
                                           Text(
                                             evento['data'] ?? '',
                                             style: const TextStyle(
-                                              color: AppCor.textSubtitle,
+                                              color: colors.onSurfaceVariant,
                                             ),
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
                                             evento['local'] ?? '',
                                             style: const TextStyle(
-                                              color: AppCor.textoCinza,
+                                              color: colors.onSurfaceVariant,
                                             ),
                                           ),
                                         ],
