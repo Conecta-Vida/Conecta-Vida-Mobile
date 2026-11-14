@@ -8,7 +8,7 @@ class AccessibilitySpeechService {
     _tts.setVolume(1.0);
     _tts.setPitch(1.0);
     _tts.setCompletionHandler(() => onFinished?.call());
-    _tts.setCancelHandler(() => onFinished?.call());
+    _tts.setCancelHandler((_) => onFinished?.call());
     _tts.setErrorHandler((_) => onFinished?.call());
   }
 
