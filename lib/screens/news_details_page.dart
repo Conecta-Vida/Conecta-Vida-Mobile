@@ -121,13 +121,13 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
         );
       } else {
         final dependentes = await SupabaseService.fetchDependentes(usuarioId);
-        final participante = await showDialog<DependenteModel?>(
+        final escolha = await showDialog<Object?>(
           context: context,
           builder: (ctx) => SimpleDialog(
             title: const Text('Quem participará desta campanha?'),
             children: [
               SimpleDialogOption(
-                onPressed: () => Navigator.pop(ctx, null),
+                onPressed: () => Navigator.pop(ctx, 'titular'),
                 child: const ListTile(
                   leading: Icon(Icons.person),
                   title: Text('Eu (titular)'),
@@ -144,11 +144,8 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
             ],
           ),
         );
-        if (participante == null && !mounted) return;
-        if (participante == null) {
-          // null também representa titular; o cancelamento do diálogo é distinguido
-          // pela variável auxiliar abaixo em uma segunda confirmação simples.
-        }
+        if (!mounted || escolha == null) return;
+        final participante = escolha is DependenteModel ? escolha : null;
         await SupabaseService.inscreverUsuarioEmCampanha(
           comunicacaoId: widget.noticia.id!,
           usuarioId: usuarioId,
