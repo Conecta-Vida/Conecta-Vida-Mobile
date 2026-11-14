@@ -59,6 +59,7 @@ class CustomBottomNavBar extends StatelessWidget {
         children: List.generate(
           _items.length,
           (index) => _buildNavItem(
+            context,
             _items[index]['active'] as IconData,
             _items[index]['inactive'] as IconData,
             index,
@@ -68,7 +69,12 @@ class CustomBottomNavBar extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(IconData activeIcon, IconData inactiveIcon, int index) {
+  Widget _buildNavItem(
+    BuildContext context,
+    IconData activeIcon,
+    IconData inactiveIcon,
+    int index,
+  ) {
     bool isSelected = currentIndex == index;
     return Semantics(
       label: _items[index]['label'] as String,
