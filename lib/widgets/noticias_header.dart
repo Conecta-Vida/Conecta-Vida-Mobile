@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 
 class NoticiasHeader extends StatelessWidget {
@@ -91,19 +92,23 @@ class NoticiasHeader extends StatelessWidget {
     return Container(
       height: 50,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AccessibilityPalette.surface(context),
         borderRadius: BorderRadius.circular(25),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha:0.1), blurRadius: 10),
+          BoxShadow(color: AccessibilityPalette.shadow(context), blurRadius: 10),
         ],
       ),
       child: TextField(
         onChanged: onSearch,
-        decoration: const InputDecoration(
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+        decoration: InputDecoration(
           hintText: 'Pesquisar notícias...',
-          prefixIcon: Icon(Icons.search),
+          hintStyle: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          prefixIcon: const Icon(Icons.search),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 15),
+          contentPadding: const EdgeInsets.symmetric(vertical: 15),
         ),
       ),
     );
