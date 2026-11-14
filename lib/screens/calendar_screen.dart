@@ -108,8 +108,9 @@ class _CalendarScreenState extends State<CalendarScreen>
     return 'Termina em $dia/$mes/$ano';
   }
 
-  Future<void> _desinscrever(NewsModel campanha) async {
-    if (widget.usuario.id == null || campanha.id == null) return;
+  Future<void> _desinscrever(Map<String, dynamic> evento) async {
+    final campanha = evento['objeto'] as NewsModel?;
+    if (widget.usuario.id == null || campanha?.id == null) return;
 
     setState(() => _isLoading = true);
     try {
@@ -268,8 +269,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                                         Icons.remove_circle_outline,
                                         color: AppCor.error,
                                       ),
-                                      onPressed: () =>
-                                          _desinscrever(evento['objeto']),
+                                      onPressed: () => _desinscrever(evento),
                                     ),
                                     onTap: () async {
                                       if (evento['objeto'] != null) {
