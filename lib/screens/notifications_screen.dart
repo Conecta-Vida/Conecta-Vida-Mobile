@@ -351,8 +351,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     return RefreshIndicator(
                       onRefresh: _atualizar,
                       child: ListView(
-                        children: const [
-                          SizedBox(height: 120),
+                        children: [
+                          const SizedBox(height: 120),
                           Icon(
                             Icons.notifications_off_outlined,
                             size: 52,
