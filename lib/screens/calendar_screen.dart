@@ -112,6 +112,7 @@ class _CalendarScreenState extends State<CalendarScreen>
       );
     } catch (e) {
       if (!mounted) return;
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro ao desinscrever: $e'),
@@ -120,7 +121,8 @@ class _CalendarScreenState extends State<CalendarScreen>
       );
     }
 
-    await _carregarDadosUnificados(); // Recarrega a lista
+    // Em caso de sucesso, o serviço emite inscricoesAlteradas e o listener
+    // desta tela faz uma única recarga. Evita duas consultas simultâneas.
   }
 
   @override
