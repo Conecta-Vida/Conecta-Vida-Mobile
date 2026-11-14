@@ -6,6 +6,7 @@ import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
+import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 import 'accessibility_screen.dart';
 import '../models/usuario.dart';
@@ -212,20 +213,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _buscarRegioesDoBanco() async {
     final Set<String> localizacoesUnicas = {};
-    final String baseUrl = SupabaseService.baseUrl;
     try {
-      final resComunicacoes = await http.get(
-        Uri.parse('$baseUrl/comunicacoes'),
+      // Reaproveita a lista de comunicações já usada pelo feed.
+      localizacoesUnicas.addAll(
+        await SupabaseService.fetchLocalizacoesComunicacoes(),
       );
-      if (resComunicacoes.statusCode == 200) {
-        final List dynamicList = jsonDecode(resComunicacoes.body);
-        for (var item in dynamicList) {
-          if (item['localizacao'] != null &&
-              item['localizacao'].toString().isNotEmpty) {
-            localizacoesUnicas.add(item['localizacao'].toString().trim());
-          }
-        }
-      }
     } catch (e) {
       localizacoesUnicas.addAll([
         'Joanópolis',
@@ -233,6 +225,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'Bragança Paulista',
       ]);
     }
+
+    if (!mounted) return;
     setState(() {
       _regioesDisponiveis = localizacoesUnicas.toList()..sort();
       _carregandoRegioes = false;
@@ -254,15 +248,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // --- CONSTRUÇÃO DA TELA ---
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F2F7), // Fundo cinza claro iOS
+      backgroundColor: colors.surface,
       appBar: AppBar(
         title: const Text(
           'Ajustes',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: colors.surface,
+        foregroundColor: colors.onSurface,
         elevation: 0,
       ),
       body: Form(
@@ -393,11 +388,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ListTile(
                 title: const Text(
                   'E-mail (Não editável)',
-                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                  style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
                 ),
                 subtitle: Text(
                   context.watch<UsuarioProvider>().usuario!.email,
-                  style: const TextStyle(color: Colors.black, fontSize: 16),
+                  style: TextStyle(color: colors.onSurface, fontSize: 16),
                 ),
               ),
             ]),
@@ -516,7 +511,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const ListTile(
                       title: Text(
                         'Nenhuma região encontrada',
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(color: colors.onSurfaceVariant),
                       ),
                     ),
                   ])
@@ -573,11 +568,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildContainerGrupo(List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AccessibilityPalette.surface(context),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: AccessibilityPalette.shadow(context),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
