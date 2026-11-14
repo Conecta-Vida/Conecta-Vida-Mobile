@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 
 class CustomBottomNavBar extends StatelessWidget {
@@ -44,10 +45,10 @@ class CustomBottomNavBar extends StatelessWidget {
     return Container(
       height: 70,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AccessibilityPalette.surface(context),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: AccessibilityPalette.shadow(context),
             blurRadius: 15,
             offset: const Offset(0, -5),
           ),
@@ -84,7 +85,7 @@ class CustomBottomNavBar extends StatelessWidget {
             child: Center(
               child: Icon(
                 isSelected ? activeIcon : inactiveIcon,
-                color: isSelected ? AppCor.primary : Colors.grey.shade400,
+                color: isSelected ? AppCor.primary : Theme.of(context).colorScheme.onSurfaceVariant,
                 size: 28,
               ),
             ),
