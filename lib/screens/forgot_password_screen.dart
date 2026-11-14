@@ -44,7 +44,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: colors.surface,
       appBar: AppBar(title: const Text('Recuperar senha')),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -53,9 +55,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'Informe seu email para receber o link de recuperação de senha.',
-                style: TextStyle(color: AppCor.textoCinza, fontSize: 16),
+                style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16),
               ),
               const SizedBox(height: 24),
               TextFormField(

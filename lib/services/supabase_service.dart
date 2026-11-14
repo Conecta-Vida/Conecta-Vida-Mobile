@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
@@ -10,13 +11,31 @@ class SupabaseService {
   // (dart-define API_BASE_URL > .env > padrão da plataforma, porta 8081).
   static String baseUrl = 'http://localhost:8081/api';
   static String? jwtToken;
+  static final http.Client _httpClient = http.Client();
+
+  static const Duration _comunicacoesCacheTtl = Duration(seconds: 30);
+  static const Duration _inscricaoCacheTtl = Duration(seconds: 20);
+  static List<Map<String, dynamic>>? _comunicacoesCache;
+  static DateTime? _comunicacoesCacheAt;
+  static String? _cacheToken;
+  static Future<List<Map<String, dynamic>>>? _comunicacoesRequest;
+  static final Map<String, _CachedBool> _inscricaoStatusCache = {};
+  static final Map<int, _CachedIds> _inscricoesUsuarioCache = {};
+  static final Map<int, Future<Set<int>?>> _inscricoesUsuarioRequests = {};
+  static bool _endpointInscricoesEmLoteIndisponivel = false;
+  static final Map<String, Future<bool>> _inscricaoStatusRequests = {};
+
+  // Notifica telas que dependem das inscrições quando uma alteração é salva.
+  static final StreamController<void> _inscricoesController =
+      StreamController<void>.broadcast();
+  static Stream<void> get inscricoesAlteradas => _inscricoesController.stream;
 
   static Future<void> init() async {}
   static Future<void> syncDefaultNoticias() async {}
 
   static Future<void> signUp(UserModel usuario, String senha) async {
     try {
-      final response = await http.post(
+      final response = await _httpClient.post(
         Uri.parse('$baseUrl/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -44,7 +63,7 @@ class SupabaseService {
 
   static Future<UserModel> signIn(String email, String senha) async {
     try {
-      final response = await http.post(
+      final response = await _httpClient.post(
         Uri.parse('$baseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'senha': senha}),
@@ -78,6 +97,10 @@ class SupabaseService {
 
   static void signOut() {
     jwtToken = null;
+    _limparCachesDeComunicacoes();
+    _inscricaoStatusCache.clear();
+    _inscricoesUsuarioCache.clear();
+
     developer.log('Usuário deslogado com sucesso.', name: 'ApiService');
   }
 
@@ -88,7 +111,7 @@ class SupabaseService {
         throw Exception("Usuário não encontrado para exclusão.");
       }
 
-      final response = await http.delete(
+      final response = await _httpClient.delete(
         Uri.parse('$baseUrl/usuarios/${userCompleto.id}'),
         headers: {
           'Content-Type': 'application/json',
@@ -124,7 +147,7 @@ class SupabaseService {
       payload['idade'] = int.tryParse(user.dataNascimento.toString()) ?? 0;
       payload.remove('campanhasInscritas');
 
-      final response = await http.put(
+      final response = await _httpClient.put(
         Uri.parse('$baseUrl/usuarios/${user.id}'),
         headers: {
           'Content-Type': 'application/json',
@@ -147,7 +170,7 @@ class SupabaseService {
 
   static Future<UserModel?> fetchUsuarioByEmail(String email) async {
     try {
-      final response = await http.get(
+      final response = await _httpClient.get(
         Uri.parse('$baseUrl/usuarios/email/$email'),
         // CORREÇÃO: Incluído Header de Token aqui. Antes era recusado com 401/403.
         headers: {
@@ -168,108 +191,176 @@ class SupabaseService {
     }
   }
 
-  static Future<List<NewsModel>> fetchNoticiasPorCategoria(
-    int categoryIndex,
-  ) async {
-    try {
-      developer.log(
-        'A tentar buscar notícias reais da API...',
-        name: 'ApiService',
-      );
+  static void _limparCachesDeComunicacoes() {
+    _comunicacoesCache = null;
+    _comunicacoesCacheAt = null;
+    _cacheToken = null;
+  }
 
-      final response = await http.get(
+  static List<Map<String, dynamic>> _copiarComunicacoes(
+    List<Map<String, dynamic>> source,
+  ) {
+    return source.map((item) => Map<String, dynamic>.from(item)).toList();
+  }
+
+  /// Lista comum usada por notícias, notificações e filtros.
+  ///
+  /// Evita repetir GET /comunicacoes quando várias telas abrem juntas.
+  /// Cache curto (30 s) e compartilhamento da mesma Future durante a carga.
+  static Future<List<Map<String, dynamic>>> _fetchComunicacoes({
+    bool forceRefresh = false,
+  }) async {
+    final tokenAtual = jwtToken;
+    final agora = DateTime.now();
+    final cacheValido = _comunicacoesCache != null &&
+        _comunicacoesCacheAt != null &&
+        agora.difference(_comunicacoesCacheAt!) < _comunicacoesCacheTtl &&
+        _cacheToken == tokenAtual;
+
+    if (!forceRefresh && cacheValido) {
+      return _copiarComunicacoes(_comunicacoesCache!);
+    }
+
+    final requisicaoEmAndamento = _comunicacoesRequest;
+    if (requisicaoEmAndamento != null) {
+      return _copiarComunicacoes(await requisicaoEmAndamento);
+    }
+
+    final request = () async {
+      final response = await _httpClient.get(
         Uri.parse('$baseUrl/comunicacoes'),
         headers: {
           'Content-Type': 'application/json',
-          if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
+          if (tokenAtual != null) 'Authorization': 'Bearer $tokenAtual',
         },
       );
 
-      if (response.statusCode == 200) {
-        final List dynamicList = jsonDecode(response.body);
-
-        var noticias = dynamicList.map((item) {
-          return NewsModel.fromMap({
-            'id': item['id'],
-            'tag': item['tipo'] ?? 'Comunicação',
-            'data': item['data_postada'] ?? item['dataPostada'] ?? '',
-            'data_inicio': item['data_inicio'] ?? item['dataInicio'] ?? '',
-            'data_fim': item['data_fim'] ?? item['dataFim'] ?? '',
-            'titulo': item['titulo'] ?? '',
-            'subtitulo': item['categoria'] ?? '',
-            'descricao': item['descricao'] ?? '',
-            'imagem': item['linkimagem'] ?? item['linkImagem'] ?? '',
-            'categoria': item['categoria'] ?? 'Notícia',
-            'local': item['localizacao'] ?? 'Região Geral',
-            'publicoAlvo':
-                item['publico_alvo'] ?? item['publicoAlvo'] ?? 'População',
-            'orgao': item['instituicao'] != null
-                ? item['instituicao']['nome']
-                : 'Secretaria de Saúde',
-          });
-        }).toList();
-
-        if (categoryIndex == 0) {
-          noticias = noticias
-              .where((n) => n.tag.toUpperCase() == 'NOTICIA')
-              .toList();
-        } else if (categoryIndex == 1) {
-          noticias = noticias
-              .where(
-                (n) =>
-                    n.tag.toUpperCase() == 'CAMPANHA' &&
-                    n.categoria.toLowerCase().contains('vacina'),
-              )
-              .toList();
-        } else if (categoryIndex == 2) {
-          noticias = noticias
-              .where(
-                (n) =>
-                    n.tag.toUpperCase() == 'CAMPANHA' &&
-                    n.categoria.toLowerCase().contains('doa'),
-              )
-              .toList();
-        } else if (categoryIndex == 3) {
-          noticias = noticias
-              .where((n) => n.tag.toUpperCase() == 'ALERTA')
-              .toList();
-        } else if (categoryIndex == 4) {
-          noticias = noticias
-              .where((n) => n.tag.toUpperCase() == 'CAMPANHA')
-              .toList();
-        }
-
-        noticias.sort((a, b) => b.data.compareTo(a.data));
-
-        return noticias;
+      if (response.statusCode != 200) {
+        throw Exception('Falha ao carregar comunicações: ${response.statusCode}');
       }
-      return NewsController().getNoticiasPorCategoria(categoryIndex);
+
+      final decoded = jsonDecode(response.body);
+      if (decoded is! List) {
+        throw const FormatException('A API retornou uma lista inválida.');
+      }
+
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }();
+
+    _comunicacoesRequest = request;
+    try {
+      final result = await request;
+      _comunicacoesCache = _copiarComunicacoes(result);
+      _comunicacoesCacheAt = DateTime.now();
+      _cacheToken = tokenAtual;
+      return _copiarComunicacoes(result);
+    } catch (e) {
+      // Se a rede oscilar, a tela pode usar a última resposta conhecida.
+      if (_comunicacoesCache != null && _cacheToken == tokenAtual) {
+        developer.log(
+          'Usando cache de comunicações após falha de rede: $e',
+          name: 'ApiService',
+        );
+        return _copiarComunicacoes(_comunicacoesCache!);
+      }
+      rethrow;
+    } finally {
+      _comunicacoesRequest = null;
+    }
+  }
+
+  static Future<Set<String>> fetchLocalizacoesComunicacoes() async {
+    final comunicacoes = await _fetchComunicacoes();
+    return comunicacoes
+        .map((item) => (item['localizacao'] ?? '').toString().trim())
+        .where((local) => local.isNotEmpty)
+        .toSet();
+  }
+
+  static Future<List<NewsModel>> fetchNoticiasPorCategoria(
+    int categoryIndex, {
+    bool forceRefresh = false,
+  }) async {
+    try {
+      final dynamicList = await _fetchComunicacoes(
+        forceRefresh: forceRefresh,
+      );
+
+      var noticias = dynamicList.map((item) {
+        final instituicao = item['instituicao'];
+        final instituicaoNome = instituicao is Map
+            ? (instituicao['nome'] ?? 'Secretaria de Saúde').toString()
+            : 'Secretaria de Saúde';
+
+        return NewsModel.fromMap({
+          'id': item['id'],
+          'tag': item['tipo'] ?? 'Comunicação',
+          'data': item['data_postada'] ?? item['dataPostada'] ?? '',
+          'data_inicio': item['data_inicio'] ?? item['dataInicio'] ?? '',
+          'data_fim': item['data_fim'] ?? item['dataFim'] ?? '',
+          'titulo': item['titulo'] ?? '',
+          'subtitulo': item['categoria'] ?? '',
+          'descricao': item['descricao'] ?? '',
+          'imagem': item['linkimagem'] ?? item['linkImagem'] ?? '',
+          'categoria': item['categoria'] ?? 'Notícia',
+          'local': item['localizacao'] ?? 'Região Geral',
+          'publicoAlvo':
+              item['publico_alvo'] ?? item['publicoAlvo'] ?? 'População',
+          'orgao': instituicaoNome,
+        });
+      }).toList();
+
+      if (categoryIndex == 0) {
+        noticias = noticias
+            .where((n) => n.tag.toUpperCase() == 'NOTICIA')
+            .toList();
+      } else if (categoryIndex == 1) {
+        noticias = noticias
+            .where(
+              (n) =>
+                  n.tag.toUpperCase() == 'CAMPANHA' &&
+                  n.categoria.toLowerCase().contains('vacina'),
+            )
+            .toList();
+      } else if (categoryIndex == 2) {
+        noticias = noticias
+            .where(
+              (n) =>
+                  n.tag.toUpperCase() == 'CAMPANHA' &&
+                  n.categoria.toLowerCase().contains('doa'),
+            )
+            .toList();
+      } else if (categoryIndex == 3) {
+        noticias = noticias
+            .where((n) => n.tag.toUpperCase() == 'ALERTA')
+            .toList();
+      } else if (categoryIndex == 4) {
+        noticias = noticias
+            .where((n) => n.tag.toUpperCase() == 'CAMPANHA')
+            .toList();
+      }
+
+      noticias.sort((a, b) => b.data.compareTo(a.data));
+      return noticias;
     } catch (e) {
       developer.log(
-        '🚨 ERRO FATAL DE CONEXÃO NAS NOTÍCIAS: $e',
+        'Falha ao carregar notícias da API: $e',
         name: 'ApiService',
       );
       return NewsController().getNoticiasPorCategoria(categoryIndex);
     }
   }
 
-  static Future<List<Map<String, dynamic>>> fetchNotificacoes() async {
+  static Future<List<Map<String, dynamic>>> fetchNotificacoes({
+    bool forceRefresh = false,
+  }) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/comunicacoes'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
-        },
+      final dynamicList = await _fetchComunicacoes(
+        forceRefresh: forceRefresh,
       );
-
-      if (response.statusCode != 200) {
-        throw Exception(
-          'Falha ao carregar notificações: ${response.statusCode}',
-        );
-      }
-
-      final List<dynamic> dynamicList = jsonDecode(response.body);
 
       final notificacoes = dynamicList.map<Map<String, dynamic>>((item) {
         final tipo = (item['tipo'] ?? 'COMUNICACAO').toString().toUpperCase();
@@ -362,7 +453,7 @@ class SupabaseService {
     }
 
     try {
-      final response = await http.post(
+      final response = await _httpClient.post(
         Uri.parse('$baseUrl/auth/reset-password'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': emailLimpo}),
@@ -387,7 +478,7 @@ class SupabaseService {
     String sharedBy = 'app_user',
   }) async {
     try {
-      final response = await http.post(
+      final response = await _httpClient.post(
         Uri.parse('$baseUrl/comunicacoes/compartilhamentos'),
         headers: {
           'Content-Type': 'application/json',
@@ -420,7 +511,7 @@ class SupabaseService {
     required int comunicacaoId,
     required int usuarioId,
   }) async {
-    final response = await http.post(
+    final response = await _httpClient.post(
       Uri.parse('$baseUrl/campanhas/$comunicacaoId/inscrever'),
       headers: {
         'Content-Type': 'application/json',
@@ -443,13 +534,16 @@ class SupabaseService {
         'Falha ao inscrever em campanha (${response.statusCode}): $detalhe',
       );
     }
+
+    _invalidarStatusInscricoes(usuarioId);
+    _inscricoesController.add(null);
   }
 
   static Future<void> desinscreverUsuarioDaCampanha({
     required int comunicacaoId,
     required int usuarioId,
   }) async {
-    final response = await http.delete(
+    final response = await _httpClient.delete(
       Uri.parse('$baseUrl/campanhas/$comunicacaoId/desinscrever'),
       headers: {
         'Content-Type': 'application/json',
@@ -472,12 +566,15 @@ class SupabaseService {
         'Falha ao desinscrever da campanha (${response.statusCode}): $detalhe',
       );
     }
+
+    _invalidarStatusInscricoes(usuarioId);
+    _inscricoesController.add(null);
   }
 
   static Future<List<Map<String, dynamic>>> fetchInscritosCampanha(
     int comunicacaoId,
   ) async {
-    final response = await http.get(
+    final response = await _httpClient.get(
       Uri.parse('$baseUrl/campanhas/$comunicacaoId/inscritos'),
       headers: {
         'Content-Type': 'application/json',
@@ -520,12 +617,120 @@ class SupabaseService {
     return <Map<String, dynamic>>[];
   }
 
+  static void _invalidarStatusInscricoes(int usuarioId) {
+    _inscricaoStatusCache.removeWhere(
+      (key, value) => key.startsWith('$usuarioId:'),
+    );
+    _inscricoesUsuarioCache.remove(usuarioId);
+  }
+
+  /// Retorna os IDs das campanhas inscritas pelo usuário em uma única chamada.
+  ///
+  /// Retorna null apenas quando a versão do backend ainda não possui o endpoint;
+  /// nesse caso o chamador usa o fallback compatível com a API antiga.
+  static Future<Set<int>?> _fetchIdsInscricoesUsuario(
+    int usuarioId, {
+    bool forceRefresh = false,
+  }) async {
+    if (_endpointInscricoesEmLoteIndisponivel) return null;
+
+    final cached = _inscricoesUsuarioCache[usuarioId];
+    if (!forceRefresh &&
+        cached != null &&
+        DateTime.now().difference(cached.cachedAt) < _inscricaoCacheTtl) {
+      return Set<int>.from(cached.ids);
+    }
+
+    final ongoing = _inscricoesUsuarioRequests[usuarioId];
+    if (ongoing != null) return ongoing;
+
+    final request = () async {
+      final response = await _httpClient.get(
+        Uri.parse('$baseUrl/campanhas/minhas'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
+        },
+      );
+
+      if (response.statusCode == 404 || response.statusCode == 405) {
+        _endpointInscricoesEmLoteIndisponivel = true;
+        return null;
+      }
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          'Falha ao carregar inscrições do usuário: ${response.statusCode}',
+        );
+      }
+
+      final decoded = jsonDecode(response.body);
+      final List<dynamic> rows;
+      if (decoded is List) {
+        rows = decoded;
+      } else if (decoded is Map && decoded['inscricoes'] is List) {
+        rows = List<dynamic>.from(decoded['inscricoes'] as List);
+      } else {
+        throw const FormatException(
+          'A API retornou um formato inválido para as inscrições.',
+        );
+      }
+
+      final ids = <int>{};
+      for (final row in rows) {
+        if (row is! Map) continue;
+        final rawId = row['comunicacao_id'] ?? row['comunicacaoId'];
+        final id = rawId is num ? rawId.toInt() : int.tryParse('$rawId');
+        if (id != null) ids.add(id);
+      }
+      return ids;
+    }();
+
+    _inscricoesUsuarioRequests[usuarioId] = request;
+    try {
+      final ids = await request;
+      if (ids == null) return null;
+      _inscricoesUsuarioCache[usuarioId] = _CachedIds(
+        Set<int>.from(ids),
+        DateTime.now(),
+      );
+      return Set<int>.from(ids);
+    } finally {
+      _inscricoesUsuarioRequests.remove(usuarioId);
+    }
+  }
+
   static Future<bool> isUsuarioInscritoEmCampanha({
     required int comunicacaoId,
     required int usuarioId,
+    bool forceRefresh = false,
   }) async {
-    final inscritos = await fetchInscritosCampanha(comunicacaoId);
-    return inscritos.any((i) => (i['usuario_id'] ?? -1) == usuarioId);
+    final key = '$usuarioId:$comunicacaoId';
+    final cached = _inscricaoStatusCache[key];
+    if (!forceRefresh &&
+        cached != null &&
+        DateTime.now().difference(cached.cachedAt) < _inscricaoCacheTtl) {
+      return cached.value;
+    }
+
+    final ongoing = _inscricaoStatusRequests[key];
+    if (ongoing != null) return ongoing;
+
+    final request = () async {
+      final inscritos = await fetchInscritosCampanha(comunicacaoId);
+      return inscritos.any(
+        (item) => '${item['usuario_id'] ?? ''}' == '$usuarioId',
+      );
+    }();
+
+    _inscricaoStatusRequests[key] = request;
+    try {
+      final result = await request;
+      _inscricaoStatusCache[key] = _CachedBool(result, DateTime.now());
+      return result;
+    } finally {
+      _inscricaoStatusRequests.remove(key);
+    }
   }
 
   static DateTime? _parseDateFlexible(String value) {
@@ -547,36 +752,61 @@ class SupabaseService {
   }
 
   static Future<List<NewsModel>> fetchCampanhasAtivasDoUsuario(
-    int usuarioId,
-  ) async {
+    int usuarioId, {
+    bool forceRefresh = false,
+  }) async {
     try {
-      final campanhas = await fetchNoticiasPorCategoria(4);
-      final List<NewsModel> inscritas = [];
+      final campanhas = await fetchNoticiasPorCategoria(
+        4,
+        forceRefresh: forceRefresh,
+      );
       final hoje = DateTime.now();
       final inicioHoje = DateTime(hoje.year, hoje.month, hoje.day);
 
-      for (final campanha in campanhas) {
-        if (campanha.id == null) continue;
+      final idsInscritas = await _fetchIdsInscricoesUsuario(
+        usuarioId,
+        forceRefresh: forceRefresh,
+      );
 
-        bool inscrito;
-        try {
-          inscrito = await isUsuarioInscritoEmCampanha(
-            comunicacaoId: campanha.id!,
-            usuarioId: usuarioId,
-          );
-        } catch (e) {
-          developer.log(
-            'Erro ao verificar inscrição da campanha ${campanha.id}: $e',
-            name: 'ApiService',
-          );
-          continue;
-        }
-        if (!inscrito) continue;
+      late final List<NewsModel> inscritas;
+      if (idsInscritas != null) {
+        // Caminho otimizado: a API retorna todas as inscrições em uma chamada.
+        inscritas = campanhas.where((campanha) {
+          if (campanha.id == null || !idsInscritas.contains(campanha.id)) {
+            return false;
+          }
+          final fim = _parseDateFlexible(campanha.dataFim);
+          return fim == null || !fim.isBefore(inicioHoje);
+        }).toList();
+      } else {
+        // Compatibilidade com versões anteriores do backend.
+        // As consultas são paralelas e compartilham cache por campanha.
+        final resultados = await Future.wait(
+          campanhas.map((campanha) async {
+            if (campanha.id == null) return null;
 
-        final fim = _parseDateFlexible(campanha.dataFim);
-        if (fim != null && fim.isBefore(inicioHoje)) continue;
+            try {
+              final inscrito = await isUsuarioInscritoEmCampanha(
+                comunicacaoId: campanha.id!,
+                usuarioId: usuarioId,
+                forceRefresh: forceRefresh,
+              );
+              if (!inscrito) return null;
 
-        inscritas.add(campanha);
+              final fim = _parseDateFlexible(campanha.dataFim);
+              if (fim != null && fim.isBefore(inicioHoje)) return null;
+              return campanha;
+            } catch (e) {
+              developer.log(
+                'Erro ao verificar inscrição da campanha ${campanha.id}: $e',
+                name: 'ApiService',
+              );
+              return null;
+            }
+          }),
+        );
+
+        inscritas = resultados.whereType<NewsModel>().toList();
       }
 
       inscritas.sort((a, b) {
@@ -596,10 +826,14 @@ class SupabaseService {
   }
 
   static Future<List<Map<String, dynamic>>> fetchLembretesCampanhaUmDiaAntes(
-    int usuarioId,
-  ) async {
+    int usuarioId, {
+    bool forceRefresh = false,
+  }) async {
     try {
-      final campanhas = await fetchCampanhasAtivasDoUsuario(usuarioId);
+      final campanhas = await fetchCampanhasAtivasDoUsuario(
+        usuarioId,
+        forceRefresh: forceRefresh,
+      );
       final hoje = DateTime.now();
       final amanha = DateTime(
         hoje.year,
@@ -646,7 +880,7 @@ class SupabaseService {
       final uri = Uri.parse(
         'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lon&format=json&accept-language=pt',
       );
-      final response = await http.get(
+      final response = await _httpClient.get(
         uri,
         headers: {'User-Agent': 'ConectaVidaApp/1.0'},
       );
@@ -665,4 +899,18 @@ class SupabaseService {
     }
     return null;
   }
+}
+
+class _CachedBool {
+  const _CachedBool(this.value, this.cachedAt);
+
+  final bool value;
+  final DateTime cachedAt;
+}
+
+class _CachedIds {
+  const _CachedIds(this.ids, this.cachedAt);
+
+  final Set<int> ids;
+  final DateTime cachedAt;
 }

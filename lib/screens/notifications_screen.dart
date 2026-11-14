@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 import '../models/usuario.dart';
 import '../services/supabase_service.dart';
@@ -50,6 +51,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final notificacoesAtivas =
           box.get(_keyNotificacoesAtivas, defaultValue: true) == true;
 
+      if (!mounted) return;
       setState(() {
         _idsLidos = lidas.toSet();
         _notificacoesAtivas = notificacoesAtivas;
@@ -57,6 +59,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         _inicializando = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         _notificacoesFuture = _buscarNotificacoes();
         _inicializando = false;
@@ -71,17 +74,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Hive.openBox(_boxPreferencias);
   }
 
-  Future<List<_NotificacaoItem>> _buscarNotificacoes() async {
-    // 1. Busca as notificações padrão da API
-    final data = await SupabaseService.fetchNotificacoes();
+  Future<List<_NotificacaoItem>> _buscarNotificacoes({
+    bool forceRefresh = false,
+  }) async {
+    // As duas operações compartilham o GET /comunicacoes no serviço.
+    // Future.wait evita aguardar os lembretes depois de baixar a lista principal.
+    final resultados = await Future.wait([
+      SupabaseService.fetchNotificacoes(forceRefresh: forceRefresh),
+      if (widget.usuario?.id != null)
+        SupabaseService.fetchLembretesCampanhaUmDiaAntes(
+          widget.usuario!.id!,
+          forceRefresh: forceRefresh,
+        )
+      else
+        Future.value(<Map<String, dynamic>>[]),
+    ]);
 
-    // 2. Busca lembretes automáticos de campanhas inscritas (que acabam amanhã)
-    if (widget.usuario?.id != null) {
-      final lembretes = await SupabaseService.fetchLembretesCampanhaUmDiaAntes(
-        widget.usuario!.id!,
-      );
-      data.insertAll(0, lembretes);
-    }
+    final data = <Map<String, dynamic>>[
+      ...resultados[0],
+      ...resultados[1],
+    ];
 
     // 3. Mapeia e ordena as notificações da mais recente para a mais antiga
     final itens = data.map(_NotificacaoItem.fromMap).toList();
@@ -158,11 +170,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (!mounted) return;
       Navigator.pop(context); // Remove o popup de carregamento
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
+        SnackBar(
+          content: const Text(
             'Os detalhes completos deste alerta não estão disponíveis.',
           ),
-          backgroundColor: AppCor.textoCinza,
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
         ),
       );
     }
@@ -179,7 +191,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _atualizar() async {
     setState(() {
-      _notificacoesFuture = _buscarNotificacoes();
+      _notificacoesFuture = _buscarNotificacoes(forceRefresh: true);
     });
     await _notificacoesFuture;
   }
@@ -215,13 +227,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     if (_inicializando) {
-      return const Scaffold(
+      return Scaffold(backgroundColor: colors.surface,
         body: Center(child: CircularProgressIndicator(color: AppCor.primary)),
       );
     }
 
     return Scaffold(
+      backgroundColor: colors.surface,
       appBar: AppBar(
         title: const Text('Notificações'),
         actions: [
@@ -251,18 +265,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 margin: const EdgeInsets.only(bottom: 16),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3CD),
+                  color: colors.tertiaryContainer,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFFFE69C)),
+                  border: Border.all(color: colors.outlineVariant),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Color(0xFF856404)),
+                    Icon(Icons.info_outline, color: colors.onTertiaryContainer),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'As notificações push estão desativadas nas configurações.\nVocê ainda pode consultar os alertas por esta tela.',
-                        style: TextStyle(color: Color(0xFF856404)),
+                        style: TextStyle(color: colors.onTertiaryContainer),
                       ),
                     ),
                   ],
@@ -281,11 +295,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   label: Text(filtro),
                   selected: _filtroSelecionado == filtro,
                   selectedColor: AppCor.primary,
-                  backgroundColor: Colors.grey.shade200,
+                  backgroundColor: colors.surfaceContainerHighest,
                   labelStyle: TextStyle(
                     color: _filtroSelecionado == filtro
                         ? Colors.white
-                        : AppCor.textTitle,
+                        : colors.onSurface,
                   ),
                   onSelected: (_) =>
                       setState(() => _filtroSelecionado = filtro),
@@ -308,10 +322,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.wifi_off,
                             size: 48,
-                            color: AppCor.textSubtitle,
+                            color: colors.onSurfaceVariant,
                           ),
                           const SizedBox(height: 12),
                           const Text(
@@ -337,12 +351,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     return RefreshIndicator(
                       onRefresh: _atualizar,
                       child: ListView(
-                        children: const [
-                          SizedBox(height: 120),
+                        children: [
+                          const SizedBox(height: 120),
                           Icon(
                             Icons.notifications_off_outlined,
                             size: 52,
-                            color: AppCor.textSubtitle,
+                            color: colors.onSurfaceVariant,
                           ),
                           SizedBox(height: 12),
                           Center(
@@ -374,16 +388,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: AccessibilityPalette.surface(context),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: lida
-                                    ? Colors.grey.shade200
+                                    ? colors.outlineVariant
                                     : AppCor.primary.withOpacity(0.35),
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.04),
+                                  color: AccessibilityPalette.shadow(context),
                                   blurRadius: 10,
                                   offset: const Offset(0, 3),
                                 ),
@@ -397,14 +411,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
                                     color: lida
-                                        ? Colors.grey.shade100
+                                        ? colors.surfaceContainerHighest
                                         : AppCor.primary.withOpacity(0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
                                     _iconePorCategoria(item.categoria),
                                     color: lida
-                                        ? AppCor.textSubtitle
+                                        ? colors.onSurfaceVariant
                                         : AppCor.primary,
                                   ),
                                 ),
@@ -423,7 +437,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                                 fontWeight: lida
                                                     ? FontWeight.w500
                                                     : FontWeight.bold,
-                                                color: AppCor.textTitle,
+                                                color: colors.onSurface,
                                               ),
                                             ),
                                           ),
@@ -441,8 +455,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                       const SizedBox(height: 4),
                                       Text(
                                         item.descricao,
-                                        style: const TextStyle(
-                                          color: AppCor.textSubtitle,
+                                        style: TextStyle(
+                                          color: colors.onSurfaceVariant,
                                         ),
                                       ),
                                       const SizedBox(height: 8),
@@ -485,17 +499,18 @@ class _TagInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: colors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
-          color: AppCor.textSubtitle,
+          color: colors.onSurfaceVariant,
           fontWeight: FontWeight.w600,
         ),
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 
 class NoticiasHeader extends StatelessWidget {
@@ -41,11 +42,11 @@ class NoticiasHeader extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  _buildIconButton(Icons.notifications_outlined, onNotifications),
-                  const SizedBox(width: 10),
-                  _buildIconButton(Icons.calendar_month, onCalendar),
-                  const SizedBox(width: 10),
-                  _buildIconButton(Icons.settings, onSettings),
+                  _buildIconButton(Icons.notifications_outlined, 'Notificações', onNotifications),
+                  const SizedBox(width: 4),
+                  _buildIconButton(Icons.calendar_month, 'Meu cronograma', onCalendar),
+                  const SizedBox(width: 4),
+                  _buildIconButton(Icons.settings, 'Ajustes', onSettings),
                 ],
               ),
               const SizedBox(height: 20),
@@ -65,43 +66,49 @@ class NoticiasHeader extends StatelessWidget {
             ],
           ),
         ),
-        Positioned(bottom: -25, left: 24, right: 24, child: _buildSearchBar()),
+        Positioned(bottom: -25, left: 24, right: 24, child: _buildSearchBar(context)),
       ],
     );
   }
 
-  Widget _buildIconButton(IconData icon, VoidCallback? action) {
-    return GestureDetector(
-      onTap: action,
-      child: Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha:0.2),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: Colors.white, size: 22),
+  Widget _buildIconButton(
+    IconData icon,
+    String label,
+    VoidCallback? action,
+  ) {
+    return IconButton(
+      tooltip: label,
+      onPressed: action,
+      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+      style: IconButton.styleFrom(
+        backgroundColor: Colors.white.withValues(alpha: 0.2),
+        foregroundColor: Colors.white,
       ),
+      icon: Icon(icon, color: Colors.white, size: 22),
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(BuildContext context) {
     return Container(
       height: 50,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AccessibilityPalette.surface(context),
         borderRadius: BorderRadius.circular(25),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha:0.1), blurRadius: 10),
+          BoxShadow(color: AccessibilityPalette.shadow(context), blurRadius: 10),
         ],
       ),
       child: TextField(
         onChanged: onSearch,
-        decoration: const InputDecoration(
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+        decoration: InputDecoration(
           hintText: 'Pesquisar notícias...',
-          prefixIcon: Icon(Icons.search),
+          hintStyle: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          prefixIcon: const Icon(Icons.search),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 15),
+          contentPadding: const EdgeInsets.symmetric(vertical: 15),
         ),
       ),
     );

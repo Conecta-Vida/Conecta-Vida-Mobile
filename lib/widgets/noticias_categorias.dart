@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 
 class Categorias extends StatelessWidget {
@@ -13,17 +14,18 @@ class Categorias extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Text(
             'Categorias',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: AppCor.textTitle,
+              color: colors.onSurface,
             ),
           ),
         ),
@@ -33,21 +35,23 @@ class Categorias extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Row(
             children: [
-              _categoryItem('Notícias', AppCor.catNoticias, Icons.article, 0),
+              _categoryItem(context, 'Notícias', AppCor.catNoticias, Icons.article, 0),
               _categoryItem(
+                context,
                 'Vacinação',
                 AppCor.catVacinacao,
                 Icons.vaccines,
                 1,
               ),
-              _categoryItem('Doações', AppCor.catDoacoes, Icons.water_drop, 2),
+              _categoryItem(context, 'Doações', AppCor.catDoacoes, Icons.water_drop, 2),
               _categoryItem(
+                context,
                 'Urgentes',
                 AppCor.catUrgentes,
                 Icons.warning_rounded,
                 3,
               ),
-              _categoryItem('Eventos', AppCor.catEventos, Icons.event, 4),
+              _categoryItem(context, 'Eventos', AppCor.catEventos, Icons.event, 4),
             ],
           ),
         ),
@@ -55,7 +59,14 @@ class Categorias extends StatelessWidget {
     );
   }
 
-  Widget _categoryItem(String label, Color color, IconData icon, int index) {
+  Widget _categoryItem(
+    BuildContext context,
+    String label,
+    Color color,
+    IconData icon,
+    int index,
+  ) {
+    final colors = Theme.of(context).colorScheme;
     bool isSelected = categoryIndex == index;
 
     return GestureDetector(
@@ -64,7 +75,7 @@ class Categorias extends StatelessWidget {
         margin: const EdgeInsets.only(right: 16),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AccessibilityPalette.surface(context),
           borderRadius: BorderRadius.circular(40),
           border: Border.all(
             color: isSelected ? color : Colors.transparent,
@@ -72,7 +83,7 @@ class Categorias extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha:0.03),
+              color: AccessibilityPalette.shadow(context),
               blurRadius: 10,
               offset: const Offset(0, 5),
             ),
@@ -90,10 +101,10 @@ class Categorias extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppCor.textSubtitle,
+                color: colors.onSurfaceVariant,
               ),
             ),
           ],

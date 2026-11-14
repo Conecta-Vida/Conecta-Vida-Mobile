@@ -3,6 +3,7 @@ import 'package:mobile_app/screens/news_page.dart';
 import 'package:mobile_app/screens/forgot_password_screen.dart';
 import 'package:mobile_app/screens/signup_screen.dart';
 import 'package:provider/provider.dart';
+import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 import '../controllers/login_controller.dart';
 import '../providers/usuario_provider.dart';
@@ -26,8 +27,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppCor.background,
+      backgroundColor: colors.surface,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
@@ -43,20 +45,20 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Acesso rápido às notícias e campanhas de saúde.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppCor.textoCinza, fontSize: 16),
+                style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16),
               ),
               const SizedBox(height: 32),
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AccessibilityPalette.surface(context),
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
+                      color: AccessibilityPalette.shadow(context),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),

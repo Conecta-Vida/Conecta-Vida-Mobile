@@ -21,6 +21,7 @@ class NoticiasInfoBotao extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -30,7 +31,7 @@ class NoticiasInfoBotao extends StatelessWidget {
           padding: const EdgeInsets.all(12.0),
           child: Row(
             children: [
-              Icon(icone, color: AppCor.textoCinza, size: 24),
+              Icon(icone, color: colors.onSurfaceVariant, size: 24),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -38,15 +39,15 @@ class NoticiasInfoBotao extends StatelessWidget {
                   children: [
                     Text(
                       titulo,
-                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       valor,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: AppCor.textoPrimario,
+                        color: colors.onSurface,
                       ),
                     ),
                   ],

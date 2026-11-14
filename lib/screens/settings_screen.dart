@@ -1,12 +1,11 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hive/hive.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
+import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
+import 'accessibility_screen.dart';
 import '../models/usuario.dart';
 import '../providers/usuario_provider.dart';
 import '../services/supabase_service.dart';
@@ -167,7 +166,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+            child: Text('Cancelar', style: TextStyle(color: Theme.of(ctx).colorScheme.onSurfaceVariant)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -213,20 +212,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _buscarRegioesDoBanco() async {
     final Set<String> localizacoesUnicas = {};
-    final String baseUrl = SupabaseService.baseUrl;
     try {
-      final resComunicacoes = await http.get(
-        Uri.parse('$baseUrl/comunicacoes'),
+      // Reaproveita a lista de comunicações já usada pelo feed.
+      localizacoesUnicas.addAll(
+        await SupabaseService.fetchLocalizacoesComunicacoes(),
       );
-      if (resComunicacoes.statusCode == 200) {
-        final List dynamicList = jsonDecode(resComunicacoes.body);
-        for (var item in dynamicList) {
-          if (item['localizacao'] != null &&
-              item['localizacao'].toString().isNotEmpty) {
-            localizacoesUnicas.add(item['localizacao'].toString().trim());
-          }
-        }
-      }
     } catch (e) {
       localizacoesUnicas.addAll([
         'Joanópolis',
@@ -234,6 +224,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'Bragança Paulista',
       ]);
     }
+
+    if (!mounted) return;
     setState(() {
       _regioesDisponiveis = localizacoesUnicas.toList()..sort();
       _carregandoRegioes = false;
@@ -256,15 +248,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // --- CONSTRUÇÃO DA TELA ---
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F2F7), // Fundo cinza claro iOS
+      backgroundColor: colors.surface,
       appBar: AppBar(
         title: const Text(
           'Ajustes',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: colors.surface,
+        foregroundColor: colors.onSurface,
         elevation: 0,
       ),
       body: Form(
@@ -272,6 +265,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
           children: [
+            _buildSecaoTitulo('ACESSIBILIDADE'),
+            _buildContainerGrupo([
+              ListTile(
+                leading: const Icon(Icons.accessibility_new),
+                title: const Text('Acessibilidade'),
+                subtitle: const Text(
+                  'Texto, contraste, tema, movimento e leitura em voz alta',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AccessibilityScreen(),
+                    ),
+                  );
+                },
+              ),
+            ]),
+            const SizedBox(height: 24),
+
             // 1. SECÇÃO NO TOPO: GERENCIAR CONTA
             _buildSecaoTitulo('GERENCIAR CONTA'),
             _buildContainerGrupo([
@@ -373,13 +386,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const Divider(height: 1, indent: 16, endIndent: 16),
               ListTile(
-                title: const Text(
+                title: Text(
                   'E-mail (Não editável)',
-                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                  style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
                 ),
                 subtitle: Text(
                   context.watch<UsuarioProvider>().usuario!.email,
-                  style: const TextStyle(color: Colors.black, fontSize: 16),
+                  style: TextStyle(color: colors.onSurface, fontSize: 16),
                 ),
               ),
             ]),
@@ -495,10 +508,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   )
                 : _regioesDisponiveis.isEmpty
                 ? _buildContainerGrupo([
-                    const ListTile(
+                    ListTile(
                       title: Text(
                         'Nenhuma região encontrada',
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(color: colors.onSurfaceVariant),
                       ),
                     ),
                   ])
@@ -542,10 +555,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
       child: Text(
         titulo,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF8E8E93),
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           letterSpacing: 0.5,
         ),
       ),
@@ -555,11 +568,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildContainerGrupo(List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AccessibilityPalette.surface(context),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: AccessibilityPalette.shadow(context),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),

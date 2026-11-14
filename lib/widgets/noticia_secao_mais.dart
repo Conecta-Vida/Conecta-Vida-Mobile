@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 import '../models/noticia.dart';
 import '../controllers/noticia_controller.dart';
@@ -18,6 +19,7 @@ class NoticiasSecaoMais extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final controller = NewsController();
     List<NewsModel> todasAsNoticias = controller.getNoticiasPorCategoria(0);
     List<NewsModel> recomendadas = todasAsNoticias
@@ -29,12 +31,12 @@ class NoticiasSecaoMais extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Outras Campanhas',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: AppCor.textoPrimario,
+            color: colors.onSurface,
           ),
         ),
         const SizedBox(height: 16),
@@ -61,6 +63,7 @@ class NoticiasSecaoMais extends StatelessWidget {
     BuildContext context,
     NewsModel noticiaRelacionada,
   ) {
+    final colors = Theme.of(context).colorScheme;
     bool ehUrgente =
         noticiaRelacionada.categoria.toLowerCase().contains('sangue') ||
         noticiaRelacionada.categoria.toLowerCase().contains('alerta');
@@ -80,11 +83,11 @@ class NoticiasSecaoMais extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AccessibilityPalette.surface(context),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withValues(alpha:0.1),
+              color: AccessibilityPalette.shadow(context),
               spreadRadius: 1,
               blurRadius: 5,
             ),
@@ -96,8 +99,8 @@ class NoticiasSecaoMais extends StatelessWidget {
             Expanded(
               flex: 3,
               child: Container(
-                decoration: const BoxDecoration(
-                  color: AppCor.background,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                 ),
                 child: Center(
@@ -128,8 +131,8 @@ class NoticiasSecaoMais extends StatelessWidget {
                     ),
                     Text(
                       noticiaRelacionada.categoria,
-                      style: const TextStyle(
-                        color: AppCor.textoCinza,
+                      style: TextStyle(
+                        color: colors.onSurfaceVariant,
                         fontSize: 11,
                       ),
                       maxLines: 1,
@@ -145,7 +148,7 @@ class NoticiasSecaoMais extends StatelessWidget {
                             fontSize: 12,
                             color: ehUrgente
                                 ? AppCor.error
-                                : AppCor.textoPrimario,
+                                : colors.onSurface,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

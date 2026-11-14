@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 import '../models/noticia.dart';
 import '../models/usuario.dart';
@@ -14,14 +17,35 @@ class CalendarScreen extends StatefulWidget {
   State<CalendarScreen> createState() => _CalendarScreenState();
 }
 
-class _CalendarScreenState extends State<CalendarScreen> {
+class _CalendarScreenState extends State<CalendarScreen>
+    with WidgetsBindingObserver {
   bool _isLoading = true;
   List<Map<String, dynamic>> _todosOsEventos = [];
+  StreamSubscription<void>? _inscricoesSubscription;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _inscricoesSubscription =
+        SupabaseService.inscricoesAlteradas.listen((_) {
+      if (mounted) _carregarDadosUnificados();
+    });
     _carregarDadosUnificados();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _carregarDadosUnificados();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _inscricoesSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _carregarDadosUnificados() async {
@@ -88,6 +112,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       );
     } catch (e) {
       if (!mounted) return;
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro ao desinscrever: $e'),
@@ -96,22 +121,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
       );
     }
 
-    await _carregarDadosUnificados(); // Recarrega a lista
+    // Em caso de sucesso, o serviço emite inscricoesAlteradas e o listener
+    // desta tela faz uma única recarga. Evita duas consultas simultâneas.
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppCor.background,
+      backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Meu Cronograma',
           style: TextStyle(
-            color: AppCor.textoPrimario,
+            color: colors.onSurface,
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: colors.surface,
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: AppCor.primary),
@@ -136,12 +163,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Compromissos Agendados',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: AppCor.textoPrimario,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -166,11 +193,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
                                 return Container(
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: AccessibilityPalette.surface(context),
                                     borderRadius: BorderRadius.circular(18),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.05),
+                                        color: AccessibilityPalette.shadow(context),
                                         blurRadius: 12,
                                         offset: const Offset(0, 4),
                                       ),
@@ -187,9 +214,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                     ),
                                     title: Text(
                                       evento['titulo'] ?? 'Sem Título',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: AppCor.textoPrimario,
+                                        color: Theme.of(context).colorScheme.onSurface,
                                       ),
                                     ),
                                     subtitle: Padding(
@@ -200,15 +227,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                         children: [
                                           Text(
                                             evento['data'] ?? '',
-                                            style: const TextStyle(
-                                              color: AppCor.textSubtitle,
+                                            style: TextStyle(
+                                              color: colors.onSurfaceVariant,
                                             ),
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
                                             evento['local'] ?? '',
-                                            style: const TextStyle(
-                                              color: AppCor.textoCinza,
+                                            style: TextStyle(
+                                              color: colors.onSurfaceVariant,
                                             ),
                                           ),
                                         ],
@@ -223,9 +250,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                       onPressed: () =>
                                           _desinscrever(evento['objeto']),
                                     ),
-                                    onTap: () {
+                                    onTap: () async {
                                       if (evento['objeto'] != null) {
-                                        Navigator.push(
+                                        await Navigator.push(
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) =>
@@ -237,6 +264,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                                 ),
                                           ),
                                         );
+                                        if (mounted) {
+                                          await _carregarDadosUnificados();
+                                        }
                                       }
                                     },
                                   ),

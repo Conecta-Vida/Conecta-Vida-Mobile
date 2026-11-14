@@ -159,7 +159,9 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: colors.surface,
       appBar: AppBar(title: const Text('Cadastro')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -168,9 +170,9 @@ class _SignupScreenState extends State<SignupScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'Crie sua conta para acessar as novidades de saúde.',
-                style: TextStyle(color: AppCor.textoCinza, fontSize: 16),
+                style: TextStyle(color: colors.onSurfaceVariant, fontSize: 16),
               ),
               const SizedBox(height: 24),
               TextFormField(

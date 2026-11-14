@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
+import '../accessibility/accessibility_motion.dart';
+import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 import '../controllers/noticia_controller.dart';
 import '../models/noticia.dart';
@@ -273,7 +275,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCidadeChips() {
+  Widget _buildCidadeChips(BuildContext context) {
     final cidadeUsuario = context.read<UsuarioProvider>().usuario!.localizacao;
     final temFiltroAtivo = _cidadesFiltro.isNotEmpty;
 
@@ -293,6 +295,7 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 24),
         children: [
           _buildChip(
+            context,
             'Todas',
             selecionado: !temFiltroAtivo,
             onTap: () {
@@ -303,6 +306,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           if (cidadeUsuarioValida)
             _buildChip(
+              context,
               cidadeUsuario,
               selecionado: _cidadesFiltro.contains(cidadeUsuario),
               onTap: () {
@@ -315,14 +319,15 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
 
-          ...cidadesExtras.map((cidade) => _buildChipRemovivel(cidade)),
-          _buildChipFiltro(),
+          ...cidadesExtras.map((cidade) => _buildChipRemovivel(context, cidade)),
+          _buildChipFiltro(context),
         ],
       ),
     );
   }
 
   Widget _buildChip(
+    BuildContext context,
     String label, {
     required bool selecionado,
     required VoidCallback onTap,
@@ -332,19 +337,22 @@ class _HomeScreenState extends State<HomeScreen> {
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: AccessibilityMotion.duration(
+            context,
+            const Duration(milliseconds: 200),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
-            color: selecionado ? AppCor.primary : Colors.white,
+            color: selecionado ? AppCor.primary : AccessibilityPalette.surface(context),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: selecionado ? AppCor.primary : Colors.grey.shade300,
+              color: selecionado ? AppCor.primary : AccessibilityPalette.border(context),
             ),
           ),
           child: Text(
             label,
             style: TextStyle(
-              color: selecionado ? Colors.white : AppCor.textoCinza,
+              color: selecionado ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: selecionado ? FontWeight.bold : FontWeight.normal,
               fontSize: 13,
             ),
@@ -354,11 +362,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildChipRemovivel(String cidade) {
+  Widget _buildChipRemovivel(BuildContext context, String cidade) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: AccessibilityMotion.duration(
+            context,
+            const Duration(milliseconds: 200),
+          ),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: AppCor.primary,
@@ -389,7 +400,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildChipFiltro() {
+  Widget _buildChipFiltro(BuildContext context) {
     final temExtra = _cidadesFiltro.any((c) {
       final cidadeUsuario = context
           .read<UsuarioProvider>()
@@ -402,13 +413,16 @@ class _HomeScreenState extends State<HomeScreen> {
       child: GestureDetector(
         onTap: _abrirFiltroCidades,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: AccessibilityMotion.duration(
+            context,
+            const Duration(milliseconds: 200),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: temExtra ? AppCor.primary : Colors.white,
+            color: temExtra ? AppCor.primary : AccessibilityPalette.surface(context),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: temExtra ? AppCor.primary : Colors.grey.shade300,
+              color: temExtra ? AppCor.primary : AccessibilityPalette.border(context),
             ),
           ),
           child: Row(
@@ -417,7 +431,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Icon(
                 Icons.tune,
                 size: 14,
-                color: temExtra ? Colors.white : AppCor.textoCinza,
+                color: temExtra ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 4),
               Text(
@@ -437,7 +451,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _reloadNoticias() async {
     setState(() {
-      _refreshNoticias();
+      _noticiasFuture = SupabaseService.fetchNoticiasPorCategoria(
+        _categoryIndex,
+        forceRefresh: true,
+      );
     });
     await _noticiasFuture;
   }
@@ -446,10 +463,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     // Aqui pegamos o usuário atual de forma correta e síncrona
     final usuario = context.watch<UsuarioProvider>().usuario!;
+    final colors = Theme.of(context).colorScheme;
     final String tituloSessao = _newsController.getTituloSessao(_categoryIndex);
 
     return Scaffold(
-      backgroundColor: AppCor.background,
+      backgroundColor: colors.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -487,7 +505,7 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             const SizedBox(height: 36),
-            _buildCidadeChips(),
+            _buildCidadeChips(context),
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -496,15 +514,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Text(
                     tituloSessao,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: AppCor.textTitle,
+                      color: colors.onSurface,
                     ),
                   ),
-                  const Text(
+                  Text(
                     'Categoria',
-                    style: TextStyle(color: AppCor.textoCinza),
+                    style: TextStyle(color: colors.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -540,10 +558,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       final noticias = _filtrarNoticias(todas);
 
                       if (snapshot.hasError && todas.isEmpty) {
-                        return const Center(
+                        return Center(
                           child: Text(
                             'Não foi possível carregar as notícias. Puxe para atualizar.',
-                            style: TextStyle(color: AppCor.textoCinza),
+                            style: TextStyle(color: colors.onSurfaceVariant),
                             textAlign: TextAlign.center,
                           ),
                         );

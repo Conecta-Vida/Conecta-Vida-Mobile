@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 
 class CustomBottomNavBar extends StatelessWidget {
@@ -44,10 +45,10 @@ class CustomBottomNavBar extends StatelessWidget {
     return Container(
       height: 70,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AccessibilityPalette.surface(context),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: AccessibilityPalette.shadow(context),
             blurRadius: 15,
             offset: const Offset(0, -5),
           ),
@@ -58,6 +59,7 @@ class CustomBottomNavBar extends StatelessWidget {
         children: List.generate(
           _items.length,
           (index) => _buildNavItem(
+            context,
             _items[index]['active'] as IconData,
             _items[index]['inactive'] as IconData,
             index,
@@ -67,17 +69,33 @@ class CustomBottomNavBar extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(IconData activeIcon, IconData inactiveIcon, int index) {
+  Widget _buildNavItem(
+    BuildContext context,
+    IconData activeIcon,
+    IconData inactiveIcon,
+    int index,
+  ) {
     bool isSelected = currentIndex == index;
-    return GestureDetector(
-      onTap: () => onTap(index),
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
-        child: Icon(
-          isSelected ? activeIcon : inactiveIcon,
-          color: isSelected ? AppCor.primary : Colors.grey.shade400,
-          size: 28,
+    return Semantics(
+      label: _items[index]['label'] as String,
+      button: true,
+      selected: isSelected,
+      child: Tooltip(
+        message: _items[index]['label'] as String,
+        child: GestureDetector(
+          onTap: () => onTap(index),
+          behavior: HitTestBehavior.opaque,
+          child: SizedBox(
+            width: 48,
+            height: 48,
+            child: Center(
+              child: Icon(
+                isSelected ? activeIcon : inactiveIcon,
+                color: isSelected ? AppCor.primary : Theme.of(context).colorScheme.onSurfaceVariant,
+                size: 28,
+              ),
+            ),
+          ),
         ),
       ),
     );

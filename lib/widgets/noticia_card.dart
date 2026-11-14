@@ -1,5 +1,6 @@
 // lib/components/news_card.dart
 import 'package:flutter/material.dart';
+import '../accessibility/accessibility_palette.dart';
 import '../models/noticia.dart';
 import '../screens/news_details_page.dart';
 
@@ -17,6 +18,7 @@ class NoticiaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final String imagePath = noticia.imagem.trim();
     final bool hasImage = imagePath.isNotEmpty;
     final bool isNetworkImage = hasImage && imagePath.startsWith('http');
@@ -39,7 +41,7 @@ class NoticiaCard extends StatelessWidget {
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AccessibilityPalette.surface(context),
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
@@ -114,7 +116,7 @@ class NoticiaCard extends StatelessWidget {
                       Text(
                         noticia.data,
                         style: TextStyle(
-                          color: Colors.grey.shade500,
+                          color: colors.onSurfaceVariant,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
@@ -124,10 +126,10 @@ class NoticiaCard extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(
                     noticia.titulo,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF2C3E50),
+                      color: colors.onSurface,
                       height: 1.3,
                     ),
                   ),
@@ -139,7 +141,7 @@ class NoticiaCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow
                         .ellipsis, // Adiciona "..." se o texto for maior que as 2 linhas
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: 14, color: colors.onSurfaceVariant),
                   ),
                 ],
               ),
