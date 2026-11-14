@@ -269,7 +269,9 @@ class _DependentesScreenState extends State<DependentesScreen> {
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (ctx, i) {
                       final item = items[i];
-                      final campanhas = campanhasPorDependente[item.id] ?? [];
+                      final campanhas = item.id == null
+                          ? const <String>[]
+                          : campanhasPorDependente[item.id!] ?? [];
 
                       return Card(
                         child: Padding(
