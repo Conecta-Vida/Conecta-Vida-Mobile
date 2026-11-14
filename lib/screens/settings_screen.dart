@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 import 'accessibility_screen.dart';
+import 'dependentes_screen.dart';
 import '../models/usuario.dart';
 import '../providers/usuario_provider.dart';
 import '../services/supabase_service.dart';
@@ -280,6 +281,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       builder: (_) => const AccessibilityScreen(),
                     ),
                   );
+                },
+              ),
+            ]),
+            const SizedBox(height: 12),
+            _buildSecaoTitulo('FAMÍLIA'),
+            _buildContainerGrupo([
+              ListTile(
+                leading: const Icon(Icons.family_restroom),
+                title: const Text('Meus Dependentes'),
+                subtitle: const Text('Adicione e gerencie pessoas para inscrevê-las em campanhas'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  final usuarioId = context.read<UsuarioProvider>().usuario!.id;
+                  if (usuarioId == null) return;
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => DependentesScreen(usuarioId: usuarioId),
+                  ));
                 },
               ),
             ]),
