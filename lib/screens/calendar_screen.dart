@@ -55,18 +55,35 @@ class _CalendarScreenState extends State<CalendarScreen>
     try {
       // CARREGAR INSCRIÇÕES DA API (ONLINE)
       if (widget.usuario.id != null) {
-        final campanhasInscritas =
-            await SupabaseService.fetchCampanhasAtivasDoUsuario(
-              widget.usuario.id!,
-            );
-        for (var campanha in campanhasInscritas) {
-          eventosCarregados.add({
-            'objeto': campanha,
-            'titulo': campanha.titulo,
-            'data': _formatarDataFim(campanha.dataFim),
-            'local': campanha.local,
-            'tipo': 'campanha',
-          });
+        final campanhasInscritas = await SupabaseService.fetchCampanhasAtivasDoUsuario(widget.usuario.id!);
+        final inscricoes = await SupabaseService.fetchMinhasInscricoes();
+        for (final campanha in campanhasInscritas) {
+          final participantes = inscricoes.where((row) =>
+            '${row['comunicacao_id'] ?? row['comunicacaoId']}' == '${campanha.id}'
+          ).toList();
+          if (participantes.isEmpty) {
+            eventosCarregados.add({
+              'objeto': campanha,
+              'titulo': campanha.titulo,
+              'data': _formatarDataFim(campanha.dataFim),
+              'local': campanha.local,
+              'tipo': 'campanha',
+              'participante': 'Você',
+              'dependente_id': null,
+            });
+          } else {
+            for (final inscricao in participantes) {
+              eventosCarregados.add({
+                'objeto': campanha,
+                'titulo': campanha.titulo,
+                'data': _formatarDataFim(campanha.dataFim),
+                'local': campanha.local,
+                'tipo': 'campanha',
+                'participante': inscricao['participante_nome'] ?? 'Você',
+                'dependente_id': inscricao['dependente_id'],
+              });
+            }
+          }
         }
       }
     } catch (e) {
@@ -99,6 +116,7 @@ class _CalendarScreenState extends State<CalendarScreen>
       await SupabaseService.desinscreverUsuarioDaCampanha(
         comunicacaoId: campanha.id!,
         usuarioId: widget.usuario.id!,
+        dependenteId: evento['dependente_id'] is num ? (evento['dependente_id'] as num).toInt() : null,
       );
 
       if (!mounted) return;
@@ -233,10 +251,13 @@ class _CalendarScreenState extends State<CalendarScreen>
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
+                                            'Participante: ${evento['participante'] ?? 'Você'}',
+                                            style: TextStyle(color: colors.onSurfaceVariant),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
                                             evento['local'] ?? '',
-                                            style: TextStyle(
-                                              color: colors.onSurfaceVariant,
-                                            ),
+                                            style: TextStyle(color: colors.onSurfaceVariant),
                                           ),
                                         ],
                                       ),
