@@ -16,6 +16,9 @@ class _DependentesScreenState extends State<DependentesScreen> {
   @override
   void initState() { super.initState(); load(); }
 
+  static String _formatarData(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
   Future<void> load() async {
     setState(() => loading = true);
     try {
@@ -30,9 +33,15 @@ class _DependentesScreenState extends State<DependentesScreen> {
     final key = GlobalKey<FormState>();
     final name = TextEditingController(text: old?.nomeCompleto ?? '');
     final other = TextEditingController();
-    var birth = old?.dataNascimento ?? DateTime(2015);
-    const relations = ['Pai', 'Mãe', 'Cônjuge', 'Tutelado', 'Outro'];
-    var relation = relations.contains(old?.parentesco) ? (old?.parentesco ?? 'Tutelado') : 'Outro';
+    // Sem data pré-preenchida no cadastro: o usuário precisa escolher.
+    DateTime? birth = old?.dataNascimento;
+    var birthMissing = false;
+    const relations = ['Filho(a)', 'Pai', 'Mãe', 'Cônjuge', 'Tutelado', 'Outro'];
+    // Novo cadastro começa em "Filho(a)"; na edição, um parentesco fora da
+    // lista aparece em "Outro" com o texto original.
+    var relation = old == null
+        ? relations.first
+        : (relations.contains(old.parentesco) ? old.parentesco : 'Outro');
     if (relation == 'Outro' && old != null) other.text = old.parentesco;
     var sex = old?.sexo ?? '';
     final saved = await showDialog<bool>(context: context, builder: (ctx) =>
@@ -41,18 +50,36 @@ class _DependentesScreenState extends State<DependentesScreen> {
         content: SingleChildScrollView(child: Form(key: key, child: Column(mainAxisSize: MainAxisSize.min, children: [
           TextFormField(controller: name, decoration: const InputDecoration(labelText: 'Nome completo'),
             validator: (v) => v == null || v.trim().isEmpty ? 'Informe o nome' : null),
-          ListTile(title: const Text('Data de nascimento'),
-            subtitle: Text('${birth.day}/${birth.month}/${birth.year}'),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.cake_outlined),
+            title: const Text('Data de nascimento'),
+            subtitle: Text(
+              birth == null
+                  ? (birthMissing ? 'Informe a data de nascimento' : 'Toque para selecionar')
+                  : _formatarData(birth!),
+              style: birthMissing && birth == null
+                  ? TextStyle(color: Theme.of(ctx).colorScheme.error)
+                  : null,
+            ),
+            trailing: const Icon(Icons.edit_calendar_outlined),
             onTap: () async {
-              final d = await showDatePicker(context: ctx, initialDate: birth, firstDate: DateTime(1900), lastDate: DateTime.now());
-              if (d != null) refresh(() => birth = d);
+              final hoje = DateTime.now();
+              final d = await showDatePicker(
+                context: ctx,
+                initialDate: birth ?? DateTime(hoje.year - 10, hoje.month, hoje.day),
+                firstDate: DateTime(1900),
+                lastDate: hoje,
+                helpText: 'Data de nascimento',
+              );
+              if (d != null) refresh(() { birth = d; birthMissing = false; });
             }),
-          DropdownButtonFormField<String>(value: relation, decoration: const InputDecoration(labelText: 'Parentesco'),
+          DropdownButtonFormField<String>(initialValue: relation, decoration: const InputDecoration(labelText: 'Parentesco'),
             items: relations.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
-            onChanged: (v) => refresh(() => relation = v ?? 'Tutelado')),
+            onChanged: (v) => refresh(() => relation = v ?? relations.first)),
           if (relation == 'Outro') TextFormField(controller: other, decoration: const InputDecoration(labelText: 'Informe o parentesco'),
             validator: (v) => v == null || v.trim().isEmpty ? 'Informe o parentesco' : null),
-          DropdownButtonFormField<String>(value: sex.isEmpty ? null : sex,
+          DropdownButtonFormField<String>(initialValue: sex.isEmpty ? null : sex,
             decoration: const InputDecoration(labelText: 'Sexo (opcional)'),
             items: const [
               DropdownMenuItem(value: 'Feminino', child: Text('Feminino')),
@@ -64,8 +91,10 @@ class _DependentesScreenState extends State<DependentesScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
           FilledButton(onPressed: () async {
-            if (!key.currentState!.validate()) return;
-            final item = DependenteModel(id: old?.id, nomeCompleto: name.text.trim(), dataNascimento: birth,
+            final formOk = key.currentState!.validate();
+            if (birth == null) refresh(() => birthMissing = true);
+            if (!formOk || birth == null) return;
+            final item = DependenteModel(id: old?.id, nomeCompleto: name.text.trim(), dataNascimento: birth!,
               parentesco: relation == 'Outro' ? other.text.trim() : relation, sexo: sex.isEmpty ? null : sex);
             try {
               if (old == null) { await SupabaseService.criarDependente(widget.usuarioId, item); }
@@ -109,7 +138,7 @@ class _DependentesScreenState extends State<DependentesScreen> {
           return Card(child: ListTile(
             leading: const CircleAvatar(child: Icon(Icons.person)),
             title: Text(item.nomeCompleto),
-            subtitle: Text('${item.parentesco} • ${item.dataNascimento.day}/${item.dataNascimento.month}/${item.dataNascimento.year}'),
+            subtitle: Text('${item.parentesco} • ${_formatarData(item.dataNascimento)}'),
             trailing: PopupMenuButton<String>(
               onSelected: (v) => v == 'editar' ? edit(item) : remove(item),
               itemBuilder: (_) => const [

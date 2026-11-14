@@ -7,6 +7,7 @@ import '../global/appCor.dart';
 import '../controllers/noticia_controller.dart';
 import '../models/noticia.dart';
 import '../providers/usuario_provider.dart';
+import '../services/maps_launcher.dart';
 import '../services/supabase_service.dart';
 import '../widgets/noticia_card.dart';
 import '../widgets/bottom_navbar.dart';
@@ -506,6 +507,29 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 36),
             _buildCidadeChips(context),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () =>
+                      MapsLauncher.abrirInstituicoesProximas(context),
+                  icon: const Icon(Icons.local_hospital_outlined, size: 20),
+                  label: const Text('Instituições de Saúde Próximas'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colors.primary,
+                    minimumSize: const Size.fromHeight(44),
+                    side: BorderSide(
+                      color: AccessibilityPalette.border(context),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ),
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),

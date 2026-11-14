@@ -26,7 +26,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Email de recuperação enviado para ${_emailController.text}!'),
+            content: Text(
+              'Email de recuperação enviado para ${_emailController.text}!',
+            ),
             backgroundColor: AppCor.primary,
           ),
         );
@@ -34,7 +36,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(error.toString()),
+            content: Text(error.toString().replaceFirst('Exception: ', '')),
             backgroundColor: AppCor.error,
           ),
         );

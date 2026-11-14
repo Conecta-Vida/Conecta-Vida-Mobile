@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../global/appCor.dart';
 
 class NoticiasInfoBotao extends StatelessWidget {
   final IconData icone;

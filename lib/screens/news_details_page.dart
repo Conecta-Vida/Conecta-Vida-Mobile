@@ -7,6 +7,7 @@ import '../models/noticia.dart';
 import '../models/dependente.dart';
 import 'package:provider/provider.dart';
 import '../global/appCor.dart';
+import '../services/maps_launcher.dart';
 import '../services/supabase_service.dart';
 import '../widgets/noticia_info_botao.dart';
 import '../widgets/noticia_secao_mais.dart';
@@ -29,16 +30,96 @@ class NewsDetailsPage extends StatefulWidget {
 
 class _NewsDetailsPageState extends State<NewsDetailsPage> {
   bool _processandoCampanha = false;
-  bool _inscrito = false;
-  int? _dependenteInscritoId;
-  String? _participanteInscritoNome;
+
+  /// Inscrições da conta nesta campanha: o titular (`dependenteId` nulo)
+  /// e/ou dependentes. A API permite vários participantes por campanha.
+  List<_Participante> _inscritos = [];
+
+  bool get _inscrito => _inscritos.isNotEmpty;
 
   bool get _ehCampanha => widget.noticia.tag.toUpperCase() == 'CAMPANHA';
+
+  bool get _temTelefone => widget.noticia.orgaoTelefone.trim().isNotEmpty;
+
+  /// Site da instituição, quando informado. Aceita endereços sem "https://".
+  Uri? get _siteDoOrgao {
+    final site = widget.noticia.orgaoSite.trim();
+    if (site.isEmpty) return null;
+    final comEsquema = site.contains('://') ? site : 'https://$site';
+    final uri = Uri.tryParse(comEsquema);
+    return (uri != null && uri.host.isNotEmpty) ? uri : null;
+  }
+
+  /// Período da campanha (dd/mm/aaaa), ou a data de publicação nos demais casos.
+  String get _dataExibida {
+    String formatar(String iso) {
+      final d = DateTime.tryParse(iso.trim().replaceFirst(' ', 'T'));
+      if (d == null) return '';
+      return '${d.day.toString().padLeft(2, '0')}/'
+          '${d.month.toString().padLeft(2, '0')}/${d.year}';
+    }
+
+    final publicada = formatar(widget.noticia.data);
+    final publicacao = publicada.isEmpty ? widget.noticia.data : publicada;
+    if (!_ehCampanha) return publicacao;
+
+    final inicio = formatar(widget.noticia.dataInicio);
+    final fim = formatar(widget.noticia.dataFim);
+    if (inicio.isNotEmpty && fim.isNotEmpty) return 'De $inicio até $fim';
+    if (fim.isNotEmpty) return 'Até $fim';
+    if (inicio.isNotEmpty) return 'A partir de $inicio';
+    return publicacao;
+  }
+
+  Future<void> _abrirLink(Uri url) async {
+    var aberto = false;
+    try {
+      aberto = await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      aberto = false;
+    }
+    if (!aberto) _avisar('Não foi possível abrir este link.', erro: true);
+  }
+
+  String get _nomesInscritos =>
+      _inscrito ? _inscritos.map((p) => p.nome).join(', ') : 'Ninguém inscrito';
 
   @override
   void initState() {
     super.initState();
     _carregarStatusInscricao();
+  }
+
+  static int? _lerId(dynamic valor) {
+    if (valor is num) return valor.toInt();
+    if (valor == null) return null;
+    return int.tryParse('$valor');
+  }
+
+  Future<List<_Participante>> _buscarInscritos(int usuarioId) async {
+    final inscricoes = await SupabaseService.fetchInscritosCampanha(
+      widget.noticia.id!,
+    );
+    final participantes = <_Participante>[];
+    for (final item in inscricoes) {
+      if ('${item['usuario_id'] ?? ''}' != '$usuarioId') continue;
+      final dependenteId = _lerId(item['dependente_id']);
+      participantes.add(
+        _Participante(
+          dependenteId: dependenteId,
+          nome: dependenteId == null
+              ? 'Você'
+              : (item['participante_nome'] ?? 'Dependente').toString(),
+        ),
+      );
+    }
+    // Titular primeiro, depois dependentes em ordem alfabética.
+    participantes.sort((a, b) {
+      if (a.dependenteId == null) return -1;
+      if (b.dependenteId == null) return 1;
+      return a.nome.toLowerCase().compareTo(b.nome.toLowerCase());
+    });
+    return participantes;
   }
 
   Future<void> _carregarStatusInscricao() async {
@@ -47,37 +128,27 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
     }
 
     try {
-      final inscricoes = await SupabaseService.fetchInscritosCampanha(widget.noticia.id!);
-      Map<String, dynamic>? minha;
-      for (final item in inscricoes) {
-        if ('${item['usuario_id'] ?? ''}' == '${widget.userId}') {
-          minha = item;
-          break;
-        }
-      }
+      final participantes = await _buscarInscritos(widget.userId!);
       if (!mounted) return;
-      setState(() {
-        _inscrito = minha != null;
-        _dependenteInscritoId = minha?['dependente_id'] is num
-            ? (minha!['dependente_id'] as num).toInt()
-            : int.tryParse('${minha?['dependente_id']}');
-        _participanteInscritoNome = minha?['participante_nome']?.toString();
-      });
+      setState(() => _inscritos = participantes);
     } catch (_) {
       // Mantém a tela funcional mesmo se a API de inscrição falhar.
     }
   }
 
+  void _avisar(String mensagem, {bool erro = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensagem),
+        backgroundColor: erro ? AppCor.error : AppCor.primary,
+      ),
+    );
+  }
+
   Future<void> _alternarInscricaoCampanha() async {
     if (widget.noticia.id == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Esta campanha ainda não possui ID válido para inscrição.',
-          ),
-        ),
-      );
+      _avisar('Esta campanha ainda não possui ID válido para inscrição.');
       return;
     }
 
@@ -92,94 +163,143 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
     }
 
     if (usuarioId == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Não foi possível identificar o usuário para inscrição.',
-          ),
-        ),
-      );
+      _avisar('Não foi possível identificar o usuário para inscrição.');
       return;
     }
 
     setState(() => _processandoCampanha = true);
 
     try {
-      if (_inscrito) {
+      // Sem dependentes a inscrição continua sendo um toque só. Se a lista
+      // não puder ser carregada, o titular ainda consegue se inscrever.
+      List<DependenteModel> dependentes;
+      try {
+        dependentes = await SupabaseService.fetchDependentes(usuarioId);
+      } catch (_) {
+        dependentes = const [];
+      }
+      if (!mounted) return;
+
+      // Opções: titular, dependentes ativos e inscritos que já não estão
+      // na lista de dependentes (para ainda permitir o cancelamento).
+      final opcoes = <_Participante>[
+        const _Participante(dependenteId: null, nome: 'Você'),
+        ...dependentes
+            .where((d) => d.id != null)
+            .map(
+              (d) => _Participante(
+                dependenteId: d.id,
+                nome: d.nomeCompleto,
+                detalhe: d.parentesco,
+              ),
+            ),
+      ];
+      for (final inscrito in _inscritos) {
+        if (!opcoes.any((o) => o.dependenteId == inscrito.dependenteId)) {
+          opcoes.add(inscrito);
+        }
+      }
+
+      final _Participante? escolhido = opcoes.length == 1
+          ? opcoes.first
+          : await _escolherParticipante(opcoes);
+      if (!mounted || escolhido == null) return;
+
+      final jaInscrito = _inscritos.any(
+        (p) => p.dependenteId == escolhido.dependenteId,
+      );
+      final quem = escolhido.dependenteId == null ? 'você' : escolhido.nome;
+
+      if (jaInscrito) {
         await SupabaseService.desinscreverUsuarioDaCampanha(
           comunicacaoId: widget.noticia.id!,
           usuarioId: usuarioId,
-          dependenteId: _dependenteInscritoId,
-        );
-        if (!mounted) return;
-        setState(() => _inscrito = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Lembrete removido. Inscrição cancelada para: "${widget.noticia.titulo}".',
-            ),
-            backgroundColor: AppCor.primary,
-          ),
+          dependenteId: escolhido.dependenteId,
         );
       } else {
-        final dependentes = await SupabaseService.fetchDependentes(usuarioId);
-        final escolha = await showDialog<Object?>(
-          context: context,
-          builder: (ctx) => SimpleDialog(
-            title: const Text('Quem participará desta campanha?'),
-            children: [
-              SimpleDialogOption(
-                onPressed: () => Navigator.pop(ctx, 'titular'),
-                child: const ListTile(
-                  leading: Icon(Icons.person),
-                  title: Text('Eu (titular)'),
-                ),
-              ),
-              ...dependentes.map((dep) => SimpleDialogOption(
-                onPressed: () => Navigator.pop(ctx, dep),
-                child: ListTile(
-                  leading: const Icon(Icons.family_restroom),
-                  title: Text(dep.nomeCompleto),
-                  subtitle: Text(dep.parentesco),
-                ),
-              )),
-            ],
-          ),
-        );
-        if (!mounted || escolha == null) return;
-        final participante = escolha is DependenteModel ? escolha : null;
         await SupabaseService.inscreverUsuarioEmCampanha(
           comunicacaoId: widget.noticia.id!,
           usuarioId: usuarioId,
-          dependenteId: participante?.id,
-        );
-        if (!mounted) return;
-        setState(() {
-          _inscrito = true;
-          _dependenteInscritoId = participante?.id;
-          _participanteInscritoNome = participante?.nomeCompleto ?? 'Você';
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Inscrição realizada para ${participante?.nomeCompleto ?? 'você'} em: ${widget.noticia.titulo}',
-            ),
-            backgroundColor: AppCor.primary,
-          ),
+          dependenteId: escolhido.dependenteId,
         );
       }
-    } catch (e) {
+
+      // Relê da API para refletir exatamente o que ficou gravado.
+      List<_Participante> atualizados;
+      try {
+        atualizados = await _buscarInscritos(usuarioId);
+      } catch (_) {
+        atualizados = jaInscrito
+            ? _inscritos
+                  .where((p) => p.dependenteId != escolhido.dependenteId)
+                  .toList()
+            : [..._inscritos, escolhido];
+      }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao processar sua inscrição: $e'),
-          backgroundColor: AppCor.error,
-        ),
+      setState(() => _inscritos = atualizados);
+
+      _avisar(
+        jaInscrito
+            ? 'Inscrição de $quem cancelada em: "${widget.noticia.titulo}".'
+            : 'Inscrição realizada para $quem em: "${widget.noticia.titulo}".',
       );
+    } catch (e) {
+      _avisar('Erro ao processar a inscrição: $e', erro: true);
     } finally {
       if (mounted) setState(() => _processandoCampanha = false);
     }
+  }
+
+  Future<_Participante?> _escolherParticipante(List<_Participante> opcoes) {
+    return showDialog<_Participante>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Quem participará desta campanha?'),
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(24, 0, 24, 8),
+            child: Text(
+              'Toque em um participante para inscrever ou cancelar a inscrição.',
+            ),
+          ),
+          ...opcoes.map((opcao) {
+            final inscrito = _inscritos.any(
+              (p) => p.dependenteId == opcao.dependenteId,
+            );
+            final ehTitular = opcao.dependenteId == null;
+            return SimpleDialogOption(
+              onPressed: () => Navigator.pop(ctx, opcao),
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  ehTitular ? Icons.person : Icons.family_restroom,
+                ),
+                title: Text(ehTitular ? 'Eu (titular)' : opcao.nome),
+                subtitle: Text(
+                  inscrito
+                      ? 'Inscrito · toque para cancelar'
+                      : (opcao.detalhe ?? 'Toque para inscrever'),
+                ),
+                trailing: Icon(
+                  inscrito ? Icons.check_circle : Icons.add_circle_outline,
+                  color: inscrito ? AppCor.catVacinacao : null,
+                ),
+              ),
+            );
+          }),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Fechar'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Color _corDaCategoria(String categoria) {
@@ -237,7 +357,7 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
             ),
             onPressed: () async {
               final shareText =
-                  '${widget.noticia.titulo}\n\n${widget.noticia.subtitulo}\n\n${widget.noticia.descricao}\n\nÓrgão: ${widget.noticia.orgao}\nContato: ${widget.noticia.orgaoTelefone}';
+                  '${widget.noticia.titulo}\n\n${widget.noticia.subtitulo}\n\n${widget.noticia.descricao}\n\nÓrgão: ${widget.noticia.orgao}${_temTelefone ? '\nContato: ${widget.noticia.orgaoTelefone}' : ''}';
               await Share.share(shareText, subject: widget.noticia.titulo);
               await SupabaseService.trackNewsShare(
                 widget.noticia,
@@ -308,6 +428,15 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                     ? Image.network(
                         imagePath,
                         fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: const Color(0xFFEAF3FB),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.broken_image_outlined,
+                            color: Color(0xFF90A4AE),
+                            size: 48,
+                          ),
+                        ),
                         loadingBuilder: (context, child, loadingProgress) {
                           if (loadingProgress == null) return child;
                           return const Center(
@@ -373,9 +502,13 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                       children: [
                         NoticiasInfoBotao(
                           icone: Icons.calendar_month,
-                          titulo: 'Data e Hora (Toque no ícone para inscrever)',
-                          valor: widget.noticia.data,
-                          iconeAcao: _processandoCampanha
+                          titulo: _ehCampanha
+                              ? 'Período (toque no ícone para inscrever)'
+                              : 'Data de publicação',
+                          valor: _dataExibida,
+                          iconeAcao: !_ehCampanha
+                              ? null
+                              : _processandoCampanha
                               ? Icons.hourglass_top
                               : (_inscrito ? Icons.alarm_on : Icons.add_alarm),
                           corAcao: _inscrito
@@ -385,6 +518,14 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                               ? _alternarInscricaoCampanha
                               : null,
                         ),
+                        if (_ehCampanha) ...[
+                          const Divider(height: 1),
+                          NoticiasInfoBotao(
+                            icone: Icons.how_to_reg,
+                            titulo: 'Participantes inscritos',
+                            valor: _nomesInscritos,
+                          ),
+                        ],
                         const Divider(height: 1),
                         NoticiasInfoBotao(
                           icone: Icons.location_on,
@@ -392,44 +533,42 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                           valor: widget.noticia.local,
                           iconeAcao: Icons.map_outlined,
                           corAcao: AppCor.primary,
-                          aoClicar: () async {
-                            final url = Uri.parse(
-                              'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(widget.noticia.local)}',
-                            );
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(url);
-                            }
-                          },
+                          aoClicar: () => MapsLauncher.abrirPesquisa(
+                            context,
+                            widget.noticia.local,
+                          ),
                         ),
                         const Divider(height: 1),
                         NoticiasInfoBotao(
                           icone: Icons.business,
                           titulo: 'Órgão Publicador',
                           valor: widget.noticia.orgao,
-                          iconeAcao: Icons.open_in_new,
+                          iconeAcao: _siteDoOrgao == null
+                              ? null
+                              : Icons.open_in_new,
                           corAcao: AppCor.primary,
-                          aoClicar: () async {
-                            final url = Uri.parse(widget.noticia.orgaoSite);
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(url);
-                            }
-                          },
+                          aoClicar: _siteDoOrgao == null
+                              ? null
+                              : () => _abrirLink(_siteDoOrgao!),
                         ),
                         const Divider(height: 1),
                         NoticiasInfoBotao(
                           icone: Icons.phone,
                           titulo: 'Contato',
-                          valor: widget.noticia.orgaoTelefone,
-                          iconeAcao: Icons.call_outlined,
+                          valor: _temTelefone
+                              ? widget.noticia.orgaoTelefone
+                              : 'Não informado',
+                          iconeAcao: _temTelefone ? Icons.call_outlined : null,
                           corAcao: AppCor.primary,
-                          aoClicar: () async {
-                            final url = Uri.parse(
-                              'tel:${widget.noticia.orgaoTelefone}',
-                            );
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(url);
-                            }
-                          },
+                          aoClicar: _temTelefone
+                              ? () => _abrirLink(
+                                  Uri(
+                                    scheme: 'tel',
+                                    path: widget.noticia.orgaoTelefone
+                                        .replaceAll(RegExp(r'[^0-9+]'), ''),
+                                  ),
+                                )
+                              : null,
                         ),
                         const Divider(height: 1),
                         NoticiasInfoBotao(
@@ -469,7 +608,7 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                     child: ElevatedButton(
                       onPressed: () async {
                         final shareText =
-                            '${widget.noticia.titulo}\n\n${widget.noticia.subtitulo}\n\n${widget.noticia.descricao}\n\nÓrgão: ${widget.noticia.orgao}\nContato: ${widget.noticia.orgaoTelefone}';
+                            '${widget.noticia.titulo}\n\n${widget.noticia.subtitulo}\n\n${widget.noticia.descricao}\n\nÓrgão: ${widget.noticia.orgao}${_temTelefone ? '\nContato: ${widget.noticia.orgaoTelefone}' : ''}';
                         await Share.share(
                           shareText,
                           subject: widget.noticia.titulo,
@@ -518,4 +657,18 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
       ),
     );
   }
+}
+
+/// Quem participa de uma campanha: o titular da conta (`dependenteId` nulo)
+/// ou um dos seus dependentes.
+class _Participante {
+  const _Participante({
+    required this.dependenteId,
+    required this.nome,
+    this.detalhe,
+  });
+
+  final int? dependenteId;
+  final String nome;
+  final String? detalhe;
 }

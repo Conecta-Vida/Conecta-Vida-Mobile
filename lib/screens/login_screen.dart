@@ -130,7 +130,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               );
                               if (!mounted) return;
                               // ignore: use_build_context_synchronously
-                              context.read<UsuarioProvider>().setUsuario(usuario);
+                              context.read<UsuarioProvider>().setUsuario(
+                                usuario,
+                              );
                               // ignore: use_build_context_synchronously
                               Navigator.pushReplacement(
                                 context,
@@ -143,7 +145,12 @@ class _LoginScreenState extends State<LoginScreen> {
                               // ignore: use_build_context_synchronously
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(error.toString()),
+                                  content: Text(
+                                    error.toString().replaceFirst(
+                                      'Exception: ',
+                                      '',
+                                    ),
+                                  ),
                                   backgroundColor: AppCor.error,
                                 ),
                               );

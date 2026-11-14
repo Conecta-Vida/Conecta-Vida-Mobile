@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
@@ -190,6 +191,11 @@ class ConectaVidaApp extends StatelessWidget {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Conecta Vida',
+          // Textos do próprio Flutter (calendário, botões de diálogo,
+          // menus de seleção) em português do Brasil.
+          locale: const Locale('pt', 'BR'),
+          supportedLocales: const [Locale('pt', 'BR')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
           theme: lightTheme,
           darkTheme: darkTheme,
           themeMode: preferences.darkMode ? ThemeMode.dark : ThemeMode.light,

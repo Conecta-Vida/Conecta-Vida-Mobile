@@ -284,6 +284,7 @@ class SupabaseService {
   static Future<List<NewsModel>> fetchNoticiasPorCategoria(
     int categoryIndex, {
     bool forceRefresh = false,
+    bool usarExemplosSeFalhar = true,
   }) async {
     try {
       final dynamicList = await _fetchComunicacoes(
@@ -311,6 +312,16 @@ class SupabaseService {
           'publicoAlvo':
               item['publico_alvo'] ?? item['publicoAlvo'] ?? 'População',
           'orgao': instituicaoNome,
+          // Contato real da instituição; vazio quando ela não informou
+          // (a tela mostra "Não informado" em vez de um número fictício).
+          'orgaoTelefone': instituicao is Map
+              ? (instituicao['telefone'] ?? '').toString().trim()
+              : '',
+          'orgaoSite': instituicao is Map
+              ? (instituicao['linksite'] ?? instituicao['linkSite'] ?? '')
+                    .toString()
+                    .trim()
+              : '',
         });
       }).toList();
 
@@ -351,9 +362,21 @@ class SupabaseService {
         'Falha ao carregar notícias da API: $e',
         name: 'ApiService',
       );
+      if (!usarExemplosSeFalhar) rethrow;
       return NewsController().getNoticiasPorCategoria(categoryIndex);
     }
   }
+
+  /// Todas as comunicações publicadas (notícias, campanhas e alertas),
+  /// da mais recente para a mais antiga. Lança exceção se a API falhar,
+  /// em vez de devolver os exemplos locais.
+  static Future<List<NewsModel>> fetchTodasAsComunicacoes({
+    bool forceRefresh = false,
+  }) => fetchNoticiasPorCategoria(
+    -1,
+    forceRefresh: forceRefresh,
+    usarExemplosSeFalhar: false,
+  );
 
   static Future<List<Map<String, dynamic>>> fetchNotificacoes({
     bool forceRefresh = false,
