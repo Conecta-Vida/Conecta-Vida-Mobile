@@ -63,6 +63,7 @@ class NoticiasSecaoMais extends StatelessWidget {
     BuildContext context,
     NewsModel noticiaRelacionada,
   ) {
+    final colors = Theme.of(context).colorScheme;
     bool ehUrgente =
         noticiaRelacionada.categoria.toLowerCase().contains('sangue') ||
         noticiaRelacionada.categoria.toLowerCase().contains('alerta');
