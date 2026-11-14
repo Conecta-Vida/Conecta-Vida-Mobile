@@ -53,6 +53,47 @@ Future<void> main() async {
 class ConectaVidaApp extends StatelessWidget {
   const ConectaVidaApp({super.key});
 
+  TextTheme _withHeavierWeights(TextTheme textTheme) {
+    const weights = <FontWeight>[
+      FontWeight.w100,
+      FontWeight.w200,
+      FontWeight.w300,
+      FontWeight.w400,
+      FontWeight.w500,
+      FontWeight.w600,
+      FontWeight.w700,
+      FontWeight.w800,
+      FontWeight.w900,
+    ];
+
+    TextStyle? heavier(TextStyle? style) {
+      if (style == null) return null;
+      final current = style.fontWeight ?? FontWeight.w400;
+      final index = weights.indexOf(current);
+      final nextIndex = (index < 0 ? 3 : index + 1)
+          .clamp(0, weights.length - 1);
+      return style.copyWith(fontWeight: weights[nextIndex]);
+    }
+
+    return textTheme.copyWith(
+      displayLarge: heavier(textTheme.displayLarge),
+      displayMedium: heavier(textTheme.displayMedium),
+      displaySmall: heavier(textTheme.displaySmall),
+      headlineLarge: heavier(textTheme.headlineLarge),
+      headlineMedium: heavier(textTheme.headlineMedium),
+      headlineSmall: heavier(textTheme.headlineSmall),
+      titleLarge: heavier(textTheme.titleLarge),
+      titleMedium: heavier(textTheme.titleMedium),
+      titleSmall: heavier(textTheme.titleSmall),
+      bodyLarge: heavier(textTheme.bodyLarge),
+      bodyMedium: heavier(textTheme.bodyMedium),
+      bodySmall: heavier(textTheme.bodySmall),
+      labelLarge: heavier(textTheme.labelLarge),
+      labelMedium: heavier(textTheme.labelMedium),
+      labelSmall: heavier(textTheme.labelSmall),
+    );
+  }
+
   ThemeData _buildTheme({
     required Brightness brightness,
     required AccessibilityProvider preferences,
@@ -74,10 +115,17 @@ class ConectaVidaApp extends StatelessWidget {
     );
 
     return base.copyWith(
-      textTheme: base.textTheme.apply(
-        fontFamily: preferences.fontFamily == 'serif' ? 'serif' : null,
-        fontWeightDelta: preferences.boldText ? 1 : 0,
-      ),
+      textTheme: preferences.boldText
+          ? _withHeavierWeights(
+              base.textTheme.apply(
+                fontFamily:
+                    preferences.fontFamily == 'serif' ? 'serif' : null,
+              ),
+            )
+          : base.textTheme.apply(
+              fontFamily:
+                  preferences.fontFamily == 'serif' ? 'serif' : null,
+            ),
       appBarTheme: AppBarTheme(
         backgroundColor: brightness == Brightness.dark
             ? const Color(0xFF1E1E1E)
