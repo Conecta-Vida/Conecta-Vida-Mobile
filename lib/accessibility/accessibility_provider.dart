@@ -8,14 +8,15 @@ import 'package:hive/hive.dart';
 /// Os valores ficam no box já utilizado pelo app, evitando uma migração
 /// separada de armazenamento.
 class AccessibilityProvider extends ChangeNotifier {
-  AccessibilityProvider(this._box)
-      : _fontScale = _readScale(_box),
-        _boldText = _box.get('accessibility_bold_text', defaultValue: false) as bool,
-        _highContrast = _box.get('accessibility_high_contrast', defaultValue: false) as bool,
-        _darkMode = _box.get('accessibility_dark_mode', defaultValue: false) as bool,
-        _reduceMotion = _box.get('accessibility_reduce_motion', defaultValue: false) as bool,
-        _speechEnabled = _box.get('accessibility_speech_enabled', defaultValue: true) as bool,
-        _fontFamily = _box.get('accessibility_font_family', defaultValue: 'system') as String;
+  AccessibilityProvider(Box box)
+      : _box = box,
+        _fontScale = _readScale(box),
+        _boldText = box.get('accessibility_bold_text', defaultValue: false) as bool,
+        _highContrast = box.get('accessibility_high_contrast', defaultValue: false) as bool,
+        _darkMode = box.get('accessibility_dark_mode', defaultValue: false) as bool,
+        _reduceMotion = box.get('accessibility_reduce_motion', defaultValue: false) as bool,
+        _speechEnabled = box.get('accessibility_speech_enabled', defaultValue: true) as bool,
+        _fontFamily = box.get('accessibility_font_family', defaultValue: 'system') as String;
 
   final Box _box;
 
