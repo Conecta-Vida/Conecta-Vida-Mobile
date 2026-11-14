@@ -173,7 +173,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           content: const Text(
             'Os detalhes completos deste alerta não estão disponíveis.',
           ),
-          backgroundColor: colors.surfaceContainerHighest,
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
         ),
       );
     }
@@ -454,7 +454,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                       const SizedBox(height: 4),
                                       Text(
                                         item.descricao,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                                         ),
                                       ),
@@ -498,6 +498,7 @@ class _TagInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -506,9 +507,9 @@ class _TagInfo extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          color: colors.onSurfaceVariant,
           fontWeight: FontWeight.w600,
         ),
       ),
