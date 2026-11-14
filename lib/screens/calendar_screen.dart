@@ -129,7 +129,7 @@ class _CalendarScreenState extends State<CalendarScreen>
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Meu Cronograma',
           style: TextStyle(
             color: colors.onSurface,
@@ -161,7 +161,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Compromissos Agendados',
                         style: TextStyle(
                           fontSize: 20,
@@ -232,7 +232,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                                           const SizedBox(height: 2),
                                           Text(
                                             evento['local'] ?? '',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               color: colors.onSurfaceVariant,
                                             ),
                                           ),
