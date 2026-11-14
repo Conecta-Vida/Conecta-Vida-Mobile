@@ -169,7 +169,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           content: Text(
             'Os detalhes completos deste alerta não estão disponíveis.',
           ),
-          backgroundColor: AppCor.textoCinza,
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
         ),
       );
     }
@@ -387,7 +387,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: lida
-                                    ? Colors.grey.shade200
+                                    ? colors.outlineVariant
                                     : AppCor.primary.withOpacity(0.35),
                               ),
                               boxShadow: [
@@ -406,14 +406,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
                                     color: lida
-                                        ? Colors.grey.shade100
+                                        ? colors.surfaceContainerHighest
                                         : AppCor.primary.withOpacity(0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
                                     _iconePorCategoria(item.categoria),
                                     color: lida
-                                        ? AppCor.textSubtitle
+                                        ? colors.onSurfaceVariant
                                         : AppCor.primary,
                                   ),
                                 ),
@@ -504,7 +504,7 @@ class _TagInfo extends StatelessWidget {
         text,
         style: const TextStyle(
           fontSize: 11,
-          color: AppCor.textSubtitle,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           fontWeight: FontWeight.w600,
         ),
       ),
