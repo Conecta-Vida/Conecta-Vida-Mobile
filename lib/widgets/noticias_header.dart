@@ -66,7 +66,7 @@ class NoticiasHeader extends StatelessWidget {
             ],
           ),
         ),
-        Positioned(bottom: -25, left: 24, right: 24, child: _buildSearchBar()),
+        Positioned(bottom: -25, left: 24, right: 24, child: _buildSearchBar(context)),
       ],
     );
   }
@@ -88,7 +88,7 @@ class NoticiasHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(BuildContext context) {
     return Container(
       height: 50,
       decoration: BoxDecoration(
