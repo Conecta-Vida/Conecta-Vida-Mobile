@@ -514,7 +514,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Text(
                     tituloSessao,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: colors.onSurface,
@@ -558,7 +558,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       final noticias = _filtrarNoticias(todas);
 
                       if (snapshot.hasError && todas.isEmpty) {
-                        return const Center(
+                        return Center(
                           child: Text(
                             'Não foi possível carregar as notícias. Puxe para atualizar.',
                             style: TextStyle(color: colors.onSurfaceVariant),
