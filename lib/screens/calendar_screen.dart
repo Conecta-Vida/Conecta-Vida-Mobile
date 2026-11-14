@@ -110,13 +110,18 @@ class _CalendarScreenState extends State<CalendarScreen>
 
   Future<void> _desinscrever(Map<String, dynamic> evento) async {
     final campanha = evento['objeto'] as NewsModel?;
-    if (widget.usuario.id == null || campanha?.id == null) return;
+    final usuarioId = widget.usuario.id;
+    final comunicacaoId = campanha?.id;
+
+    if (campanha == null || usuarioId == null || comunicacaoId == null) {
+      return;
+    }
 
     setState(() => _isLoading = true);
     try {
       await SupabaseService.desinscreverUsuarioDaCampanha(
-        comunicacaoId: campanha.id!,
-        usuarioId: widget.usuario.id!,
+        comunicacaoId: comunicacaoId,
+        usuarioId: usuarioId,
         dependenteId: evento['dependente_id'] is num ? (evento['dependente_id'] as num).toInt() : null,
       );
 
