@@ -66,6 +66,7 @@ class Categorias extends StatelessWidget {
     IconData icon,
     int index,
   ) {
+    final colors = Theme.of(context).colorScheme;
     bool isSelected = categoryIndex == index;
 
     return GestureDetector(
