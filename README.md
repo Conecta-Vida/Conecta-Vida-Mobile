@@ -6,6 +6,18 @@ Aplicativo cidadão do Conecta Vida, desenvolvido em Flutter para Android, iOS e
 [![Dart](https://img.shields.io/badge/Dart-3.11.3-0175C2?logo=dart&logoColor=white)](https://dart.dev/)
 [![Android](https://img.shields.io/badge/Android-APK-3DDC84?logo=android&logoColor=white)](https://developer.android.com/)
 
+## Autores e instituição
+
+- Luiz Henrique Gonçalves
+- Gustavo
+- Gabriel
+- Renan
+- Maycon
+
+**IFSP — Câmpus Bragança Paulista** · Curso Superior de Tecnologia em Análise e Desenvolvimento de Sistemas.
+
+[Assistir à demonstração do aplicativo](https://youtu.be/s7eqyfYcr3E?si=003QmXc9TUCjPm9O)
+
 > **Branch de trabalho:** `mobile`  
 > **API padrão:** `https://conecta-vida-backend-production.up.railway.app/api`  
 > **Pasta Flutter:** raiz deste repositório (a pasta que contém `pubspec.yaml`).
