@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
 import '../accessibility/accessibility_motion.dart';
+import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 import '../controllers/noticia_controller.dart';
 import '../models/noticia.dart';
@@ -351,7 +352,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Text(
             label,
             style: TextStyle(
-              color: selecionado ? Colors.white : AppCor.textoCinza,
+              color: selecionado ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: selecionado ? FontWeight.bold : FontWeight.normal,
               fontSize: 13,
             ),
@@ -450,7 +451,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _reloadNoticias() async {
     setState(() {
-      _refreshNoticias();
+      _noticiasFuture = SupabaseService.fetchNoticiasPorCategoria(
+        _categoryIndex,
+        forceRefresh: true,
+      );
     });
     await _noticiasFuture;
   }
@@ -459,10 +463,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     // Aqui pegamos o usuário atual de forma correta e síncrona
     final usuario = context.watch<UsuarioProvider>().usuario!;
+    final colors = Theme.of(context).colorScheme;
     final String tituloSessao = _newsController.getTituloSessao(_categoryIndex);
 
     return Scaffold(
-      backgroundColor: AppCor.background,
+      backgroundColor: colors.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -512,12 +517,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: AppCor.textTitle,
+                      color: colors.onSurface,
                     ),
                   ),
-                  const Text(
+                  Text(
                     'Categoria',
-                    style: TextStyle(color: AppCor.textoCinza),
+                    style: TextStyle(color: colors.onSurfaceVariant),
                   ),
                 ],
               ),
