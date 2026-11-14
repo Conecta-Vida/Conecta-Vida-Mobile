@@ -175,6 +175,20 @@ Os arquivos serão gerados na mesma pasta `build/app/outputs/flutter-apk/`.
 
 > **Assinatura:** a configuração atual do Gradle usa a assinatura debug também para o build release, conforme indicado no próprio `android/app/build.gradle.kts`. Isso é suficiente para testes internos, mas **não é uma configuração de assinatura de produção nem apropriada para publicar na Play Store**. Antes de distribuir oficialmente, configure uma chave de assinatura release e proteja o keystore e suas senhas fora do Git.
 
+### Testar as alterações desta branch
+
+Para conferir a versão em desenvolvimento do PR de acessibilidade e desempenho:
+
+```bash
+git fetch origin
+git switch feature/acessibilidade-cronograma
+git pull origin feature/acessibilidade-cronograma
+flutter pub get
+flutter run -d chrome --web-port=5000
+```
+
+Para testar em Android, substitua a última linha por `flutter run` com um emulador ou celular conectado.
+
 ## 6. Verificações antes de enviar alterações
 
 Execute:
@@ -217,19 +231,33 @@ ios/             # configuração nativa iOS
 A tela **Acessibilidade** fica em **Ajustes → Acessibilidade**. As preferências são salvas localmente no Hive e aplicadas ao tema global do aplicativo.
 
 Recursos incluídos nesta branch:
-- Escala de texto de 90% a 160%;
+- Escala global de texto de 90% a 160%;
 - Fonte do sistema ou fonte serifada;
 - Texto em negrito;
-- Tema escuro e paleta de maior contraste;
+- Tema claro/escuro e alto contraste aplicados às superfícies e textos neutros;
+- As cores de marca, o azul principal e as cores de destaque das categorias de notícias permanecem preservados;
 - Redução de movimento nos componentes que consultam a preferência;
-- Leitura de notícias em voz alta em português, com opção de testar e parar a leitura;
+- Leitura de notícias em voz alta em português, com controles para iniciar e parar;
 - Rótulos semânticos e alvos de toque maiores em ações da navegação.
 
 O leitor de voz usa `flutter_tts`. No Android, o dispositivo precisa ter uma engine e uma voz em português instaladas. TalkBack e VoiceOver continuam configurados nas opções de acessibilidade do próprio sistema operacional.
 
-O **Meu Cronograma** recarrega as inscrições após inscrição/cancelamento feito no aplicativo, ao retornar dos detalhes de uma campanha e ao voltar o aplicativo para primeiro plano. A atualização manual continua disponível pelo botão de atualizar ou pelo gesto de puxar a lista.
+### Atualizar o cronograma
 
-> Nota de validação: a escala, o tema e as preferências globais estão centralizados, mas telas/componentes que ainda definem cores e pesos de fonte diretamente precisam de uma revisão visual específica para aderir integralmente ao tema escuro/alto contraste e negrito.
+O **Meu Cronograma** escuta alterações de inscrição/cancelamento, recarrega ao retornar dos detalhes de uma campanha e ao voltar o aplicativo para primeiro plano. A atualização manual ignora o cache para consultar o servidor.
+
+### Otimizações de carregamento
+
+- A lista de comunicações/notícias é reutilizada por 30 segundos entre feed, notificações, alertas e filtros de regiões.
+- Requisições simultâneas para a mesma lista compartilham a mesma chamada HTTP.
+- Consultas de inscrição no fallback são realizadas em paralelo e usam cache curto.
+- A lista de notificações e os lembretes de campanhas são carregados em paralelo.
+- A inicialização do Firebase/FCM ocorre depois do primeiro frame, sem atrasar a apresentação inicial da interface.
+- O serviço HTTP reutiliza uma instância de `http.Client`.
+
+O Flutter tenta utilizar `GET /api/campanhas/minhas` para carregar todas as inscrições do usuário em uma única chamada. Esse endpoint está proposto no [PR #4 do backend](https://github.com/Conecta-Vida/conecta-vida-backend/pull/4). Até que a alteração seja integrada e implantada na Mobile API do Railway, o aplicativo detecta a ausência do endpoint e utiliza automaticamente as rotas individuais já existentes.
+
+> A validação visual final deve incluir Android e Web, com fonte ampliada, modo escuro, alto contraste, TalkBack/VoiceOver e leitura em voz alta. A compilação Web do CI não substitui os testes nesses dispositivos.
 
 ---
 
