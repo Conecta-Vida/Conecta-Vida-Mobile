@@ -451,7 +451,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                       Text(
                                         item.descricao,
                                         style: const TextStyle(
-                                          color: AppCor.textSubtitle,
+                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                                         ),
                                       ),
                                       const SizedBox(height: 8),
