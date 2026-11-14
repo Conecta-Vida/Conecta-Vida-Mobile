@@ -212,6 +212,27 @@ android/         # configuração nativa Android
 ios/             # configuração nativa iOS
 ```
 
+## Acessibilidade e cronograma
+
+A tela **Acessibilidade** fica em **Ajustes → Acessibilidade**. As preferências são salvas localmente no Hive e aplicadas ao tema global do aplicativo.
+
+Recursos incluídos nesta branch:
+- Escala de texto de 90% a 160%;
+- Fonte do sistema ou fonte serifada;
+- Texto em negrito;
+- Tema escuro e paleta de maior contraste;
+- Redução de movimento nos componentes que consultam a preferência;
+- Leitura de notícias em voz alta em português, com opção de testar e parar a leitura;
+- Rótulos semânticos e alvos de toque maiores em ações da navegação.
+
+O leitor de voz usa `flutter_tts`. No Android, o dispositivo precisa ter uma engine e uma voz em português instaladas. TalkBack e VoiceOver continuam configurados nas opções de acessibilidade do próprio sistema operacional.
+
+O **Meu Cronograma** recarrega as inscrições após inscrição/cancelamento feito no aplicativo, ao retornar dos detalhes de uma campanha e ao voltar o aplicativo para primeiro plano. A atualização manual continua disponível pelo botão de atualizar ou pelo gesto de puxar a lista.
+
+> Nota de validação: a escala, o tema e as preferências globais estão centralizados, mas telas/componentes que ainda definem cores e pesos de fonte diretamente precisam de uma revisão visual específica para aderir integralmente ao tema escuro/alto contraste e negrito.
+
+---
+
 ## 8. Limitações conhecidas no momento
 
 - A recuperação de senha da Mobile API ainda retorna HTTP 501; o fluxo de e-mail não está implementado.

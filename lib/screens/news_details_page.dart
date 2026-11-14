@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../accessibility/accessibility_provider.dart';
+import '../accessibility/accessibility_speech_service.dart';
 import '../models/noticia.dart';
+import 'package:provider/provider.dart';
 import '../global/appCor.dart';
 import '../services/supabase_service.dart';
 import '../widgets/noticia_info_botao.dart';
@@ -193,6 +196,41 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
               await SupabaseService.trackNewsShare(
                 widget.noticia,
                 sharedBy: widget.sharedBy ?? 'app_user',
+              );
+            },
+          ),
+          Consumer<AccessibilityProvider>(
+            builder: (context, preferences, _) {
+              if (!preferences.speechEnabled) {
+                return const SizedBox.shrink();
+              }
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: 'Ouvir notícia',
+                    icon: const Icon(
+                      Icons.volume_up_outlined,
+                      color: AppCor.primary,
+                    ),
+                    onPressed: () {
+                      AccessibilitySpeechService.instance.speak(
+                        '${widget.noticia.titulo}. '
+                        '${widget.noticia.subtitulo}. '
+                        '${widget.noticia.descricao}. '
+                        'Local: ${widget.noticia.local}.',
+                      );
+                    },
+                  ),
+                  IconButton(
+                    tooltip: 'Parar leitura',
+                    icon: const Icon(
+                      Icons.stop_circle_outlined,
+                      color: AppCor.primary,
+                    ),
+                    onPressed: AccessibilitySpeechService.instance.stop,
+                  ),
+                ],
               );
             },
           ),

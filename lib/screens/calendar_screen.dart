@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../global/appCor.dart';
 import '../models/noticia.dart';
@@ -14,14 +16,35 @@ class CalendarScreen extends StatefulWidget {
   State<CalendarScreen> createState() => _CalendarScreenState();
 }
 
-class _CalendarScreenState extends State<CalendarScreen> {
+class _CalendarScreenState extends State<CalendarScreen>
+    with WidgetsBindingObserver {
   bool _isLoading = true;
   List<Map<String, dynamic>> _todosOsEventos = [];
+  StreamSubscription<void>? _inscricoesSubscription;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _inscricoesSubscription =
+        SupabaseService.inscricoesAlteradas.listen((_) {
+      if (mounted) _carregarDadosUnificados();
+    });
     _carregarDadosUnificados();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _carregarDadosUnificados();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _inscricoesSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _carregarDadosUnificados() async {
@@ -223,9 +246,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                       onPressed: () =>
                                           _desinscrever(evento['objeto']),
                                     ),
-                                    onTap: () {
+                                    onTap: () async {
                                       if (evento['objeto'] != null) {
-                                        Navigator.push(
+                                        await Navigator.push(
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) =>
@@ -237,6 +260,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                                 ),
                                           ),
                                         );
+                                        if (mounted) {
+                                          await _carregarDadosUnificados();
+                                        }
                                       }
                                     },
                                   ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
+import '../accessibility/accessibility_motion.dart';
 import '../global/appCor.dart';
 import '../controllers/noticia_controller.dart';
 import '../models/noticia.dart';
@@ -273,7 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCidadeChips() {
+  Widget _buildCidadeChips(BuildContext context) {
     final cidadeUsuario = context.read<UsuarioProvider>().usuario!.localizacao;
     final temFiltroAtivo = _cidadesFiltro.isNotEmpty;
 
@@ -293,6 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 24),
         children: [
           _buildChip(
+            context,
             'Todas',
             selecionado: !temFiltroAtivo,
             onTap: () {
@@ -303,6 +305,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           if (cidadeUsuarioValida)
             _buildChip(
+              context,
               cidadeUsuario,
               selecionado: _cidadesFiltro.contains(cidadeUsuario),
               onTap: () {
@@ -315,14 +318,15 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
 
-          ...cidadesExtras.map((cidade) => _buildChipRemovivel(cidade)),
-          _buildChipFiltro(),
+          ...cidadesExtras.map((cidade) => _buildChipRemovivel(context, cidade)),
+          _buildChipFiltro(context),
         ],
       ),
     );
   }
 
   Widget _buildChip(
+    BuildContext context,
     String label, {
     required bool selecionado,
     required VoidCallback onTap,
@@ -332,7 +336,10 @@ class _HomeScreenState extends State<HomeScreen> {
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: AccessibilityMotion.duration(
+            context,
+            const Duration(milliseconds: 200),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
             color: selecionado ? AppCor.primary : Colors.white,
@@ -354,11 +361,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildChipRemovivel(String cidade) {
+  Widget _buildChipRemovivel(BuildContext context, String cidade) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: AccessibilityMotion.duration(
+            context,
+            const Duration(milliseconds: 200),
+          ),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: AppCor.primary,
@@ -389,7 +399,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildChipFiltro() {
+  Widget _buildChipFiltro(BuildContext context) {
     final temExtra = _cidadesFiltro.any((c) {
       final cidadeUsuario = context
           .read<UsuarioProvider>()
@@ -402,7 +412,10 @@ class _HomeScreenState extends State<HomeScreen> {
       child: GestureDetector(
         onTap: _abrirFiltroCidades,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: AccessibilityMotion.duration(
+            context,
+            const Duration(milliseconds: 200),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: temExtra ? AppCor.primary : Colors.white,
@@ -487,7 +500,7 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             const SizedBox(height: 36),
-            _buildCidadeChips(),
+            _buildCidadeChips(context),
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
