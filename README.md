@@ -278,3 +278,12 @@ O Flutter tenta utilizar `GET /api/campanhas/minhas` para carregar todas as insc
 
 IFSP — Câmpus Bragança Paulista · Curso Superior de Tecnologia em Análise e Desenvolvimento de Sistemas  
 © 2026 Conecta Vida
+
+
+## Sistema de dependentes
+
+Acesse **Ajustes → Meus Dependentes** para cadastrar, editar e remover dependentes. Não é solicitado CPF, e-mail ou senha. Os dados são nome completo, data de nascimento, parentesco (Pai, Mãe, Cônjuge, Tutelado ou Outro) e sexo opcional.
+
+Na tela de detalhes de uma campanha, o titular escolhe se a inscrição será para si ou para um dependente ativo. O **Meu Cronograma** identifica o participante e permite cancelar a inscrição individual. A API valida titularidade pelo JWT. A remoção de um dependente é lógica para preservar o histórico.
+
+Para testar esta funcionalidade, atualize também a branch `feature/dependentes-api` do backend e aplique a migração `V2__dependentes_and_campaign_participants.sql` conforme o [README da Mobile API](https://github.com/Conecta-Vida/conecta-vida-backend/blob/feature/dependentes-api/mobile-api/README.md).
