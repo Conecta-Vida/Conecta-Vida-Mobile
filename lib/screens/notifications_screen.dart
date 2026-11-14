@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 import '../models/usuario.dart';
 import '../services/supabase_service.dart';
@@ -387,7 +388,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: AccessibilityPalette.surface(context),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: lida
@@ -455,7 +456,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                       Text(
                                         item.descricao,
                                         style: TextStyle(
-                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                          color: colors.onSurfaceVariant,
                                         ),
                                       ),
                                       const SizedBox(height: 8),
