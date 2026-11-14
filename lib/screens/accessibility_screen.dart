@@ -101,7 +101,12 @@ class AccessibilityScreen extends StatelessWidget {
                         'Habilita o botão para ouvir notícias e conteúdos',
                       ),
                       value: preferences.speechEnabled,
-                      onChanged: preferences.setSpeechEnabled,
+                      onChanged: (enabled) async {
+                        if (!enabled) {
+                          await AccessibilitySpeechService.instance.stop();
+                        }
+                        await preferences.setSpeechEnabled(enabled);
+                      },
                     ),
                     if (preferences.speechEnabled) ...[
                       const Divider(height: 1),
@@ -114,6 +119,11 @@ class AccessibilityScreen extends StatelessWidget {
                         onTap: () => AccessibilitySpeechService.instance.speak(
                           'Olá! Esta é uma demonstração da leitura em voz alta do Conecta Vida.',
                         ),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.stop_circle_outlined),
+                        title: const Text('Parar leitura'),
+                        onTap: AccessibilitySpeechService.instance.stop,
                       ),
                     ],
                   ],
