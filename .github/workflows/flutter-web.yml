@@ -2,7 +2,7 @@ name: Flutter Web build
 
 on:
   push:
-    branches: [mobile]
+    branches: [main, mobile]
   pull_request:
     branches: [mobile]
 
