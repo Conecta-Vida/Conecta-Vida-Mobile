@@ -174,7 +174,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () async {
               Navigator.of(ctx).pop();
               try {
-                await SupabaseService.deleteUsuario(context.read<UsuarioProvider>().usuario!.email);
+                await SupabaseService.deleteUsuario(
+                  context.read<UsuarioProvider>().usuario!.email,
+                );
                 _fazerLogout();
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -241,8 +243,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _salvarRegiao(String cidade, bool selecionado) async {
     setState(() {
       if (selecionado) {
-        if (!_regioesSelecionadas.contains(cidade))
+        if (!_regioesSelecionadas.contains(cidade)) {
           _regioesSelecionadas.add(cidade);
+        }
       } else {
         _regioesSelecionadas.remove(cidade);
       }
@@ -309,7 +312,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Expanded(
                       flex: 2,
                       child: DropdownButtonFormField<String>(
-                        value: _sexo,
+                        initialValue: _sexo,
                         decoration: const InputDecoration(
                           labelText: 'Sexo',
                           border: InputBorder.none,

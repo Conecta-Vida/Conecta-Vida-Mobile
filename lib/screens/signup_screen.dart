@@ -137,13 +137,13 @@ class _SignupScreenState extends State<SignupScreen> {
 
         if (!mounted) return;
         // ignore: use_build_context_synchronously
-        context.read<UsuarioProvider>().setUsuario(usuarioOficialComId ?? usuarioLocal);
+        context.read<UsuarioProvider>().setUsuario(
+          usuarioOficialComId ?? usuarioLocal,
+        );
         // ignore: use_build_context_synchronously
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => const HomeScreen(),
-          ),
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
         );
       } catch (error) {
         if (!mounted) return;
