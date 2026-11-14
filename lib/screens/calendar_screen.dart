@@ -214,7 +214,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                                       evento['titulo'] ?? 'Sem Título',
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: AppCor.textoPrimario,
+                                        color: Theme.of(context).colorScheme.onSurface,
                                       ),
                                     ),
                                     subtitle: Padding(
