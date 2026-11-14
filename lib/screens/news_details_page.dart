@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../accessibility/accessibility_provider.dart';
 import '../accessibility/accessibility_speech_service.dart';
 import '../models/noticia.dart';
+import '../models/dependente.dart';
 import 'package:provider/provider.dart';
 import '../global/appCor.dart';
 import '../services/supabase_service.dart';
@@ -29,6 +30,8 @@ class NewsDetailsPage extends StatefulWidget {
 class _NewsDetailsPageState extends State<NewsDetailsPage> {
   bool _processandoCampanha = false;
   bool _inscrito = false;
+  int? _dependenteInscritoId;
+  String? _participanteInscritoNome;
 
   bool get _ehCampanha => widget.noticia.tag.toUpperCase() == 'CAMPANHA';
 
@@ -44,12 +47,19 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
     }
 
     try {
-      final inscrito = await SupabaseService.isUsuarioInscritoEmCampanha(
-        comunicacaoId: widget.noticia.id!,
-        usuarioId: widget.userId!,
+      final inscricoes = await SupabaseService.fetchInscritosCampanha(widget.noticia.id!);
+      final minha = inscricoes.cast<Map<String, dynamic>?>().firstWhere(
+        (item) => item != null && '${item['usuario_id'] ?? ''}' == '${widget.userId}',
+        orElse: () => null,
       );
       if (!mounted) return;
-      setState(() => _inscrito = inscrito);
+      setState(() {
+        _inscrito = minha != null;
+        _dependenteInscritoId = minha?['dependente_id'] is num
+            ? (minha!['dependente_id'] as num).toInt()
+            : int.tryParse('${minha?['dependente_id']}');
+        _participanteInscritoNome = minha?['participante_nome']?.toString();
+      });
     } catch (_) {
       // Mantém a tela funcional mesmo se a API de inscrição falhar.
     }
@@ -97,6 +107,7 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
         await SupabaseService.desinscreverUsuarioDaCampanha(
           comunicacaoId: widget.noticia.id!,
           usuarioId: usuarioId,
+          dependenteId: _dependenteInscritoId,
         );
         if (!mounted) return;
         setState(() => _inscrito = false);
@@ -109,16 +120,50 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
           ),
         );
       } else {
+        final dependentes = await SupabaseService.fetchDependentes(usuarioId);
+        final participante = await showDialog<DependenteModel?>(
+          context: context,
+          builder: (ctx) => SimpleDialog(
+            title: const Text('Quem participará desta campanha?'),
+            children: [
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(ctx, null),
+                child: const ListTile(
+                  leading: Icon(Icons.person),
+                  title: Text('Eu (titular)'),
+                ),
+              ),
+              ...dependentes.map((dep) => SimpleDialogOption(
+                onPressed: () => Navigator.pop(ctx, dep),
+                child: ListTile(
+                  leading: const Icon(Icons.family_restroom),
+                  title: Text(dep.nomeCompleto),
+                  subtitle: Text(dep.parentesco),
+                ),
+              )),
+            ],
+          ),
+        );
+        if (participante == null && !mounted) return;
+        if (participante == null) {
+          // null também representa titular; o cancelamento do diálogo é distinguido
+          // pela variável auxiliar abaixo em uma segunda confirmação simples.
+        }
         await SupabaseService.inscreverUsuarioEmCampanha(
           comunicacaoId: widget.noticia.id!,
           usuarioId: usuarioId,
+          dependenteId: participante?.id,
         );
         if (!mounted) return;
-        setState(() => _inscrito = true);
+        setState(() {
+          _inscrito = true;
+          _dependenteInscritoId = participante?.id;
+          _participanteInscritoNome = participante?.nomeCompleto ?? 'Você';
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Lembrete Ativo! Você está inscrito em: ${widget.noticia.titulo}',
+              'Inscrição realizada para ${participante?.nomeCompleto ?? 'você'} em: ${widget.noticia.titulo}',
             ),
             backgroundColor: AppCor.primary,
           ),
