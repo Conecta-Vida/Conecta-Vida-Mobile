@@ -11,6 +11,7 @@ class SupabaseService {
   // (dart-define API_BASE_URL > .env > padrão da plataforma, porta 8081).
   static String baseUrl = 'http://localhost:8081/api';
   static String? jwtToken;
+  static final http.Client _httpClient = http.Client();
 
   static const Duration _comunicacoesCacheTtl = Duration(seconds: 30);
   static const Duration _inscricaoCacheTtl = Duration(seconds: 20);
@@ -31,7 +32,7 @@ class SupabaseService {
 
   static Future<void> signUp(UserModel usuario, String senha) async {
     try {
-      final response = await http.post(
+      final response = await _httpClient.post(
         Uri.parse('$baseUrl/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -59,7 +60,7 @@ class SupabaseService {
 
   static Future<UserModel> signIn(String email, String senha) async {
     try {
-      final response = await http.post(
+      final response = await _httpClient.post(
         Uri.parse('$baseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'senha': senha}),
@@ -106,7 +107,7 @@ class SupabaseService {
         throw Exception("Usuário não encontrado para exclusão.");
       }
 
-      final response = await http.delete(
+      final response = await _httpClient.delete(
         Uri.parse('$baseUrl/usuarios/${userCompleto.id}'),
         headers: {
           'Content-Type': 'application/json',
@@ -142,7 +143,7 @@ class SupabaseService {
       payload['idade'] = int.tryParse(user.dataNascimento.toString()) ?? 0;
       payload.remove('campanhasInscritas');
 
-      final response = await http.put(
+      final response = await _httpClient.put(
         Uri.parse('$baseUrl/usuarios/${user.id}'),
         headers: {
           'Content-Type': 'application/json',
@@ -165,7 +166,7 @@ class SupabaseService {
 
   static Future<UserModel?> fetchUsuarioByEmail(String email) async {
     try {
-      final response = await http.get(
+      final response = await _httpClient.get(
         Uri.parse('$baseUrl/usuarios/email/$email'),
         // CORREÇÃO: Incluído Header de Token aqui. Antes era recusado com 401/403.
         headers: {
@@ -222,7 +223,7 @@ class SupabaseService {
     }
 
     final request = () async {
-      final response = await http.get(
+      final response = await _httpClient.get(
         Uri.parse('$baseUrl/comunicacoes'),
         headers: {
           'Content-Type': 'application/json',
@@ -448,7 +449,7 @@ class SupabaseService {
     }
 
     try {
-      final response = await http.post(
+      final response = await _httpClient.post(
         Uri.parse('$baseUrl/auth/reset-password'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': emailLimpo}),
@@ -473,7 +474,7 @@ class SupabaseService {
     String sharedBy = 'app_user',
   }) async {
     try {
-      final response = await http.post(
+      final response = await _httpClient.post(
         Uri.parse('$baseUrl/comunicacoes/compartilhamentos'),
         headers: {
           'Content-Type': 'application/json',
@@ -506,7 +507,7 @@ class SupabaseService {
     required int comunicacaoId,
     required int usuarioId,
   }) async {
-    final response = await http.post(
+    final response = await _httpClient.post(
       Uri.parse('$baseUrl/campanhas/$comunicacaoId/inscrever'),
       headers: {
         'Content-Type': 'application/json',
@@ -538,7 +539,7 @@ class SupabaseService {
     required int comunicacaoId,
     required int usuarioId,
   }) async {
-    final response = await http.delete(
+    final response = await _httpClient.delete(
       Uri.parse('$baseUrl/campanhas/$comunicacaoId/desinscrever'),
       headers: {
         'Content-Type': 'application/json',
@@ -569,7 +570,7 @@ class SupabaseService {
   static Future<List<Map<String, dynamic>>> fetchInscritosCampanha(
     int comunicacaoId,
   ) async {
-    final response = await http.get(
+    final response = await _httpClient.get(
       Uri.parse('$baseUrl/campanhas/$comunicacaoId/inscritos'),
       headers: {
         'Content-Type': 'application/json',
@@ -670,10 +671,14 @@ class SupabaseService {
   }
 
   static Future<List<NewsModel>> fetchCampanhasAtivasDoUsuario(
-    int usuarioId,
-  ) async {
+    int usuarioId, {
+    bool forceRefresh = false,
+  }) async {
     try {
-      final campanhas = await fetchNoticiasPorCategoria(4);
+      final campanhas = await fetchNoticiasPorCategoria(
+        4,
+        forceRefresh: forceRefresh,
+      );
       final hoje = DateTime.now();
       final inicioHoje = DateTime(hoje.year, hoje.month, hoje.day);
 
@@ -687,6 +692,7 @@ class SupabaseService {
             final inscrito = await isUsuarioInscritoEmCampanha(
               comunicacaoId: campanha.id!,
               usuarioId: usuarioId,
+              forceRefresh: forceRefresh,
             );
             if (!inscrito) return null;
 
@@ -722,10 +728,14 @@ class SupabaseService {
   }
 
   static Future<List<Map<String, dynamic>>> fetchLembretesCampanhaUmDiaAntes(
-    int usuarioId,
-  ) async {
+    int usuarioId, {
+    bool forceRefresh = false,
+  }) async {
     try {
-      final campanhas = await fetchCampanhasAtivasDoUsuario(usuarioId);
+      final campanhas = await fetchCampanhasAtivasDoUsuario(
+        usuarioId,
+        forceRefresh: forceRefresh,
+      );
       final hoje = DateTime.now();
       final amanha = DateTime(
         hoje.year,
@@ -772,7 +782,7 @@ class SupabaseService {
       final uri = Uri.parse(
         'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lon&format=json&accept-language=pt',
       );
-      final response = await http.get(
+      final response = await _httpClient.get(
         uri,
         headers: {'User-Agent': 'ConectaVidaApp/1.0'},
       );
