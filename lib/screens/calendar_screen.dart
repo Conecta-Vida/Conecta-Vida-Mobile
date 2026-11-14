@@ -212,7 +212,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                                     ),
                                     title: Text(
                                       evento['titulo'] ?? 'Sem Título',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: Theme.of(context).colorScheme.onSurface,
                                       ),
@@ -225,7 +225,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                                         children: [
                                           Text(
                                             evento['data'] ?? '',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               color: colors.onSurfaceVariant,
                                             ),
                                           ),
