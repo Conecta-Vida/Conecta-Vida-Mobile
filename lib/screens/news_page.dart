@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../accessibility/accessibility_motion.dart';
 import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
@@ -148,6 +150,61 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     } catch (_) {
       // Se a API falhar, apenas não mostra o popup.
+    }
+  }
+
+  Future<void> _abrirInstituicoesProximas() async {
+    var consulta = 'instituições de saúde perto de mim';
+
+    try {
+      final servicoAtivo = await Geolocator.isLocationServiceEnabled();
+      if (servicoAtivo) {
+        var permissao = await Geolocator.checkPermission();
+        if (permissao == LocationPermission.denied) {
+          permissao = await Geolocator.requestPermission();
+        }
+
+        final podeUsarLocalizacao =
+            permissao == LocationPermission.whileInUse ||
+            permissao == LocationPermission.always;
+
+        if (podeUsarLocalizacao) {
+          final posicao = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+          );
+          consulta =
+              'instituições de saúde perto de ${posicao.latitude},${posicao.longitude}';
+        }
+      }
+    } catch (e) {
+      // Sem GPS/permissão, o Google Maps ainda pode usar a localização do aparelho.
+      debugPrint('Não foi possível obter GPS para a busca no Maps: $e');
+    }
+
+    final url = Uri.https(
+      'www.google.com',
+      '/maps/search/',
+      {'api': '1', 'query': consulta},
+    );
+
+    try {
+      final abriu = await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!abriu && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não foi possível abrir o Google Maps.'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao abrir o Google Maps: $e')),
+        );
+      }
     }
   }
 
@@ -601,6 +658,10 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _categoryIndex,
         onTap: (index) {
+          if (index == 5) {
+            _abrirInstituicoesProximas();
+            return;
+          }
           setState(() {
             _categoryIndex = index;
             _refreshNoticias();
