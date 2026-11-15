@@ -18,6 +18,18 @@ class NewsModel {
   final String orgaoSite;
   final String status;
 
+  /// Endereço da matéria original, quando veio de uma fonte oficial.
+  final String fonteUrl;
+
+  /// Vale para todas as cidades (ex.: notícias nacionais do Ministério da Saúde).
+  bool get abrangenciaGeral {
+    final onde = local.trim().toLowerCase();
+    return onde.isEmpty ||
+        onde == 'geral' ||
+        onde == 'região geral' ||
+        onde == 'nacional';
+  }
+
   bool get ehCampanha => tag.toUpperCase() == 'CAMPANHA';
 
   /// Campanha encerrada pelo painel ou com a data de término já passada.
@@ -52,6 +64,7 @@ class NewsModel {
     this.orgaoTelefone = '(11) 4002-8922',
     this.orgaoSite = 'https://www.saude.gov.br',
     this.status = '',
+    this.fonteUrl = '',
   });
 
   factory NewsModel.fromMap(Map<String, dynamic> map) {
@@ -83,6 +96,7 @@ class NewsModel {
       orgaoTelefone: map['orgaoTelefone'] ?? '(11) 4002-8922',
       orgaoSite: map['orgaoSite'] ?? 'https://www.saude.gov.br',
       status: (map['status'] ?? '').toString(),
+      fonteUrl: (map['fonteUrl'] ?? map['fonte_url'] ?? '').toString(),
     );
   }
 
@@ -105,6 +119,7 @@ class NewsModel {
       'orgaoTelefone': orgaoTelefone,
       'orgaoSite': orgaoSite,
       'status': status,
+      'fonteUrl': fonteUrl,
     };
   }
 }
