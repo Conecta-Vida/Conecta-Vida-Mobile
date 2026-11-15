@@ -19,6 +19,7 @@ import '../widgets/noticia_card.dart';
 import '../widgets/recomendados_secao.dart';
 import '../widgets/bottom_navbar.dart';
 import '../widgets/noticias_header.dart';
+import 'autorizacoes_screen.dart';
 import 'notifications_screen.dart';
 import 'settings_screen.dart';
 import 'calendar_screen.dart';
@@ -53,6 +54,39 @@ class _HomeScreenState extends State<HomeScreen> {
     _novasComunicacoes = SupabaseService.novasComunicacoes.listen(
       _aoPublicarComunicacao,
     );
+    _avisarPedidosDeAutorizacao();
+  }
+
+  /// Se alguém pediu para incluir este usuário como dependente, avisa ao
+  /// abrir o app e leva direto para a tela onde ele autoriza ou recusa.
+  Future<void> _avisarPedidosDeAutorizacao() async {
+    try {
+      final convites = await SupabaseService.fetchConvitesDeDependente();
+      final pendentes = convites.where((c) => c.pendente).toList();
+      if (!mounted || pendentes.isEmpty) return;
+
+      final texto = pendentes.length == 1
+          ? '${pendentes.first.titularNome} quer incluir você como dependente.'
+          : '${pendentes.length} pessoas querem incluir você como dependente.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(texto),
+          duration: const Duration(seconds: 10),
+          action: SnackBarAction(
+            label: 'VER',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const AutorizacoesScreen(),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    } catch (_) {
+      // Sem conexão: o pedido continua disponível em Ajustes → Autorizações.
+    }
   }
 
   /// O painel publicou algo enquanto o app está aberto: atualiza o feed e

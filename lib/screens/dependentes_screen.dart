@@ -95,125 +95,259 @@ class _DependentesScreenState extends State<DependentesScreen> {
     }
   }
 
+  static String _formatarData(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
   Future<void> edit([DependenteModel? old]) async {
     final key = GlobalKey<FormState>();
     final name = TextEditingController(text: old?.nomeCompleto ?? '');
     final other = TextEditingController();
-    var birth = old?.dataNascimento ?? DateTime(2015);
+    final email = TextEditingController(text: old?.emailDependente ?? '');
+    // No cadastro a data não vem preenchida: o usuário precisa escolher.
+    DateTime? birth = old?.dataNascimento;
+    var birthMissing = false;
+    var declarou = false;
+    var declaracaoFaltando = false;
+    var salvando = false;
     const relations = [
+      'Filho(a)',
       'Pai',
       'Mãe',
-      'Filho(a)',
       'Cônjuge',
       'Tutelado',
       'Outro',
     ];
-    var relation = relations.contains(old?.parentesco)
-        ? (old?.parentesco ?? 'Tutelado')
-        : 'Outro';
+    var relation = old == null
+        ? relations.first
+        : (relations.contains(old.parentesco) ? old.parentesco : 'Outro');
     if (relation == 'Outro' && old != null) other.text = old.parentesco;
     var sex = old?.sexo ?? '';
+    final novoCadastro = old == null;
 
     final saved = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, refresh) => AlertDialog(
-          title: Text(old == null ? 'Adicionar dependente' : 'Editar dependente'),
-          content: SingleChildScrollView(
-            child: Form(
-              key: key,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: name,
-                    decoration: const InputDecoration(labelText: 'Nome completo'),
-                    validator: (v) =>
-                        v == null || v.trim().isEmpty ? 'Informe o nome' : null,
-                  ),
-                  ListTile(
-                    title: const Text('Data de nascimento'),
-                    subtitle: Text('${birth.day}/${birth.month}/${birth.year}'),
-                    onTap: () async {
-                      final d = await showDatePicker(
-                        context: ctx,
-                        initialDate: birth,
-                        firstDate: DateTime(1900),
-                        lastDate: DateTime.now(),
-                      );
-                      if (d != null) refresh(() => birth = d);
-                    },
-                  ),
-                  DropdownButtonFormField<String>(
-                    initialValue: relation,
-                    decoration: const InputDecoration(labelText: 'Parentesco'),
-                    items: relations
-                        .map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                        .toList(),
-                    onChanged: (v) => refresh(() => relation = v ?? 'Tutelado'),
-                  ),
-                  if (relation == 'Outro')
+        builder: (ctx, refresh) {
+          final cores = Theme.of(ctx).colorScheme;
+          // Adulto (que não é tutelado) precisa autorizar pelo próprio login.
+          final precisaAutorizar =
+              birth != null &&
+              DependenteModel.exigeAutorizacaoDoDependente(birth!, relation);
+
+          return AlertDialog(
+            title: Text(novoCadastro ? 'Adicionar dependente' : 'Editar dependente'),
+            content: SingleChildScrollView(
+              child: Form(
+                key: key,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     TextFormField(
-                      controller: other,
-                      decoration: const InputDecoration(labelText: 'Informe o parentesco'),
-                      validator: (v) => v == null || v.trim().isEmpty
-                          ? 'Informe o parentesco'
-                          : null,
+                      controller: name,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: const InputDecoration(labelText: 'Nome completo'),
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Informe o nome' : null,
                     ),
-                  DropdownButtonFormField<String>(
-                    initialValue: sex.isEmpty ? null : sex,
-                    decoration: const InputDecoration(labelText: 'Sexo (opcional)'),
-                    items: const [
-                      DropdownMenuItem(value: 'Feminino', child: Text('Feminino')),
-                      DropdownMenuItem(value: 'Masculino', child: Text('Masculino')),
-                      DropdownMenuItem(value: 'Outro', child: Text('Outro')),
-                      DropdownMenuItem(value: 'Não informado', child: Text('Não informar')),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.cake_outlined),
+                      title: const Text('Data de nascimento'),
+                      subtitle: Text(
+                        birth == null
+                            ? (birthMissing
+                                  ? 'Informe a data de nascimento'
+                                  : 'Toque para selecionar')
+                            : _formatarData(birth!),
+                        style: birthMissing && birth == null
+                            ? TextStyle(color: cores.error)
+                            : null,
+                      ),
+                      trailing: const Icon(Icons.edit_calendar_outlined),
+                      onTap: () async {
+                        final hoje = DateTime.now();
+                        final d = await showDatePicker(
+                          context: ctx,
+                          initialDate:
+                              birth ?? DateTime(hoje.year - 10, hoje.month, hoje.day),
+                          firstDate: DateTime(1900),
+                          lastDate: hoje,
+                          helpText: 'Data de nascimento',
+                        );
+                        if (d != null) {
+                          refresh(() {
+                            birth = d;
+                            birthMissing = false;
+                          });
+                        }
+                      },
+                    ),
+                    DropdownButtonFormField<String>(
+                      initialValue: relation,
+                      decoration: const InputDecoration(labelText: 'Parentesco'),
+                      items: relations
+                          .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                          .toList(),
+                      onChanged: (v) =>
+                          refresh(() => relation = v ?? relations.first),
+                    ),
+                    if (relation == 'Outro')
+                      TextFormField(
+                        controller: other,
+                        decoration: const InputDecoration(
+                          labelText: 'Informe o parentesco',
+                        ),
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Informe o parentesco'
+                            : null,
+                      ),
+                    DropdownButtonFormField<String>(
+                      initialValue: sex.isEmpty ? null : sex,
+                      decoration: const InputDecoration(labelText: 'Sexo (opcional)'),
+                      items: const [
+                        DropdownMenuItem(value: 'Feminino', child: Text('Feminino')),
+                        DropdownMenuItem(value: 'Masculino', child: Text('Masculino')),
+                        DropdownMenuItem(value: 'Outro', child: Text('Outro')),
+                        DropdownMenuItem(
+                          value: 'Não informado',
+                          child: Text('Não informar'),
+                        ),
+                      ],
+                      onChanged: (v) => refresh(() => sex = v ?? ''),
+                    ),
+
+                    // Como o vínculo passa a valer (só no cadastro).
+                    if (novoCadastro && birth != null) ...[
+                      const SizedBox(height: 16),
+                      if (precisaAutorizar) ...[
+                        TextFormField(
+                          controller: email,
+                          keyboardType: TextInputType.emailAddress,
+                          autocorrect: false,
+                          decoration: const InputDecoration(
+                            labelText: 'E-mail do dependente',
+                            helperText: 'O mesmo e-mail da conta dele no Conecta Vida',
+                          ),
+                          validator: (v) {
+                            final texto = (v ?? '').trim();
+                            if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(texto)) {
+                              return 'Informe um e-mail válido';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.info_outline, size: 18, color: cores.primary),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Por ser maior de idade, esta pessoa precisa '
+                                'autorizar o vínculo. O pedido aparece no '
+                                'aplicativo dela, em Ajustes → Autorizações. '
+                                'Até lá, o cadastro fica pendente.',
+                                style: Theme.of(ctx).textTheme.bodySmall,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else ...[
+                        CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          value: declarou,
+                          onChanged: (v) => refresh(() {
+                            declarou = v ?? false;
+                            declaracaoFaltando = false;
+                          }),
+                          title: const Text(
+                            'Declaro que sou o responsável legal por esta pessoa.',
+                          ),
+                          subtitle: declaracaoFaltando
+                              ? Text(
+                                  'Marque a declaração para continuar.',
+                                  style: TextStyle(color: cores.error),
+                                )
+                              : null,
+                        ),
+                      ],
                     ],
-                    onChanged: (v) => refresh(() => sex = v ?? ''),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                if (!key.currentState!.validate()) return;
-                final item = DependenteModel(
-                  id: old?.id,
-                  nomeCompleto: name.text.trim(),
-                  dataNascimento: birth,
-                  parentesco: relation == 'Outro' ? other.text.trim() : relation,
-                  sexo: sex.isEmpty ? null : sex,
-                );
-                try {
-                  if (old == null) {
-                    await SupabaseService.criarDependente(widget.usuarioId, item);
-                  } else {
-                    await SupabaseService.atualizarDependente(widget.usuarioId, item);
-                  }
-                  if (ctx.mounted) Navigator.pop(ctx, true);
-                } catch (e) {
-                  if (ctx.mounted) {
-                    ScaffoldMessenger.of(ctx).showSnackBar(
-                      SnackBar(content: Text('Erro: $e')),
-                    );
-                  }
-                }
-              },
-              child: const Text('Salvar'),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: salvando ? null : () => Navigator.pop(ctx, false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: salvando
+                    ? null
+                    : () async {
+                        final formOk = key.currentState!.validate();
+                        final semData = birth == null;
+                        final semDeclaracao =
+                            novoCadastro && !semData && !precisaAutorizar && !declarou;
+                        if (semData || semDeclaracao) {
+                          refresh(() {
+                            birthMissing = semData;
+                            declaracaoFaltando = semDeclaracao;
+                          });
+                        }
+                        if (!formOk || semData || semDeclaracao) return;
+
+                        final item = DependenteModel(
+                          id: old?.id,
+                          nomeCompleto: name.text.trim(),
+                          dataNascimento: birth!,
+                          parentesco:
+                              relation == 'Outro' ? other.text.trim() : relation,
+                          sexo: sex.isEmpty ? null : sex,
+                          emailDependente:
+                              precisaAutorizar ? email.text.trim() : null,
+                          declarouResponsabilidade: declarou,
+                        );
+                        refresh(() => salvando = true);
+                        try {
+                          if (novoCadastro) {
+                            await SupabaseService.criarDependente(
+                              widget.usuarioId,
+                              item,
+                            );
+                          } else {
+                            await SupabaseService.atualizarDependente(
+                              widget.usuarioId,
+                              item,
+                            );
+                          }
+                          if (ctx.mounted) Navigator.pop(ctx, true);
+                        } catch (e) {
+                          if (!ctx.mounted) return;
+                          refresh(() => salvando = false);
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                e.toString().replaceFirst('Exception: ', ''),
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                child: Text(salvando ? 'Salvando...' : 'Salvar'),
+              ),
+            ],
+          );
+        },
       ),
     );
 
     name.dispose();
     other.dispose();
+    email.dispose();
     if (saved == true) await load();
   }
 
@@ -223,7 +357,8 @@ class _DependentesScreenState extends State<DependentesScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Remover dependente?'),
         content: Text(
-          'Remover ${item.nomeCompleto}? O histórico de inscrições será preservado.',
+          'Remover ${item.nomeCompleto}? As inscrições dessa pessoa em campanhas '
+          'ainda abertas serão canceladas.',
         ),
         actions: [
           TextButton(
@@ -245,7 +380,9 @@ class _DependentesScreenState extends State<DependentesScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e')),
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+          ),
         );
       }
     }
@@ -287,8 +424,33 @@ class _DependentesScreenState extends State<DependentesScreen> {
                                   child: Icon(Icons.person),
                                 ),
                                 title: Text(item.nomeCompleto),
-                                subtitle: Text(
-                                  '${item.parentesco} • ${item.dataNascimento.day}/${item.dataNascimento.month}/${item.dataNascimento.year}',
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${item.parentesco} • ${_formatarData(item.dataNascimento)}',
+                                    ),
+                                    if (item.pendente) ...[
+                                      const SizedBox(height: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.amber.withValues(alpha: 0.2),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          'Aguardando autorização de ${item.emailDependente ?? 'e-mail informado'}',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                                 trailing: PopupMenuButton<String>(
                                   onSelected: (v) =>
@@ -310,6 +472,12 @@ class _DependentesScreenState extends State<DependentesScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    if (item.pendente)
+                                      Text(
+                                        'Depois de autorizado, você poderá inscrever esta pessoa em campanhas.',
+                                        style: Theme.of(context).textTheme.bodySmall,
+                                      )
+                                    else ...[
                                     Text(
                                       'Campanhas inscritas',
                                       style: Theme.of(context).textTheme.labelLarge,
@@ -347,6 +515,7 @@ class _DependentesScreenState extends State<DependentesScreen> {
                                           )
                                           .toList(),
                                       ),
+                                    ],
                                   ],
                                 ),
                               ),

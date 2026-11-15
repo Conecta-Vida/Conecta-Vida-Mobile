@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 import 'accessibility_screen.dart';
+import 'autorizacoes_screen.dart';
 import 'dependentes_screen.dart';
 import '../models/usuario.dart';
 import '../providers/usuario_provider.dart';
@@ -298,6 +299,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Navigator.of(context).push(MaterialPageRoute(
                     builder: (_) => DependentesScreen(usuarioId: usuarioId),
                   ));
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.verified_user_outlined),
+                title: const Text('Autorizações'),
+                subtitle: const Text(
+                  'Pedidos para incluir você como dependente de outra conta',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AutorizacoesScreen(),
+                    ),
+                  );
                 },
               ),
             ]),

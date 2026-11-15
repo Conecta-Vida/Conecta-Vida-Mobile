@@ -174,7 +174,10 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
     setState(() => _processandoCampanha = true);
 
     try {
-      final dependentes = await SupabaseService.fetchDependentes(usuarioId);
+      final dependentes = await SupabaseService.fetchDependentes(
+        usuarioId,
+        somenteAtivos: true,
+      );
       await _carregarStatusInscricao();
       if (!mounted) return;
 
