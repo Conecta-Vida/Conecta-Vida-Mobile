@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../accessibility/accessibility_motion.dart';
 import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
+import '../global/texto.dart';
 import '../controllers/noticia_controller.dart';
 import '../models/noticia.dart';
 import '../providers/usuario_provider.dart';
@@ -297,21 +298,21 @@ class _HomeScreenState extends State<HomeScreen> {
   List<NewsModel> _filtrarNoticias(List<NewsModel> noticias) {
     var lista = noticias;
     if (_searchQuery.isNotEmpty) {
-      final q = _searchQuery.toLowerCase();
+      // Ignora acentos e maiúsculas: "vacinacao" encontra "Vacinação".
       lista = lista
           .where(
             (n) =>
-                n.titulo.toLowerCase().contains(q) ||
-                n.descricao.toLowerCase().contains(q),
+                Texto.contem(n.titulo, _searchQuery) ||
+                Texto.contem(n.descricao, _searchQuery),
           )
           .toList();
     }
     if (_cidadesFiltro.isNotEmpty) {
       lista = lista
           .where(
-            (n) => _cidadesFiltro.any(
-              (c) => n.local.toLowerCase().contains(c.toLowerCase()),
-            ),
+            // As cidades foram cadastradas com grafias diferentes
+            // ("Braganca Paulista", " Atibaia"): a comparação ignora isso.
+            (n) => _cidadesFiltro.any((c) => Texto.contem(n.local, c)),
           )
           .toList();
     }
@@ -319,14 +320,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<String> _cidadesDisponiveis() {
-    final cidades =
-        _noticiasCache
-            .map((n) => n.local)
-            .where((l) => l.isNotEmpty && l != 'Região Geral')
-            .toSet()
-            .toList()
-          ..sort();
-    return cidades;
+    // Uma opção por cidade, mesmo com grafias diferentes no cadastro.
+    final porChave = <String, String>{};
+    for (final noticia in _noticiasCache) {
+      final local = noticia.local.trim();
+      if (local.isEmpty || local == 'Região Geral') continue;
+      final chave = Texto.normalizar(local);
+      final atual = porChave[chave];
+      // Prefere a grafia com acentos (ex.: "Bragança" a "Braganca").
+      if (atual == null || local.compareTo(atual) > 0) porChave[chave] = local;
+    }
+    return porChave.values.toList()..sort();
   }
 
   void _abrirFiltroCidades() {

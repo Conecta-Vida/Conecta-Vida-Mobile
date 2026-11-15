@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../global/texto.dart';
 import '../models/noticia.dart';
 import '../models/usuario.dart';
 import '../models/dependente.dart';
@@ -299,6 +300,11 @@ class SupabaseService {
   // Comunicações (notícias, campanhas e alertas)
   // ------------------------------------------------------------------
 
+  static String _localLimpo(dynamic valor) {
+    final local = (valor ?? '').toString().trim();
+    return local.isEmpty ? 'Região Geral' : local;
+  }
+
   static void _limparCachesDeComunicacoes() {
     _comunicacoesCache = null;
     _comunicacoesCacheAt = null;
@@ -367,10 +373,24 @@ class SupabaseService {
 
   static Future<Set<String>> fetchLocalizacoesComunicacoes() async {
     final comunicacoes = await _fetchComunicacoes();
-    return comunicacoes
-        .map((item) => (item['localizacao'] ?? '').toString().trim())
-        .where((local) => local.isNotEmpty)
-        .toSet();
+    // Uma entrada por cidade, mesmo que tenha sido digitada de formas
+    // diferentes; prevalece a grafia mais usada.
+    final contagem = <String, Map<String, int>>{};
+    for (final item in comunicacoes) {
+      final local = (item['localizacao'] ?? '').toString().trim();
+      if (local.isEmpty) continue;
+      final grafias = contagem.putIfAbsent(Texto.normalizar(local), () => {});
+      grafias[local] = (grafias[local] ?? 0) + 1;
+    }
+    return contagem.values.map((grafias) {
+      final ordenadas = grafias.entries.toList()
+        ..sort((a, b) {
+          // Em empate, prefere a grafia com acentos (ex.: "Bragança").
+          final porUso = b.value.compareTo(a.value);
+          return porUso != 0 ? porUso : b.key.compareTo(a.key);
+        });
+      return ordenadas.first.key;
+    }).toSet();
   }
 
   static Future<List<NewsModel>> fetchNoticiasPorCategoria(
@@ -400,7 +420,7 @@ class SupabaseService {
           'descricao': item['descricao'] ?? '',
           'imagem': item['linkimagem'] ?? item['linkImagem'] ?? '',
           'categoria': item['categoria'] ?? 'Notícia',
-          'local': item['localizacao'] ?? 'Região Geral',
+          'local': _localLimpo(item['localizacao']),
           'publicoAlvo':
               item['publico_alvo'] ?? item['publicoAlvo'] ?? 'População',
           'orgao': instituicaoNome,
