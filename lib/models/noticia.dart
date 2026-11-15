@@ -32,6 +32,21 @@ class NewsModel {
 
   bool get ehCampanha => tag.toUpperCase() == 'CAMPANHA';
 
+  /// Nome do tipo para mostrar ao usuário ("Notícia", "Campanha", "Alerta").
+  String get tipoLegivel => switch (tag.toUpperCase()) {
+    'NOTICIA' => 'Notícia',
+    'CAMPANHA' => 'Campanha',
+    'ALERTA' => 'Alerta',
+    _ => tag,
+  };
+
+  /// Data de publicação no formato brasileiro (dd/mm/aaaa).
+  String get dataLegivel {
+    final partes = data.trim().split('-');
+    if (partes.length != 3 || partes[0].length != 4) return data;
+    return '${partes[2]}/${partes[1]}/${partes[0]}';
+  }
+
   /// Campanha encerrada pelo painel ou com a data de término já passada.
   bool get encerrada {
     if (!ehCampanha) return false;

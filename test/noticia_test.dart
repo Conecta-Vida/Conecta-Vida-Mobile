@@ -71,6 +71,22 @@ void main() {
     expect(em('Atibaia').abrangenciaGeral, isFalse);
   });
 
+  test('data e tipo aparecem em formato legível', () {
+    NewsModel de(String tag, String data) => NewsModel(
+      tag: tag,
+      data: data,
+      titulo: 't',
+      subtitulo: '',
+      descricao: '',
+      imagem: '',
+    );
+    expect(de('NOTICIA', '2026-11-05').dataLegivel, '05/11/2026');
+    expect(de('NOTICIA', 'sem data').dataLegivel, 'sem data');
+    expect(de('NOTICIA', '2026-11-05').tipoLegivel, 'Notícia');
+    expect(de('campanha', '2026-11-05').tipoLegivel, 'Campanha');
+    expect(de('ALERTA', '2026-11-05').tipoLegivel, 'Alerta');
+  });
+
   test('NewsModel.fromMap lê o link da fonte oficial', () {
     final noticia = NewsModel.fromMap({
       'tag': 'NOTICIA',
