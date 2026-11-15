@@ -117,6 +117,17 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
   }
 
   Future<void> _alternarInscricaoCampanha() async {
+    // Campanha encerrada não aceita novas inscrições; quem já estava
+    // inscrito ainda pode abrir o diálogo para cancelar.
+    if (widget.noticia.encerrada && _inscricoesUsuario.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Esta campanha já foi encerrada.'),
+        ),
+      );
+      return;
+    }
+
     final comunicacaoId = widget.noticia.id;
     if (comunicacaoId == null) {
       if (!mounted) return;
@@ -534,9 +545,11 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                       children: [
                         NoticiasInfoBotao(
                           icone: Icons.calendar_month,
-                          titulo: _ehCampanha
-                              ? 'Período (toque no ícone para gerenciar inscrições)'
-                              : 'Data de publicação',
+                          titulo: !_ehCampanha
+                              ? 'Data de publicação'
+                              : widget.noticia.encerrada
+                              ? 'Período (campanha encerrada)'
+                              : 'Período (toque no ícone para gerenciar inscrições)',
                           valor: _dataExibida,
                           iconeAcao: !_ehCampanha
                               ? null

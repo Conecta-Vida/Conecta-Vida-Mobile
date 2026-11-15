@@ -16,6 +16,23 @@ class NewsModel {
   final String orgao;
   final String orgaoTelefone;
   final String orgaoSite;
+  final String status;
+
+  bool get ehCampanha => tag.toUpperCase() == 'CAMPANHA';
+
+  /// Campanha encerrada pelo painel ou com a data de término já passada.
+  bool get encerrada {
+    if (!ehCampanha) return false;
+    final situacao = status.toUpperCase();
+    if (situacao.startsWith('ENCERR') || situacao.startsWith('CONCLU')) {
+      return true;
+    }
+    if (dataFim.trim().length < 10) return false;
+    final fim = DateTime.tryParse(dataFim.trim().substring(0, 10));
+    if (fim == null) return false;
+    final hoje = DateTime.now();
+    return fim.isBefore(DateTime(hoje.year, hoje.month, hoje.day));
+  }
 
   NewsModel({
     this.id,
@@ -34,6 +51,7 @@ class NewsModel {
     this.orgao = 'Secretaria de Saúde',
     this.orgaoTelefone = '(11) 4002-8922',
     this.orgaoSite = 'https://www.saude.gov.br',
+    this.status = '',
   });
 
   factory NewsModel.fromMap(Map<String, dynamic> map) {
@@ -64,6 +82,7 @@ class NewsModel {
       orgao: map['orgao'] ?? 'Secretaria de Saúde',
       orgaoTelefone: map['orgaoTelefone'] ?? '(11) 4002-8922',
       orgaoSite: map['orgaoSite'] ?? 'https://www.saude.gov.br',
+      status: (map['status'] ?? '').toString(),
     );
   }
 
@@ -85,6 +104,7 @@ class NewsModel {
       'orgao': orgao,
       'orgaoTelefone': orgaoTelefone,
       'orgaoSite': orgaoSite,
+      'status': status,
     };
   }
 }

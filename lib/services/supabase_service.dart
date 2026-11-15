@@ -7,7 +7,6 @@ import '../global/texto.dart';
 import '../models/noticia.dart';
 import '../models/usuario.dart';
 import '../models/dependente.dart';
-import '../controllers/noticia_controller.dart';
 
 /// Camada de dados do aplicativo.
 ///
@@ -396,7 +395,6 @@ class SupabaseService {
   static Future<List<NewsModel>> fetchNoticiasPorCategoria(
     int categoryIndex, {
     bool forceRefresh = false,
-    bool usarExemplosSeFalhar = true,
   }) async {
     try {
       final dynamicList = await _fetchComunicacoes(
@@ -424,6 +422,7 @@ class SupabaseService {
           'publicoAlvo':
               item['publico_alvo'] ?? item['publicoAlvo'] ?? 'População',
           'orgao': instituicaoNome,
+          'status': item['status'] ?? '',
           // Contato real da instituição; vazio quando ela não informou
           // (a tela mostra "Não informado" em vez de um número fictício).
           'orgaoTelefone': instituicao is Map
@@ -467,28 +466,79 @@ class SupabaseService {
             .toList();
       }
 
-      noticias.sort((a, b) => b.data.compareTo(a.data));
+      // Mais recentes primeiro; campanhas encerradas vão para o fim.
+      noticias.sort((a, b) {
+        if (a.encerrada != b.encerrada) return a.encerrada ? 1 : -1;
+        return b.data.compareTo(a.data);
+      });
       return noticias;
     } catch (e) {
       developer.log(
         'Falha ao carregar notícias da API: $e',
         name: 'ApiService',
       );
-      if (!usarExemplosSeFalhar) rethrow;
-      return NewsController().getNoticiasPorCategoria(categoryIndex);
+      // Sem conteúdo de exemplo: a tela mostra o aviso de falha de conexão.
+      rethrow;
     }
   }
 
   /// Todas as comunicações publicadas (notícias, campanhas e alertas),
-  /// da mais recente para a mais antiga. Lança exceção se a API falhar,
-  /// em vez de devolver os exemplos locais.
+  /// da mais recente para a mais antiga.
   static Future<List<NewsModel>> fetchTodasAsComunicacoes({
     bool forceRefresh = false,
-  }) => fetchNoticiasPorCategoria(
-    -1,
-    forceRefresh: forceRefresh,
-    usarExemplosSeFalhar: false,
-  );
+  }) => fetchNoticiasPorCategoria(-1, forceRefresh: forceRefresh);
+
+  /// Sugestões para a tela inicial: campanhas em andamento e alertas que
+  /// combinam com a cidade do usuário e com os temas das campanhas em que
+  /// ele já se inscreveu. Nunca sugere algo em que já está inscrito.
+  static Future<List<NewsModel>> fetchRecomendados(
+    UserModel usuario, {
+    int maximo = 6,
+  }) async {
+    final todas = await fetchTodasAsComunicacoes();
+    final inscritas = usuario.id == null
+        ? <int>{}
+        : (await _fetchIdsInscricoesUsuario(usuario.id!) ?? <int>{});
+
+    final cidade = usuario.localizacao.trim();
+    final temCidade =
+        cidade.isNotEmpty &&
+        cidade != 'Não informado' &&
+        cidade != 'Não disponível';
+
+    // Temas (categorias) das campanhas em que o usuário já participou.
+    final temasDeInteresse = todas
+        .where((n) => n.id != null && inscritas.contains(n.id))
+        .map((n) => Texto.normalizar(n.categoria))
+        .where((c) => c.isNotEmpty)
+        .toSet();
+
+    final pontuadas = <MapEntry<NewsModel, int>>[];
+    for (final item in todas) {
+      final tipo = item.tag.toUpperCase();
+      if (tipo != 'CAMPANHA' && tipo != 'ALERTA') continue;
+      if (item.encerrada) continue;
+      if (item.id != null && inscritas.contains(item.id)) continue;
+
+      var pontos = tipo == 'CAMPANHA' ? 1 : 0;
+      final naCidade = temCidade && Texto.contem(item.local, cidade);
+      if (naCidade) pontos += 3;
+      if (temasDeInteresse.contains(Texto.normalizar(item.categoria))) {
+        pontos += 2;
+      }
+      // Alertas só entram quando são da cidade do usuário.
+      if (tipo == 'ALERTA' && !naCidade) continue;
+      pontuadas.add(MapEntry(item, pontos));
+    }
+
+    // Mais relevantes primeiro; em empate vale a ordem original (mais recentes).
+    final indexadas = pontuadas.asMap().entries.toList()
+      ..sort((a, b) {
+        final porPontos = b.value.value.compareTo(a.value.value);
+        return porPontos != 0 ? porPontos : a.key.compareTo(b.key);
+      });
+    return indexadas.map((e) => e.value.key).take(maximo).toList();
+  }
 
   static Future<List<Map<String, dynamic>>> fetchNotificacoes({
     bool forceRefresh = false,
