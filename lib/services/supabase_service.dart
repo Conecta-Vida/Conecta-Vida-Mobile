@@ -423,6 +423,7 @@ class SupabaseService {
               item['publico_alvo'] ?? item['publicoAlvo'] ?? 'População',
           'orgao': instituicaoNome,
           'status': item['status'] ?? '',
+          'fonteUrl': item['fonte_url'] ?? '',
           // Contato real da instituição; vazio quando ela não informou
           // (a tela mostra "Não informado" em vez de um número fictício).
           'orgaoTelefone': instituicao is Map

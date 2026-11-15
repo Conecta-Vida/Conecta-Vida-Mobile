@@ -304,7 +304,10 @@ class _HomeScreenState extends State<HomeScreen> {
           .where(
             // As cidades foram cadastradas com grafias diferentes
             // ("Braganca Paulista", " Atibaia"): a comparação ignora isso.
-            (n) => _cidadesFiltro.any((c) => Texto.contem(n.local, c)),
+            // Conteúdo de abrangência geral (nacional) aparece em qualquer cidade.
+            (n) =>
+                n.abrangenciaGeral ||
+                _cidadesFiltro.any((c) => Texto.contem(n.local, c)),
           )
           .toList();
     }

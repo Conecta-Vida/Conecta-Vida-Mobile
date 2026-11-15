@@ -34,6 +34,14 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
 
   bool get _temTelefone => widget.noticia.orgaoTelefone.trim().isNotEmpty;
 
+  /// Link da matéria original, quando a notícia veio de uma fonte oficial.
+  Uri? get _fonte {
+    final endereco = widget.noticia.fonteUrl.trim();
+    if (!endereco.startsWith('https://')) return null;
+    final uri = Uri.tryParse(endereco);
+    return (uri != null && uri.host.isNotEmpty) ? uri : null;
+  }
+
   /// Site da instituição, quando informado. Aceita endereços sem "https://".
   Uri? get _siteDoOrgao {
     final site = widget.noticia.orgaoSite.trim();
@@ -639,6 +647,19 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                     ),
                     textAlign: TextAlign.justify,
                   ),
+
+                  // Matéria importada de fonte oficial: leva ao texto completo.
+                  if (_fonte != null) ...[
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () => _abrirLink(_fonte!),
+                        icon: const Icon(Icons.open_in_new, size: 18),
+                        label: Text('Ler a notícia completa em ${_fonte!.host}'),
+                      ),
+                    ),
+                  ],
 
                   const SizedBox(height: 24),
 
