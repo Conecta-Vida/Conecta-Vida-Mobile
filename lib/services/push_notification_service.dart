@@ -4,7 +4,7 @@ import 'dart:developer' as developer;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive/hive.dart';
-import 'package:http/http.dart' as http;
+import 'supabase_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
@@ -43,7 +43,7 @@ class PushNotificationService {
   );
 
   /// Inicializar nas plataformas nativas antes do runApp.
-  static Future<void> inicializar({required String apiBaseUrl}) async {
+  static Future<void> inicializar() async {
     FirebaseMessaging.onBackgroundMessage(firebaseBackgroundHandler);
 
     const androidSettings =
@@ -76,12 +76,10 @@ class PushNotificationService {
     final token = await messaging.getToken();
     if (token != null) {
       developer.log('Token FCM obtido.', name: 'FCM');
-      await _enviarTokenParaBackend(token, apiBaseUrl);
+      await SupabaseService.registrarTokenPush(token);
     }
 
-    messaging.onTokenRefresh.listen((novoToken) {
-      _enviarTokenParaBackend(novoToken, apiBaseUrl);
-    });
+    messaging.onTokenRefresh.listen(SupabaseService.registrarTokenPush);
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       await _exibirNotificacaoLocal(message);
@@ -149,20 +147,5 @@ class PushNotificationService {
       'Selecionado: ${details.actionId} | ${details.payload}',
       name: 'FCM',
     );
-  }
-
-  static Future<void> _enviarTokenParaBackend(
-    String token,
-    String apiBaseUrl,
-  ) async {
-    try {
-      await http.post(
-        Uri.parse('$apiBaseUrl/mobile/notificacoes/registrar'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'token': token}),
-      );
-    } catch (e) {
-      developer.log('Erro ao registrar token FCM: $e', name: 'FCM');
-    }
   }
 }

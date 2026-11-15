@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
@@ -10,6 +13,7 @@ import '../global/appCor.dart';
 import '../controllers/noticia_controller.dart';
 import '../models/noticia.dart';
 import '../providers/usuario_provider.dart';
+import '../services/push_notification_service.dart';
 import '../services/supabase_service.dart';
 import '../widgets/noticia_card.dart';
 import '../widgets/bottom_navbar.dart';
@@ -34,6 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<NewsModel> _noticiasCache = [];
   bool _popupAlertaExibido = false;
   bool _usarGps = true;
+  StreamSubscription<Map<String, dynamic>>? _novasComunicacoes;
 
   @override
   void initState() {
@@ -43,6 +48,44 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _mostrarPopupAlertaCritico();
     });
+    _novasComunicacoes = SupabaseService.novasComunicacoes.listen(
+      _aoPublicarComunicacao,
+    );
+  }
+
+  /// O painel publicou algo enquanto o app está aberto: atualiza o feed e
+  /// avisa o usuário (notificação do sistema no celular, aviso na tela sempre).
+  void _aoPublicarComunicacao(Map<String, dynamic> comunicacao) {
+    if (!mounted) return;
+    _reloadNoticias();
+
+    final titulo = (comunicacao['titulo'] ?? '').toString();
+    if (titulo.isEmpty) return;
+    final tipo = (comunicacao['tipo'] ?? '').toString().toUpperCase();
+    final rotulo = switch (tipo) {
+      'ALERTA' => 'Novo alerta',
+      'CAMPANHA' => 'Nova campanha',
+      _ => 'Nova notícia',
+    };
+
+    if (!kIsWeb) {
+      PushNotificationService.showNotification(
+        rotulo,
+        titulo,
+      ).catchError((_) {});
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$rotulo: $titulo'),
+        backgroundColor: tipo == 'ALERTA' ? AppCor.error : AppCor.primary,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _novasComunicacoes?.cancel();
+    super.dispose();
   }
 
   Future<void> _carregarFiltrosSalvos() async {

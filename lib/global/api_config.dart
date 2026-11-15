@@ -1,39 +1,37 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-/// Resolve a URL base da API exclusiva do aplicativo cidadão.
+/// Lê a configuração pública do aplicativo.
 ///
-/// Prioridade:
-/// 1. --dart-define=API_BASE_URL=...
-/// 2. API_BASE_URL em assets/config/app.env
-/// 3. Padrão por plataforma:
-///    - Android Emulator: http://10.0.2.2:8081/api
-///    - Flutter Web: /api (mesma origem; o proxy encaminha para a mobile-api)
-///    - iOS simulator / desktop: http://localhost:8081/api
+/// Prioridade de cada valor:
+/// 1. --dart-define=NOME=valor (no build)
+/// 2. NOME em assets/config/app.env
+/// 3. padrão embutido no código
+///
+/// Nada aqui é segredo: a chave do Supabase é a "publishable", feita para
+/// ficar no aplicativo. Os dados são protegidos pelas regras do banco.
 class ApiConfig {
-  static const String _definidaNoBuild = String.fromEnvironment('API_BASE_URL');
+  static const String _urlNoBuild = String.fromEnvironment('SUPABASE_URL');
+  static const String _chaveNoBuild = String.fromEnvironment(
+    'SUPABASE_PUBLISHABLE_KEY',
+  );
+  static const String _resetNoBuild = String.fromEnvironment(
+    'PASSWORD_RESET_URL',
+  );
 
-  static String resolverBaseUrl() {
-    if (_definidaNoBuild.isNotEmpty) {
-      return _semBarraFinal(_definidaNoBuild);
-    }
-
-    final doEnv = dotenv.isInitialized
-        ? dotenv.env['API_BASE_URL']?.trim()
-        : null;
-    if (doEnv != null && doEnv.isNotEmpty) {
-      return _semBarraFinal(doEnv);
-    }
-
-    if (kIsWeb) return '/api';
-
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:8081/api';
-    }
-
-    return 'http://localhost:8081/api';
+  static String? _doEnv(String nome) {
+    if (!dotenv.isInitialized) return null;
+    final valor = dotenv.env[nome]?.trim();
+    return (valor == null || valor.isEmpty) ? null : valor;
   }
 
-  static String _semBarraFinal(String url) =>
-      url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+  static String supabaseUrl(String padrao) =>
+      _urlNoBuild.isNotEmpty ? _urlNoBuild : (_doEnv('SUPABASE_URL') ?? padrao);
+
+  static String supabaseKey(String padrao) => _chaveNoBuild.isNotEmpty
+      ? _chaveNoBuild
+      : (_doEnv('SUPABASE_PUBLISHABLE_KEY') ?? padrao);
+
+  /// Página que recebe o link do e-mail de recuperação de senha.
+  static String urlRedefinirSenha() =>
+      _resetNoBuild.isNotEmpty ? _resetNoBuild : (_doEnv('PASSWORD_RESET_URL') ?? '');
 }

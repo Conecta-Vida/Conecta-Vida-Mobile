@@ -26,8 +26,15 @@ Future<void> main() async {
     debugPrint('⚠️ Configurações locais não carregadas: $e');
   }
 
-  SupabaseService.baseUrl = ApiConfig.resolverBaseUrl();
-  debugPrint('🌐 API: ${SupabaseService.baseUrl}');
+  SupabaseService.supabaseUrl = ApiConfig.supabaseUrl(
+    SupabaseService.supabaseUrl,
+  );
+  SupabaseService.supabaseKey = ApiConfig.supabaseKey(
+    SupabaseService.supabaseKey,
+  );
+  SupabaseService.urlRedefinirSenha = ApiConfig.urlRedefinirSenha();
+  await SupabaseService.init();
+  debugPrint('🌐 Supabase: ${SupabaseService.supabaseUrl}');
 
   runApp(
     MultiProvider(
@@ -42,7 +49,7 @@ Future<void> main() async {
   );
 
   // O push não deve atrasar o primeiro frame do aplicativo. A inicialização
-  // do Firebase, a obtenção do token e o POST para a API acontecem em segundo
+  // do Firebase, a obtenção do token e o registro no banco acontecem em segundo
   // plano depois que a interface já pode ser exibida.
   if (!kIsWeb) {
     unawaited(_inicializarNotificacoesPush());
@@ -52,9 +59,7 @@ Future<void> main() async {
 Future<void> _inicializarNotificacoesPush() async {
   try {
     await Firebase.initializeApp();
-    await PushNotificationService.inicializar(
-      apiBaseUrl: SupabaseService.baseUrl,
-    );
+    await PushNotificationService.inicializar();
   } catch (e) {
     debugPrint('⚠️ Push notifications indisponíveis: $e');
   }

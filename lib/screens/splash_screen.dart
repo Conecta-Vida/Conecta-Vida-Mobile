@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_app/screens/login_screen.dart';
+import 'package:provider/provider.dart';
 import '../global/appCor.dart'; // Importe o AppCor aqui
+import '../models/usuario.dart';
+import '../providers/usuario_provider.dart';
+import '../services/supabase_service.dart';
+import 'news_page.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -15,13 +20,31 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 3), () {
-      if (mounted) {
+    _iniciar();
+  }
+
+  /// Mostra a abertura e, se a pessoa já entrou neste aparelho, segue direto
+  /// para a tela inicial sem pedir login de novo.
+  Future<void> _iniciar() async {
+    final resultados = await Future.wait<Object?>([
+      SupabaseService.restaurarSessao(),
+      Future<void>.delayed(const Duration(seconds: 2)),
+    ]);
+    final usuario = resultados[0] as UserModel?;
+    if (!mounted) return;
+    if (usuario != null) {
+      context.read<UsuarioProvider>().setUsuario(usuario);
+    }
+    final Widget destino = usuario != null
+        ? const HomeScreen()
+        : const LoginScreen();
+
+    {
+      {
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                const LoginScreen(),
+            pageBuilder: (context, animation, secondaryAnimation) => destino,
             transitionDuration: const Duration(milliseconds: 800),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
@@ -34,7 +57,7 @@ class _SplashScreenState extends State<SplashScreen> {
           ),
         );
       }
-    });
+    }
   }
 
   @override
@@ -45,10 +68,7 @@ class _SplashScreenState extends State<SplashScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              AppCor.primary,
-              Color(0xFF3C55FF),
-            ],
+            colors: [AppCor.primary, Color(0xFF3C55FF)],
           ),
         ),
         child: Stack(

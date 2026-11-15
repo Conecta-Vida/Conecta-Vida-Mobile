@@ -147,12 +147,20 @@ class _SignupScreenState extends State<SignupScreen> {
         );
       } catch (error) {
         if (!mounted) return;
+        final mensagem = error.toString().replaceAll('Exception: ', '');
+        // Conta criada, mas aguardando o clique no e-mail de confirmação:
+        // não é um erro; volta para o login com a orientação.
+        final aguardandoConfirmacao = mensagem.startsWith('Conta criada');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(error.toString().replaceAll('Exception: ', '')),
-            backgroundColor: AppCor.error,
+            content: Text(mensagem),
+            backgroundColor: aguardandoConfirmacao
+                ? AppCor.primary
+                : AppCor.error,
+            duration: Duration(seconds: aguardandoConfirmacao ? 8 : 4),
           ),
         );
+        if (aguardandoConfirmacao) Navigator.of(context).pop();
       }
     }
   }
