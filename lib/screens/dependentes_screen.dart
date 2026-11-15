@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/dependente.dart';
 import '../models/noticia.dart';
 import '../services/supabase_service.dart';
+import 'news_details_page.dart';
 
 class DependentesScreen extends StatefulWidget {
   final int usuarioId;
@@ -14,7 +15,7 @@ class DependentesScreen extends StatefulWidget {
 
 class _DependentesScreenState extends State<DependentesScreen> {
   List<DependenteModel> items = [];
-  Map<int, List<String>> campanhasPorDependente = {};
+  Map<int, List<NewsModel>> campanhasPorDependente = {};
   bool loading = true;
 
   @override
@@ -50,14 +51,14 @@ class _DependentesScreenState extends State<DependentesScreen> {
         final inscricoes = resultados[0] as List<Map<String, dynamic>>;
         final campanhas = resultados[1] as List<NewsModel>;
 
-        final titulosPorCampanha = <int, String>{};
+        final campanhasPorId = <int, NewsModel>{};
         for (final campanha in campanhas) {
           if (campanha.id != null) {
-            titulosPorCampanha[campanha.id!] = campanha.titulo;
+            campanhasPorId[campanha.id!] = campanha;
           }
         }
 
-        final agrupadas = <int, List<String>>{};
+        final agrupadas = <int, List<NewsModel>>{};
         for (final inscricao in inscricoes) {
           final dependenteId = _toInt(inscricao['dependente_id']);
           final comunicacaoId = _toInt(
@@ -65,10 +66,12 @@ class _DependentesScreenState extends State<DependentesScreen> {
           );
           if (dependenteId == null || comunicacaoId == null) continue;
 
-          final titulo = titulosPorCampanha[comunicacaoId] ??
-              'Campanha #$comunicacaoId';
+          final campanha = campanhasPorId[comunicacaoId];
+          if (campanha == null) continue;
           final lista = agrupadas.putIfAbsent(dependenteId, () => []);
-          if (!lista.contains(titulo)) lista.add(titulo);
+          if (!lista.any((item) => item.id == campanha.id)) {
+            lista.add(campanha);
+          }
         }
 
         if (mounted) {
@@ -270,7 +273,7 @@ class _DependentesScreenState extends State<DependentesScreen> {
                     itemBuilder: (ctx, i) {
                       final item = items[i];
                       final campanhas = item.id == null
-                          ? const <String>[]
+                          ? const <NewsModel>[]
                           : campanhasPorDependente[item.id!] ?? [];
 
                       return Card(
@@ -322,14 +325,27 @@ class _DependentesScreenState extends State<DependentesScreen> {
                                         spacing: 8,
                                         runSpacing: 4,
                                         children: campanhas
-                                            .map((titulo) => Chip(
-                                                  avatar: const Icon(
-                                                    Icons.campaign_outlined,
-                                                    size: 18,
+                                          .map(
+                                            (campanha) => ActionChip(
+                                              avatar: const Icon(
+                                                Icons.campaign_outlined,
+                                                size: 18,
+                                              ),
+                                              label: Text(campanha.titulo),
+                                              tooltip: 'Ver informações da campanha',
+                                              onPressed: () {
+                                                Navigator.of(ctx).push(
+                                                  MaterialPageRoute(
+                                                    builder: (_) => NewsDetailsPage(
+                                                      noticia: campanha,
+                                                      userId: widget.usuarioId,
+                                                    ),
                                                   ),
-                                                  label: Text(titulo),
-                                                ))
-                                            .toList(),
+                                                );
+                                              },
+                                            ),
+                                          )
+                                          .toList(),
                                       ),
                                   ],
                                 ),
