@@ -1,0 +1,12 @@
+# Publica a versão web do aplicativo do cidadão no Netlify.
+# O Netlify não traz o Flutter instalado: o build baixa a versão usada no
+# projeto (3.44.0) e gera o site em build/web.
+[build]
+  command = "git clone --depth 1 --branch 3.44.0 https://github.com/flutter/flutter.git \"$HOME/flutter\" && \"$HOME/flutter/bin/flutter\" config --no-analytics && \"$HOME/flutter/bin/flutter\" build web --release"
+  publish = "build/web"
+
+# Qualquer endereço abre o aplicativo (página única).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
