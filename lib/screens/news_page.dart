@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
@@ -154,8 +155,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _abrirInstituicoesProximas() async {
-    var consulta = 'hospitais, clínicas e postos de saúde perto de mim';
+    const consulta =
+        'hospitais, clínicas e postos de saúde';
 
+    Position? posicao;
     try {
       final servicoAtivo = await Geolocator.isLocationServiceEnabled();
       if (servicoAtivo) {
@@ -164,38 +167,71 @@ class _HomeScreenState extends State<HomeScreen> {
           permissao = await Geolocator.requestPermission();
         }
 
-        final podeUsarLocalizacao =
+        final permitido =
             permissao == LocationPermission.whileInUse ||
             permissao == LocationPermission.always;
 
-        if (podeUsarLocalizacao) {
-          final posicao = await Geolocator.getCurrentPosition(
+        if (permitido) {
+          posicao = await Geolocator.getCurrentPosition(
             desiredAccuracy: LocationAccuracy.high,
           );
-
-          // Usa as coordenadas reais como referência para encontrar resultados
-          // próximos, e não como o nome/endereço de um estabelecimento.
-          consulta =
-              'hospitais, clínicas e postos de saúde perto de '
-              '${posicao.latitude},${posicao.longitude}';
         }
       }
     } catch (e) {
-      // Sem GPS/permissão, o Maps tenta usar a localização do próprio aparelho.
-      debugPrint('Não foi possível obter GPS para o Maps: $e');
+      debugPrint('Não foi possível obter a localização para o Maps: $e');
     }
 
-    final url = Uri.https(
-      'www.google.com',
-      '/maps/search/',
-      {'api': '1', 'query': consulta},
-    );
+    Uri url;
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      // Android Maps Intent: geo:lat,lon?q=termo pesquisa vários locais
+      // nas proximidades das coordenadas fornecidas.
+      final centro = posicao == null
+          ? '0,0'
+          : '${posicao.latitude},${posicao.longitude}';
+      final query = Uri.encodeComponent(consulta);
+      url = Uri.parse('geo:$centro?z=14&q=$query');
+    } else if (defaultTargetPlatform == TargetPlatform.iOS &&
+        posicao != null) {
+      // O esquema iOS aceita q + center para pesquisar ao redor do ponto.
+      final parametros = Uri(
+        queryParameters: {
+          'q': consulta,
+          'center': '${posicao.latitude},${posicao.longitude}',
+          'zoom': '14',
+        },
+      ).query;
+      url = Uri.parse('comgooglemaps://?$parametros');
+    } else {
+      // Link universal: sem coordenadas no texto para não pesquisar um pin.
+      url = Uri.https(
+        'www.google.com',
+        '/maps/search/',
+        {'api': '1', 'query': consulta},
+      );
+    }
 
     try {
-      final abriu = await launchUrl(
+      var abriu = await launchUrl(
         url,
         mode: LaunchMode.externalApplication,
       );
+
+      // Se o Google Maps não tiver o esquema nativo disponível no iOS,
+      // abre a pesquisa universal; o Maps usa a localização do aparelho.
+      if (!abriu &&
+          defaultTargetPlatform == TargetPlatform.iOS &&
+          url.scheme == 'comgooglemaps') {
+        final fallback = Uri.https(
+          'www.google.com',
+          '/maps/search/',
+          {'api': '1', 'query': consulta},
+        );
+        abriu = await launchUrl(
+          fallback,
+          mode: LaunchMode.externalApplication,
+        );
+      }
+
       if (!abriu && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
