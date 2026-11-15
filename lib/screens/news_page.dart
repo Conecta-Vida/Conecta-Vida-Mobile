@@ -16,6 +16,7 @@ import '../providers/usuario_provider.dart';
 import '../services/push_notification_service.dart';
 import '../services/supabase_service.dart';
 import '../widgets/noticia_card.dart';
+import '../widgets/recomendados_secao.dart';
 import '../widgets/bottom_navbar.dart';
 import '../widgets/noticias_header.dart';
 import 'notifications_screen.dart';
@@ -35,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late Future<List<NewsModel>> _noticiasFuture;
   String _searchQuery = '';
   Set<String> _cidadesFiltro = {};
+  Set<String> _categoriasFiltro = {};
   List<NewsModel> _noticiasCache = [];
   bool _popupAlertaExibido = false;
   bool _usarGps = true;
@@ -198,8 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _abrirInstituicoesProximas() async {
-    const consulta =
-        'hospitais, clínicas e postos de saúde';
+    const consulta = 'hospitais, clínicas e postos de saúde';
 
     Position? posicao;
     try {
@@ -233,8 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
           : '${posicao.latitude},${posicao.longitude}';
       final query = Uri.encodeComponent(consulta);
       url = Uri.parse('geo:$centro?z=14&q=$query');
-    } else if (defaultTargetPlatform == TargetPlatform.iOS &&
-        posicao != null) {
+    } else if (defaultTargetPlatform == TargetPlatform.iOS && posicao != null) {
       // O esquema iOS aceita q + center para pesquisar ao redor do ponto.
       final parametros = Uri(
         queryParameters: {
@@ -246,33 +246,25 @@ class _HomeScreenState extends State<HomeScreen> {
       url = Uri.parse('comgooglemaps://?$parametros');
     } else {
       // Link universal: sem coordenadas no texto para não pesquisar um pin.
-      url = Uri.https(
-        'www.google.com',
-        '/maps/search/',
-        {'api': '1', 'query': consulta},
-      );
+      url = Uri.https('www.google.com', '/maps/search/', {
+        'api': '1',
+        'query': consulta,
+      });
     }
 
     try {
-      var abriu = await launchUrl(
-        url,
-        mode: LaunchMode.externalApplication,
-      );
+      var abriu = await launchUrl(url, mode: LaunchMode.externalApplication);
 
       // Se o Google Maps não tiver o esquema nativo disponível no iOS,
       // abre a pesquisa universal; o Maps usa a localização do aparelho.
       if (!abriu &&
           defaultTargetPlatform == TargetPlatform.iOS &&
           url.scheme == 'comgooglemaps') {
-        final fallback = Uri.https(
-          'www.google.com',
-          '/maps/search/',
-          {'api': '1', 'query': consulta},
-        );
-        abriu = await launchUrl(
-          fallback,
-          mode: LaunchMode.externalApplication,
-        );
+        final fallback = Uri.https('www.google.com', '/maps/search/', {
+          'api': '1',
+          'query': consulta,
+        });
+        abriu = await launchUrl(fallback, mode: LaunchMode.externalApplication);
       }
 
       if (!abriu && mounted) {
@@ -316,7 +308,28 @@ class _HomeScreenState extends State<HomeScreen> {
           )
           .toList();
     }
+    if (_categoriasFiltro.isNotEmpty) {
+      final escolhidas = _categoriasFiltro.map(Texto.normalizar).toSet();
+      lista = lista
+          .where((n) => escolhidas.contains(Texto.normalizar(n.categoria)))
+          .toList();
+    }
     return lista;
+  }
+
+  /// Categorias existentes na lista atual, uma por tema.
+  List<String> _categoriasDisponiveis() {
+    final porChave = <String, String>{};
+    for (final noticia in _noticiasCache) {
+      final categoria = noticia.categoria.trim();
+      if (categoria.isEmpty) continue;
+      final chave = Texto.normalizar(categoria);
+      final atual = porChave[chave];
+      if (atual == null || categoria.compareTo(atual) > 0) {
+        porChave[chave] = categoria;
+      }
+    }
+    return porChave.values.toList()..sort();
   }
 
   List<String> _cidadesDisponiveis() {
@@ -335,9 +348,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _abrirFiltroCidades() {
     final disponiveis = _cidadesDisponiveis();
-    if (disponiveis.isEmpty) return;
+    final categorias = _categoriasDisponiveis();
+    if (disponiveis.isEmpty && categorias.isEmpty) return;
 
     Set<String> selecao = Set.from(_cidadesFiltro);
+    Set<String> selecaoCategorias = Set.from(_categoriasFiltro);
 
     showModalBottomSheet(
       context: context,
@@ -351,7 +366,7 @@ class _HomeScreenState extends State<HomeScreen> {
           builder: (ctx, setModalState) {
             return ConstrainedBox(
               constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(ctx).size.height * 0.6,
+                maxHeight: MediaQuery.of(ctx).size.height * 0.75,
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -362,7 +377,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Filtrar por cidades',
+                      'Filtrar',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -371,21 +386,56 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 12),
                     Expanded(
                       child: ListView(
-                        children: disponiveis.map((cidade) {
-                          return CheckboxListTile(
-                            title: Text(cidade),
-                            value: selecao.contains(cidade),
-                            activeColor: AppCor.primary,
-                            contentPadding: EdgeInsets.zero,
-                            onChanged: (checked) {
-                              setModalState(() {
-                                checked == true
-                                    ? selecao.add(cidade)
-                                    : selecao.remove(cidade);
-                              });
-                            },
-                          );
-                        }).toList(),
+                        children: [
+                          if (categorias.isNotEmpty) ...[
+                            const Text(
+                              'Categorias',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
+                              children: categorias.map((categoria) {
+                                final marcada = selecaoCategorias.contains(
+                                  categoria,
+                                );
+                                return FilterChip(
+                                  label: Text(categoria),
+                                  selected: marcada,
+                                  onSelected: (valor) {
+                                    setModalState(() {
+                                      valor
+                                          ? selecaoCategorias.add(categoria)
+                                          : selecaoCategorias.remove(categoria);
+                                    });
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                          if (disponiveis.isNotEmpty)
+                            const Text(
+                              'Cidades',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ...disponiveis.map((cidade) {
+                            return CheckboxListTile(
+                              title: Text(cidade),
+                              value: selecao.contains(cidade),
+                              activeColor: AppCor.primary,
+                              contentPadding: EdgeInsets.zero,
+                              onChanged: (checked) {
+                                setModalState(() {
+                                  checked == true
+                                      ? selecao.add(cidade)
+                                      : selecao.remove(cidade);
+                                });
+                              },
+                            );
+                          }),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -400,7 +450,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         onPressed: () {
-                          setState(() => _cidadesFiltro = selecao);
+                          setState(() {
+                            _cidadesFiltro = selecao;
+                            _categoriasFiltro = selecaoCategorias;
+                          });
                           _salvarFiltros();
                           Navigator.pop(ctx);
                         },
@@ -462,7 +515,9 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
 
-          ...cidadesExtras.map((cidade) => _buildChipRemovivel(context, cidade)),
+          ...cidadesExtras.map(
+            (cidade) => _buildChipRemovivel(context, cidade),
+          ),
           _buildChipFiltro(context),
         ],
       ),
@@ -486,16 +541,22 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
-            color: selecionado ? AppCor.primary : AccessibilityPalette.surface(context),
+            color: selecionado
+                ? AppCor.primary
+                : AccessibilityPalette.surface(context),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: selecionado ? AppCor.primary : AccessibilityPalette.border(context),
+              color: selecionado
+                  ? AppCor.primary
+                  : AccessibilityPalette.border(context),
             ),
           ),
           child: Text(
             label,
             style: TextStyle(
-              color: selecionado ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
+              color: selecionado
+                  ? Colors.white
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: selecionado ? FontWeight.bold : FontWeight.normal,
               fontSize: 13,
             ),
@@ -510,9 +571,9 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.only(right: 8),
       child: AnimatedContainer(
         duration: AccessibilityMotion.duration(
-            context,
-            const Duration(milliseconds: 200),
-          ),
+          context,
+          const Duration(milliseconds: 200),
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: AppCor.primary,
@@ -544,13 +605,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildChipFiltro(BuildContext context) {
-    final temExtra = _cidadesFiltro.any((c) {
-      final cidadeUsuario = context
-          .read<UsuarioProvider>()
-          .usuario!
-          .localizacao;
-      return c != cidadeUsuario;
-    });
+    final bool temExtra =
+        _cidadesFiltro.any((c) {
+          final cidadeUsuario = context
+              .read<UsuarioProvider>()
+              .usuario!
+              .localizacao;
+          return c != cidadeUsuario;
+        }) ||
+        _categoriasFiltro.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: GestureDetector(
@@ -562,10 +625,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: temExtra ? AppCor.primary : AccessibilityPalette.surface(context),
+            color: temExtra
+                ? AppCor.primary
+                : AccessibilityPalette.surface(context),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: temExtra ? AppCor.primary : AccessibilityPalette.border(context),
+              color: temExtra
+                  ? AppCor.primary
+                  : AccessibilityPalette.border(context),
             ),
           ),
           child: Row(
@@ -574,7 +641,9 @@ class _HomeScreenState extends State<HomeScreen> {
               Icon(
                 Icons.tune,
                 size: 14,
-                color: temExtra ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
+                color: temExtra
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 4),
               Text(
@@ -599,7 +668,39 @@ class _HomeScreenState extends State<HomeScreen> {
         forceRefresh: true,
       );
     });
-    await _noticiasFuture;
+    try {
+      await _noticiasFuture;
+    } catch (_) {
+      // A própria lista mostra o aviso de falha.
+    }
+  }
+
+  /// Estado vazio/erro que ainda permite "puxar para atualizar".
+  Widget _avisoRolavel(String mensagem, Color cor, {IconData? icone}) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icone != null) ...[
+                  Icon(icone, size: 40, color: cor),
+                  const SizedBox(height: 12),
+                ],
+                Text(
+                  mensagem,
+                  style: TextStyle(color: cor),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -689,11 +790,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       }
 
-                      final todas =
-                          snapshot.data ??
-                          _newsController.getNoticiasPorCategoria(
-                            _categoryIndex,
-                          );
+                      final todas = snapshot.data ?? const <NewsModel>[];
                       if (_noticiasCache != todas) {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (mounted) setState(() => _noticiasCache = todas);
@@ -702,27 +799,47 @@ class _HomeScreenState extends State<HomeScreen> {
                       final noticias = _filtrarNoticias(todas);
 
                       if (snapshot.hasError && todas.isEmpty) {
-                        return Center(
-                          child: Text(
-                            'Não foi possível carregar as notícias. Puxe para atualizar.',
-                            style: TextStyle(color: colors.onSurfaceVariant),
-                            textAlign: TextAlign.center,
-                          ),
+                        return _avisoRolavel(
+                          'Sem conexão com o servidor.\nPuxe para tentar de novo.',
+                          colors.onSurfaceVariant,
+                          icone: Icons.cloud_off_outlined,
                         );
                       }
 
-                      if (noticias.isEmpty) {
-                        return const Center(
-                          child: Text(
-                            'Nenhuma notícia encontrada.',
-                            style: TextStyle(color: AppCor.textoCinza),
-                          ),
+                      // Sugestões só na aba inicial e sem pesquisa em andamento.
+                      final mostrarRecomendados =
+                          _categoryIndex == 0 && _searchQuery.isEmpty;
+
+                      if (noticias.isEmpty && !mostrarRecomendados) {
+                        return _avisoRolavel(
+                          'Nenhuma notícia encontrada.',
+                          AppCor.textoCinza,
                         );
                       }
 
+                      final cabecalho = mostrarRecomendados ? 1 : 0;
                       return ListView.builder(
-                        itemCount: noticias.length,
-                        itemBuilder: (context, index) {
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        itemCount:
+                            noticias.length +
+                            cabecalho +
+                            (noticias.isEmpty ? 1 : 0),
+                        itemBuilder: (context, posicao) {
+                          if (mostrarRecomendados && posicao == 0) {
+                            return RecomendadosSecao(usuario: usuario);
+                          }
+                          if (noticias.isEmpty) {
+                            return const Padding(
+                              padding: EdgeInsets.only(top: 48),
+                              child: Center(
+                                child: Text(
+                                  'Nenhuma notícia encontrada.',
+                                  style: TextStyle(color: AppCor.textoCinza),
+                                ),
+                              ),
+                            );
+                          }
+                          final index = posicao - cabecalho;
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 20.0),
                             child: NoticiaCard(
