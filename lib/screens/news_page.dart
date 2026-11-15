@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
@@ -7,9 +9,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../accessibility/accessibility_motion.dart';
 import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
+import '../global/texto.dart';
 import '../controllers/noticia_controller.dart';
 import '../models/noticia.dart';
 import '../providers/usuario_provider.dart';
+import '../services/push_notification_service.dart';
 import '../services/supabase_service.dart';
 import '../widgets/noticia_card.dart';
 import '../widgets/bottom_navbar.dart';
@@ -34,6 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<NewsModel> _noticiasCache = [];
   bool _popupAlertaExibido = false;
   bool _usarGps = true;
+  StreamSubscription<Map<String, dynamic>>? _novasComunicacoes;
 
   @override
   void initState() {
@@ -43,6 +48,44 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _mostrarPopupAlertaCritico();
     });
+    _novasComunicacoes = SupabaseService.novasComunicacoes.listen(
+      _aoPublicarComunicacao,
+    );
+  }
+
+  /// O painel publicou algo enquanto o app está aberto: atualiza o feed e
+  /// avisa o usuário (notificação do sistema no celular, aviso na tela sempre).
+  void _aoPublicarComunicacao(Map<String, dynamic> comunicacao) {
+    if (!mounted) return;
+    _reloadNoticias();
+
+    final titulo = (comunicacao['titulo'] ?? '').toString();
+    if (titulo.isEmpty) return;
+    final tipo = (comunicacao['tipo'] ?? '').toString().toUpperCase();
+    final rotulo = switch (tipo) {
+      'ALERTA' => 'Novo alerta',
+      'CAMPANHA' => 'Nova campanha',
+      _ => 'Nova notícia',
+    };
+
+    if (!kIsWeb) {
+      PushNotificationService.showNotification(
+        rotulo,
+        titulo,
+      ).catchError((_) {});
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$rotulo: $titulo'),
+        backgroundColor: tipo == 'ALERTA' ? AppCor.error : AppCor.primary,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _novasComunicacoes?.cancel();
+    super.dispose();
   }
 
   Future<void> _carregarFiltrosSalvos() async {
@@ -255,21 +298,21 @@ class _HomeScreenState extends State<HomeScreen> {
   List<NewsModel> _filtrarNoticias(List<NewsModel> noticias) {
     var lista = noticias;
     if (_searchQuery.isNotEmpty) {
-      final q = _searchQuery.toLowerCase();
+      // Ignora acentos e maiúsculas: "vacinacao" encontra "Vacinação".
       lista = lista
           .where(
             (n) =>
-                n.titulo.toLowerCase().contains(q) ||
-                n.descricao.toLowerCase().contains(q),
+                Texto.contem(n.titulo, _searchQuery) ||
+                Texto.contem(n.descricao, _searchQuery),
           )
           .toList();
     }
     if (_cidadesFiltro.isNotEmpty) {
       lista = lista
           .where(
-            (n) => _cidadesFiltro.any(
-              (c) => n.local.toLowerCase().contains(c.toLowerCase()),
-            ),
+            // As cidades foram cadastradas com grafias diferentes
+            // ("Braganca Paulista", " Atibaia"): a comparação ignora isso.
+            (n) => _cidadesFiltro.any((c) => Texto.contem(n.local, c)),
           )
           .toList();
     }
@@ -277,14 +320,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<String> _cidadesDisponiveis() {
-    final cidades =
-        _noticiasCache
-            .map((n) => n.local)
-            .where((l) => l.isNotEmpty && l != 'Região Geral')
-            .toSet()
-            .toList()
-          ..sort();
-    return cidades;
+    // Uma opção por cidade, mesmo com grafias diferentes no cadastro.
+    final porChave = <String, String>{};
+    for (final noticia in _noticiasCache) {
+      final local = noticia.local.trim();
+      if (local.isEmpty || local == 'Região Geral') continue;
+      final chave = Texto.normalizar(local);
+      final atual = porChave[chave];
+      // Prefere a grafia com acentos (ex.: "Bragança" a "Braganca").
+      if (atual == null || local.compareTo(atual) > 0) porChave[chave] = local;
+    }
+    return porChave.values.toList()..sort();
   }
 
   void _abrirFiltroCidades() {

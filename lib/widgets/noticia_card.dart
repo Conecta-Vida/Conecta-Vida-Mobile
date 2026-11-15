@@ -78,6 +78,18 @@ class NoticiaCard extends StatelessWidget {
                         height: 140,
                         width: double.infinity,
                         fit: BoxFit.cover,
+                        // Link de imagem quebrado não deve derrubar o card.
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 140,
+                          width: double.infinity,
+                          color: const Color(0xFFEAF3FB),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.broken_image_outlined,
+                            color: Color(0xFF90A4AE),
+                            size: 34,
+                          ),
+                        ),
                       )
                     : Image.asset(
                         imagePath,

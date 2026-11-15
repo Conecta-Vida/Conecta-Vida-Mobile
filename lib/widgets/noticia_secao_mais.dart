@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 import '../models/noticia.dart';
-import '../controllers/noticia_controller.dart';
 import '../screens/news_details_page.dart';
+import '../services/supabase_service.dart';
 
-class NoticiasSecaoMais extends StatelessWidget {
+class NoticiasSecaoMais extends StatefulWidget {
   final NewsModel noticiaAtual;
   final int? userId;
   final String? userEmail;
@@ -18,44 +18,102 @@ class NoticiasSecaoMais extends StatelessWidget {
   });
 
   @override
+  State<NoticiasSecaoMais> createState() => _NoticiasSecaoMaisState();
+}
+
+class _NoticiasSecaoMaisState extends State<NoticiasSecaoMais> {
+  static const int _maximo = 4;
+  late Future<List<NewsModel>> _relacionadas;
+
+  @override
+  void initState() {
+    super.initState();
+    _relacionadas = _carregarRelacionadas();
+  }
+
+  bool _ehAtual(NewsModel n) {
+    final atual = widget.noticiaAtual;
+    if (n.id != null && atual.id != null) return n.id == atual.id;
+    return n.titulo == atual.titulo && n.data == atual.data;
+  }
+
+  /// Pontua a semelhança com a notícia aberta: mesma categoria pesa mais,
+  /// depois mesmo tipo (notícia, campanha, alerta) e mesma cidade.
+  int _pontuar(NewsModel n) {
+    final atual = widget.noticiaAtual;
+    var pontos = 0;
+    if (n.categoria.trim().toLowerCase() ==
+        atual.categoria.trim().toLowerCase()) {
+      pontos += 4;
+    }
+    if (n.tag.toUpperCase() == atual.tag.toUpperCase()) pontos += 2;
+    if (n.local.trim().toLowerCase() == atual.local.trim().toLowerCase()) {
+      pontos += 1;
+    }
+    return pontos;
+  }
+
+  Future<List<NewsModel>> _carregarRelacionadas() async {
+    // Reaproveita o cache curto do serviço: na maioria dos casos não gera
+    // nova chamada. Se a API falhar, a seção simplesmente não aparece.
+    final List<NewsModel> todas;
+    try {
+      todas = await SupabaseService.fetchTodasAsComunicacoes();
+    } catch (_) {
+      return const <NewsModel>[];
+    }
+    final candidatas = todas.where((n) => !_ehAtual(n)).toList();
+
+    // Ordenação estável: mais parecidas primeiro; em empate, as mais recentes
+    // (a lista já chega ordenada por data decrescente).
+    final indexadas = candidatas.asMap().entries.toList()
+      ..sort((a, b) {
+        final porPontos = _pontuar(b.value).compareTo(_pontuar(a.value));
+        return porPontos != 0 ? porPontos : a.key.compareTo(b.key);
+      });
+    return indexadas.map((e) => e.value).take(_maximo).toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final controller = NewsController();
-    List<NewsModel> todasAsNoticias = controller.getNoticiasPorCategoria(0);
-    List<NewsModel> recomendadas = todasAsNoticias
-        .where((n) => n.titulo != noticiaAtual.titulo)
-        .toList();
 
-    if (recomendadas.isEmpty) return const SizedBox.shrink();
+    return FutureBuilder<List<NewsModel>>(
+      future: _relacionadas,
+      builder: (context, snapshot) {
+        final recomendadas = snapshot.data ?? const <NewsModel>[];
+        if (recomendadas.isEmpty) return const SizedBox.shrink();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Outras Campanhas',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: colors.onSurface,
-          ),
-        ),
-        const SizedBox(height: 16),
-        GridView.builder(
-          padding: EdgeInsets.zero,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 0.65,
-          ),
-          itemCount: recomendadas.length > 4 ? 4 : recomendadas.length,
-          itemBuilder: (context, index) {
-            return _construirCardDinamico(context, recomendadas[index]);
-          },
-        ),
-      ],
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Notícias relacionadas',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: colors.onSurface,
+              ),
+            ),
+            const SizedBox(height: 16),
+            GridView.builder(
+              padding: EdgeInsets.zero,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 0.65,
+              ),
+              itemCount: recomendadas.length,
+              itemBuilder: (context, index) {
+                return _construirCardDinamico(context, recomendadas[index]);
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -75,8 +133,8 @@ class NoticiasSecaoMais extends StatelessWidget {
           MaterialPageRoute(
             builder: (context) => NewsDetailsPage(
               noticia: noticiaRelacionada,
-              userId: userId,
-              sharedBy: userEmail,
+              userId: widget.userId,
+              sharedBy: widget.userEmail,
             ),
           ),
         );
@@ -101,7 +159,9 @@ class NoticiasSecaoMais extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
                 ),
                 child: Center(
                   child: Icon(

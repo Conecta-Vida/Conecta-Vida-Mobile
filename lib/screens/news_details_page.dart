@@ -4,7 +4,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../accessibility/accessibility_provider.dart';
 import '../accessibility/accessibility_speech_service.dart';
 import '../models/noticia.dart';
-import '../models/dependente.dart';
 import 'package:provider/provider.dart';
 import '../global/appCor.dart';
 import '../services/supabase_service.dart';
@@ -32,6 +31,55 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
   List<Map<String, dynamic>> _inscricoesUsuario = [];
 
   bool get _ehCampanha => widget.noticia.tag.toUpperCase() == 'CAMPANHA';
+
+  bool get _temTelefone => widget.noticia.orgaoTelefone.trim().isNotEmpty;
+
+  /// Site da instituição, quando informado. Aceita endereços sem "https://".
+  Uri? get _siteDoOrgao {
+    final site = widget.noticia.orgaoSite.trim();
+    if (site.isEmpty) return null;
+    final comEsquema = site.contains('://') ? site : 'https://$site';
+    final uri = Uri.tryParse(comEsquema);
+    return (uri != null && uri.host.isNotEmpty) ? uri : null;
+  }
+
+  /// Período da campanha (dd/mm/aaaa), ou a data de publicação nos demais casos.
+  String get _dataExibida {
+    String formatar(String iso) {
+      final d = DateTime.tryParse(iso.trim().replaceFirst(' ', 'T'));
+      if (d == null) return '';
+      return '${d.day.toString().padLeft(2, '0')}/'
+          '${d.month.toString().padLeft(2, '0')}/${d.year}';
+    }
+
+    final publicada = formatar(widget.noticia.data);
+    final publicacao = publicada.isEmpty ? widget.noticia.data : publicada;
+    if (!_ehCampanha) return publicacao;
+
+    final inicio = formatar(widget.noticia.dataInicio);
+    final fim = formatar(widget.noticia.dataFim);
+    if (inicio.isNotEmpty && fim.isNotEmpty) return 'De $inicio até $fim';
+    if (fim.isNotEmpty) return 'Até $fim';
+    if (inicio.isNotEmpty) return 'A partir de $inicio';
+    return publicacao;
+  }
+
+  Future<void> _abrirLink(Uri url) async {
+    var aberto = false;
+    try {
+      aberto = await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      aberto = false;
+    }
+    if (!aberto && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível abrir este link.'),
+          backgroundColor: AppCor.error,
+        ),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -341,7 +389,7 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
             ),
             onPressed: () async {
               final shareText =
-                  '${widget.noticia.titulo}\n\n${widget.noticia.subtitulo}\n\n${widget.noticia.descricao}\n\nÓrgão: ${widget.noticia.orgao}\nContato: ${widget.noticia.orgaoTelefone}';
+                  '${widget.noticia.titulo}\n\n${widget.noticia.subtitulo}\n\n${widget.noticia.descricao}\n\nÓrgão: ${widget.noticia.orgao}${_temTelefone ? '\nContato: ${widget.noticia.orgaoTelefone}' : ''}';
               await Share.share(shareText, subject: widget.noticia.titulo);
               await SupabaseService.trackNewsShare(
                 widget.noticia,
@@ -412,6 +460,15 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                     ? Image.network(
                         imagePath,
                         fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: const Color(0xFFEAF3FB),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.broken_image_outlined,
+                            color: Color(0xFF90A4AE),
+                            size: 48,
+                          ),
+                        ),
                         loadingBuilder: (context, child, loadingProgress) {
                           if (loadingProgress == null) return child;
                           return const Center(
@@ -477,9 +534,13 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                       children: [
                         NoticiasInfoBotao(
                           icone: Icons.calendar_month,
-                          titulo: 'Data e Hora (Toque no ícone para gerenciar inscrições)',
-                          valor: widget.noticia.data,
-                          iconeAcao: _processandoCampanha
+                          titulo: _ehCampanha
+                              ? 'Período (toque no ícone para gerenciar inscrições)'
+                              : 'Data de publicação',
+                          valor: _dataExibida,
+                          iconeAcao: !_ehCampanha
+                              ? null
+                              : _processandoCampanha
                               ? Icons.hourglass_top
                               : (_inscricoesUsuario.isNotEmpty ? Icons.alarm_on : Icons.add_alarm),
                           corAcao: _inscricoesUsuario.isNotEmpty
@@ -496,44 +557,44 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                           valor: widget.noticia.local,
                           iconeAcao: Icons.map_outlined,
                           corAcao: AppCor.primary,
-                          aoClicar: () async {
-                            final url = Uri.parse(
-                              'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(widget.noticia.local)}',
-                            );
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(url);
-                            }
-                          },
+                          aoClicar: () => _abrirLink(
+                            Uri.https('www.google.com', '/maps/search/', {
+                              'api': '1',
+                              'query': widget.noticia.local,
+                            }),
+                          ),
                         ),
                         const Divider(height: 1),
                         NoticiasInfoBotao(
                           icone: Icons.business,
                           titulo: 'Órgão Publicador',
                           valor: widget.noticia.orgao,
-                          iconeAcao: Icons.open_in_new,
+                          iconeAcao: _siteDoOrgao == null
+                              ? null
+                              : Icons.open_in_new,
                           corAcao: AppCor.primary,
-                          aoClicar: () async {
-                            final url = Uri.parse(widget.noticia.orgaoSite);
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(url);
-                            }
-                          },
+                          aoClicar: _siteDoOrgao == null
+                              ? null
+                              : () => _abrirLink(_siteDoOrgao!),
                         ),
                         const Divider(height: 1),
                         NoticiasInfoBotao(
                           icone: Icons.phone,
                           titulo: 'Contato',
-                          valor: widget.noticia.orgaoTelefone,
-                          iconeAcao: Icons.call_outlined,
+                          valor: _temTelefone
+                              ? widget.noticia.orgaoTelefone
+                              : 'Não informado',
+                          iconeAcao: _temTelefone ? Icons.call_outlined : null,
                           corAcao: AppCor.primary,
-                          aoClicar: () async {
-                            final url = Uri.parse(
-                              'tel:${widget.noticia.orgaoTelefone}',
-                            );
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(url);
-                            }
-                          },
+                          aoClicar: _temTelefone
+                              ? () => _abrirLink(
+                                  Uri(
+                                    scheme: 'tel',
+                                    path: widget.noticia.orgaoTelefone
+                                        .replaceAll(RegExp(r'[^0-9+]'), ''),
+                                  ),
+                                )
+                              : null,
                         ),
                         const Divider(height: 1),
                         NoticiasInfoBotao(
@@ -573,7 +634,7 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                     child: ElevatedButton(
                       onPressed: () async {
                         final shareText =
-                            '${widget.noticia.titulo}\n\n${widget.noticia.subtitulo}\n\n${widget.noticia.descricao}\n\nÓrgão: ${widget.noticia.orgao}\nContato: ${widget.noticia.orgaoTelefone}';
+                            '${widget.noticia.titulo}\n\n${widget.noticia.subtitulo}\n\n${widget.noticia.descricao}\n\nÓrgão: ${widget.noticia.orgao}${_temTelefone ? '\nContato: ${widget.noticia.orgaoTelefone}' : ''}';
                         await Share.share(
                           shareText,
                           subject: widget.noticia.titulo,

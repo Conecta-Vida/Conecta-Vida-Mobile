@@ -17,4 +17,4 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-      - run: flutter build web --release --dart-define=API_BASE_URL=/api
+      - run: flutter build web --release

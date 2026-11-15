@@ -2,17 +2,30 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../global/texto.dart';
 import '../models/noticia.dart';
 import '../models/usuario.dart';
 import '../models/dependente.dart';
 import '../controllers/noticia_controller.dart';
 
+/// Camada de dados do aplicativo.
+///
+/// O app fala direto com o Supabase (sem API Java): o login é feito pelo
+/// Supabase Auth e cada consulta passa pelas regras de acesso (RLS) do
+/// banco, que só liberam os dados da própria conta. As telas continuam
+/// usando os mesmos métodos de antes.
 class SupabaseService {
-  // Definida no main.dart por ApiConfig.resolverBaseUrl()
-  // (dart-define API_BASE_URL > .env > padrão da plataforma, porta 8081).
-  static String baseUrl = 'http://localhost:8081/api';
-  static String? jwtToken;
+  /// Projeto Supabase. A chave é PÚBLICA (publishable): pode ir no app,
+  /// pois quem protege os dados são as regras do banco.
+  static String supabaseUrl = 'https://pborxjuuexiqollesfxw.supabase.co';
+  static String supabaseKey = 'sb_publishable_BEMytsJ8eC0DdQt6vI7PCg_vfy7UDRd';
+
+  /// Página (hospedada no Netlify) aberta pelo link do e-mail de recuperação.
+  static String urlRedefinirSenha = '';
+
   static final http.Client _httpClient = http.Client();
+  static SupabaseClient get _db => Supabase.instance.client;
 
   static const Duration _comunicacoesCacheTtl = Duration(seconds: 30);
   static const Duration _inscricaoCacheTtl = Duration(seconds: 20);
@@ -20,112 +33,163 @@ class SupabaseService {
   static DateTime? _comunicacoesCacheAt;
   static String? _cacheToken;
   static Future<List<Map<String, dynamic>>>? _comunicacoesRequest;
-  static final Map<String, _CachedBool> _inscricaoStatusCache = {};
   static final Map<int, _CachedIds> _inscricoesUsuarioCache = {};
-  static final Map<int, Future<Set<int>?>> _inscricoesUsuarioRequests = {};
-  static bool _endpointInscricoesEmLoteIndisponivel = false;
-  static final Map<String, Future<bool>> _inscricaoStatusRequests = {};
+
+  /// Perfil (linha de `usuarios`) da conta logada.
+  static UserModel? _perfil;
+  static String? _tokenPush;
+  static RealtimeChannel? _canalComunicacoes;
 
   // Notifica telas que dependem das inscrições quando uma alteração é salva.
   static final StreamController<void> _inscricoesController =
       StreamController<void>.broadcast();
   static Stream<void> get inscricoesAlteradas => _inscricoesController.stream;
 
-  static Future<void> init() async {}
+  // Emite cada comunicação publicada pelo painel enquanto o app está aberto.
+  static final StreamController<Map<String, dynamic>> _novasComunicacoes =
+      StreamController<Map<String, dynamic>>.broadcast();
+  static Stream<Map<String, dynamic>> get novasComunicacoes =>
+      _novasComunicacoes.stream;
+
+  static const String _colunasUsuario =
+      'id, nome, email, sexo, localizacao, permissao, data_nascimento';
+
+  /// Conecta ao Supabase. Chamar uma vez, antes do runApp.
+  static Future<void> init() async {
+    await Supabase.initialize(url: supabaseUrl, anonKey: supabaseKey);
+  }
+
   static Future<void> syncDefaultNoticias() async {}
+
+  // ------------------------------------------------------------------
+  // Conta e sessão
+  // ------------------------------------------------------------------
+
+  static String _mensagemAuth(AuthException e) {
+    final m = e.message.toLowerCase();
+    if (m.contains('invalid login credentials')) {
+      return 'E-mail ou senha incorretos.';
+    }
+    if (m.contains('email not confirmed')) {
+      return 'Confirme seu e-mail antes de entrar (veja a caixa de entrada).';
+    }
+    if (m.contains('already registered') || m.contains('already been registered')) {
+      return 'Este e-mail já está cadastrado.';
+    }
+    if (m.contains('password should be')) {
+      return 'A senha deve ter pelo menos 6 caracteres.';
+    }
+    if (m.contains('rate limit') || e.statusCode == '429') {
+      return 'Muitas tentativas em pouco tempo. Aguarde alguns minutos.';
+    }
+    if (m.contains('administrador')) {
+      return 'Este e-mail pertence a um administrador. Peça o acesso pelo painel.';
+    }
+    return e.message;
+  }
+
+  static UserModel _usuarioDeLinha(Map<String, dynamic> linha) => UserModel(
+    id: (linha['id'] as num?)?.toInt(),
+    nome: (linha['nome'] ?? '').toString(),
+    email: (linha['email'] ?? '').toString(),
+    dataNascimento: (linha['data_nascimento'] as num?)?.toInt(),
+    sexo: (linha['sexo'] ?? 'Não informado').toString(),
+    localizacao: (linha['localizacao'] ?? 'Não informado').toString(),
+  );
+
+  /// Lê o perfil da conta logada e prepara push e tempo real.
+  static Future<UserModel?> _carregarPerfil() async {
+    final uid = _db.auth.currentUser?.id;
+    if (uid == null) return null;
+
+    final linha = await _db
+        .from('usuarios')
+        .select(_colunasUsuario)
+        .eq('auth_id', uid)
+        .maybeSingle();
+    if (linha == null) return null;
+
+    _perfil = _usuarioDeLinha(linha);
+    unawaited(_sincronizarTokenPush());
+    _ouvirNovasComunicacoes();
+    return _perfil;
+  }
+
+  /// Se o usuário já entrou neste aparelho, devolve o perfil sem pedir login.
+  static Future<UserModel?> restaurarSessao() async {
+    try {
+      if (_db.auth.currentSession == null) return null;
+      return await _carregarPerfil();
+    } catch (e) {
+      developer.log('Sessão não restaurada: $e', name: 'ApiService');
+      return null;
+    }
+  }
 
   static Future<void> signUp(UserModel usuario, String senha) async {
     try {
-      final response = await _httpClient.post(
-        Uri.parse('$baseUrl/auth/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
+      final resposta = await _db.auth.signUp(
+        email: usuario.email.trim(),
+        password: senha.trim(),
+        // O banco cria o perfil a partir destes dados; a permissão nunca
+        // vem do aplicativo.
+        data: {
           'nome': usuario.nome.trim(),
-          'email': usuario.email.trim(),
-          'senha': senha.trim(),
-          'data_nascimento':
-              int.tryParse(usuario.dataNascimento.toString()) ?? 0,
           'sexo': usuario.sexo,
           'localizacao': usuario.localizacao,
-          'permissao': 'Usuário Comum',
-        }),
+          'data_nascimento': usuario.dataNascimento?.toString() ?? '',
+        },
       );
 
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        developer.log('Erro do Servidor: ${response.body}', name: 'ApiService');
+      // Com confirmação de e-mail ligada, o Supabase devolve um usuário sem
+      // identidades quando o e-mail já existe.
+      if (resposta.user?.identities?.isEmpty ?? false) {
+        throw Exception('Este e-mail já está cadastrado.');
+      }
+      if (resposta.session == null) {
         throw Exception(
-          'Erro REAL da API (${response.statusCode}): ${response.body}',
+          'Conta criada! Confirme o e-mail enviado para '
+          '${usuario.email.trim()} e depois faça login.',
         );
       }
-    } catch (e) {
-      throw Exception('Falha no cadastro: $e');
+    } on AuthException catch (e) {
+      throw Exception(_mensagemAuth(e));
     }
   }
 
   static Future<UserModel> signIn(String email, String senha) async {
     try {
-      final response = await _httpClient.post(
-        Uri.parse('$baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'senha': senha}),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data is Map && data.containsKey('token')) {
-          jwtToken = data['token'];
-        }
-        return UserModel(
-          id: data['id'],
-          nome: data['nome'] ?? email.split('@').first,
-          email: data['email'] ?? email,
-          dataNascimento: data['data_nascimento'] is int
-              ? data['data_nascimento']
-              : null,
-          sexo: data['sexo'] ?? 'Não informado',
-          localizacao: data['localizacao'] ?? 'Não informado',
-        );
-      } else {
-        throw Exception(
-          'Erro REAL da API (${response.statusCode}): ${response.body}',
-        );
-      }
-    } catch (e) {
-      developer.log('Erro ao fazer login: $e', name: 'ApiService');
-      rethrow;
+      await _db.auth.signInWithPassword(email: email.trim(), password: senha);
+    } on AuthException catch (e) {
+      developer.log('Erro ao fazer login: ${e.message}', name: 'ApiService');
+      throw Exception(_mensagemAuth(e));
     }
+
+    final perfil = await _carregarPerfil();
+    if (perfil == null) {
+      await _db.auth.signOut();
+      throw Exception('Perfil não encontrado para esta conta.');
+    }
+    return perfil;
   }
 
   static void signOut() {
-    jwtToken = null;
+    final canal = _canalComunicacoes;
+    _canalComunicacoes = null;
+    if (canal != null) unawaited(_db.removeChannel(canal));
+
+    _perfil = null;
     _limparCachesDeComunicacoes();
-    _inscricaoStatusCache.clear();
     _inscricoesUsuarioCache.clear();
+    unawaited(_db.auth.signOut());
 
     developer.log('Usuário deslogado com sucesso.', name: 'ApiService');
   }
 
+  /// Apaga a própria conta (perfil, dependentes, inscrições e login).
   static Future<void> deleteUsuario(String email) async {
     try {
-      final userCompleto = await fetchUsuarioByEmail(email);
-      if (userCompleto == null || userCompleto.id == null) {
-        throw Exception("Usuário não encontrado para exclusão.");
-      }
-
-      final response = await _httpClient.delete(
-        Uri.parse('$baseUrl/usuarios/${userCompleto.id}'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
-        },
-      );
-
-      // CORREÇÃO: Algumas APIs retornam 204 (No Content) após exclusão.
-      if (response.statusCode != 200 && response.statusCode != 204) {
-        throw Exception(
-          'Erro ao deletar conta. Status: ${response.statusCode}',
-        );
-      }
+      await _db.rpc('excluir_minha_conta');
     } catch (e) {
       developer.log('Erro ao deletar conta: $e', name: 'ApiService');
       rethrow;
@@ -138,31 +202,19 @@ class SupabaseService {
         throw Exception("ID não encontrado. Faça login novamente.");
       }
 
-      Map<String, dynamic> payload = user.toMap(senha: senha);
+      await _db.from('usuarios').update({
+        'nome': user.nome.trim(),
+        'sexo': user.sexo,
+        'localizacao': user.localizacao,
+        'data_nascimento': user.dataNascimento,
+      }).eq('id', user.id!);
 
-      // Evitar o erro de validação do Spring (senha em branco)
-      if (senha.trim().isEmpty) {
-        payload.remove('senha');
+      if (senha.trim().isNotEmpty) {
+        await _db.auth.updateUser(UserAttributes(password: senha.trim()));
       }
-
-      payload['idade'] = int.tryParse(user.dataNascimento.toString()) ?? 0;
-      payload.remove('campanhasInscritas');
-
-      final response = await _httpClient.put(
-        Uri.parse('$baseUrl/usuarios/${user.id}'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
-        },
-        body: jsonEncode(payload),
-      );
-
-      // CORREÇÃO: Aceitar 204 como um código de sucesso válido
-      if (response.statusCode != 200 &&
-          response.statusCode != 201 &&
-          response.statusCode != 204) {
-        throw Exception('Erro ao atualizar dados: ${response.statusCode}');
-      }
+      if (_perfil?.id == user.id) _perfil = user;
+    } on AuthException catch (e) {
+      throw Exception(_mensagemAuth(e));
     } catch (e) {
       developer.log('Erro ao sincronizar usuario: $e', name: 'ApiService');
       rethrow;
@@ -171,25 +223,86 @@ class SupabaseService {
 
   static Future<UserModel?> fetchUsuarioByEmail(String email) async {
     try {
-      final response = await _httpClient.get(
-        Uri.parse('$baseUrl/usuarios/email/$email'),
-        // CORREÇÃO: Incluído Header de Token aqui. Antes era recusado com 401/403.
-        headers: {
-          'Content-Type': 'application/json',
-          if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        data['idade'] = data['idade']?.toString() ?? '';
-        return UserModel.fromMap(data);
-      }
-      return null;
+      // As regras do banco só devolvem o perfil da própria conta.
+      final linha = await _db
+          .from('usuarios')
+          .select(_colunasUsuario)
+          .eq('email', email.trim().toLowerCase())
+          .maybeSingle();
+      return linha == null ? null : _usuarioDeLinha(linha);
     } catch (e) {
       developer.log('Erro ao buscar usuario: $e', name: 'ApiService');
       return null;
     }
+  }
+
+  /// Envia o e-mail com o link para criar uma nova senha.
+  static Future<void> resetPassword(String email) async {
+    final emailLimpo = email.trim();
+    if (emailLimpo.isEmpty) {
+      throw Exception('Informe um e-mail válido para recuperação.');
+    }
+
+    try {
+      await _db.auth.resetPasswordForEmail(
+        emailLimpo,
+        redirectTo: urlRedefinirSenha.isEmpty ? null : urlRedefinirSenha,
+      );
+    } on AuthException catch (e) {
+      developer.log('Erro no reset de senha: ${e.message}', name: 'ApiService');
+      throw Exception(_mensagemAuth(e));
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Push e tempo real
+  // ------------------------------------------------------------------
+
+  /// Guarda o token do aparelho; é gravado no banco assim que houver login.
+  static Future<void> registrarTokenPush(String token) async {
+    _tokenPush = token;
+    await _sincronizarTokenPush();
+  }
+
+  static Future<void> _sincronizarTokenPush() async {
+    final token = _tokenPush;
+    final usuarioId = _perfil?.id;
+    if (token == null || usuarioId == null) return;
+    try {
+      await _db.from('dispositivos_push').upsert({
+        'usuario_id': usuarioId,
+        'token': token,
+        'atualizado_em': DateTime.now().toIso8601String(),
+      }, onConflict: 'token');
+    } catch (e) {
+      developer.log('Erro ao registrar token de push: $e', name: 'ApiService');
+    }
+  }
+
+  /// Recebe na hora as comunicações que o painel publica.
+  static void _ouvirNovasComunicacoes() {
+    if (_canalComunicacoes != null) return;
+    _canalComunicacoes = _db
+        .channel('comunicacoes-novas')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'comunicacoes',
+          callback: (payload) {
+            _limparCachesDeComunicacoes();
+            _novasComunicacoes.add(Map<String, dynamic>.from(payload.newRecord));
+          },
+        )
+        .subscribe();
+  }
+
+  // ------------------------------------------------------------------
+  // Comunicações (notícias, campanhas e alertas)
+  // ------------------------------------------------------------------
+
+  static String _localLimpo(dynamic valor) {
+    final local = (valor ?? '').toString().trim();
+    return local.isEmpty ? 'Região Geral' : local;
   }
 
   static void _limparCachesDeComunicacoes() {
@@ -204,14 +317,15 @@ class SupabaseService {
     return source.map((item) => Map<String, dynamic>.from(item)).toList();
   }
 
+
   /// Lista comum usada por notícias, notificações e filtros.
   ///
-  /// Evita repetir GET /comunicacoes quando várias telas abrem juntas.
+  /// Evita repetir a consulta quando várias telas abrem juntas.
   /// Cache curto (30 s) e compartilhamento da mesma Future durante a carga.
   static Future<List<Map<String, dynamic>>> _fetchComunicacoes({
     bool forceRefresh = false,
   }) async {
-    final tokenAtual = jwtToken;
+    final tokenAtual = _db.auth.currentUser?.id;
     final agora = DateTime.now();
     final cacheValido = _comunicacoesCache != null &&
         _comunicacoesCacheAt != null &&
@@ -228,27 +342,11 @@ class SupabaseService {
     }
 
     final request = () async {
-      final response = await _httpClient.get(
-        Uri.parse('$baseUrl/comunicacoes'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (tokenAtual != null) 'Authorization': 'Bearer $tokenAtual',
-        },
-      );
-
-      if (response.statusCode != 200) {
-        throw Exception('Falha ao carregar comunicações: ${response.statusCode}');
-      }
-
-      final decoded = jsonDecode(response.body);
-      if (decoded is! List) {
-        throw const FormatException('A API retornou uma lista inválida.');
-      }
-
-      return decoded
-          .whereType<Map>()
-          .map((item) => Map<String, dynamic>.from(item))
-          .toList();
+      final linhas = await _db
+          .from('comunicacoes')
+          .select('*, instituicao:instituicoes_saude(*)')
+          .order('data_postada', ascending: false);
+      return linhas.map((item) => Map<String, dynamic>.from(item)).toList();
     }();
 
     _comunicacoesRequest = request;
@@ -275,15 +373,30 @@ class SupabaseService {
 
   static Future<Set<String>> fetchLocalizacoesComunicacoes() async {
     final comunicacoes = await _fetchComunicacoes();
-    return comunicacoes
-        .map((item) => (item['localizacao'] ?? '').toString().trim())
-        .where((local) => local.isNotEmpty)
-        .toSet();
+    // Uma entrada por cidade, mesmo que tenha sido digitada de formas
+    // diferentes; prevalece a grafia mais usada.
+    final contagem = <String, Map<String, int>>{};
+    for (final item in comunicacoes) {
+      final local = (item['localizacao'] ?? '').toString().trim();
+      if (local.isEmpty) continue;
+      final grafias = contagem.putIfAbsent(Texto.normalizar(local), () => {});
+      grafias[local] = (grafias[local] ?? 0) + 1;
+    }
+    return contagem.values.map((grafias) {
+      final ordenadas = grafias.entries.toList()
+        ..sort((a, b) {
+          // Em empate, prefere a grafia com acentos (ex.: "Bragança").
+          final porUso = b.value.compareTo(a.value);
+          return porUso != 0 ? porUso : b.key.compareTo(a.key);
+        });
+      return ordenadas.first.key;
+    }).toSet();
   }
 
   static Future<List<NewsModel>> fetchNoticiasPorCategoria(
     int categoryIndex, {
     bool forceRefresh = false,
+    bool usarExemplosSeFalhar = true,
   }) async {
     try {
       final dynamicList = await _fetchComunicacoes(
@@ -307,10 +420,20 @@ class SupabaseService {
           'descricao': item['descricao'] ?? '',
           'imagem': item['linkimagem'] ?? item['linkImagem'] ?? '',
           'categoria': item['categoria'] ?? 'Notícia',
-          'local': item['localizacao'] ?? 'Região Geral',
+          'local': _localLimpo(item['localizacao']),
           'publicoAlvo':
               item['publico_alvo'] ?? item['publicoAlvo'] ?? 'População',
           'orgao': instituicaoNome,
+          // Contato real da instituição; vazio quando ela não informou
+          // (a tela mostra "Não informado" em vez de um número fictício).
+          'orgaoTelefone': instituicao is Map
+              ? (instituicao['telefone'] ?? '').toString().trim()
+              : '',
+          'orgaoSite': instituicao is Map
+              ? (instituicao['linksite'] ?? instituicao['linkSite'] ?? '')
+                    .toString()
+                    .trim()
+              : '',
         });
       }).toList();
 
@@ -351,9 +474,21 @@ class SupabaseService {
         'Falha ao carregar notícias da API: $e',
         name: 'ApiService',
       );
+      if (!usarExemplosSeFalhar) rethrow;
       return NewsController().getNoticiasPorCategoria(categoryIndex);
     }
   }
+
+  /// Todas as comunicações publicadas (notícias, campanhas e alertas),
+  /// da mais recente para a mais antiga. Lança exceção se a API falhar,
+  /// em vez de devolver os exemplos locais.
+  static Future<List<NewsModel>> fetchTodasAsComunicacoes({
+    bool forceRefresh = false,
+  }) => fetchNoticiasPorCategoria(
+    -1,
+    forceRefresh: forceRefresh,
+    usarExemplosSeFalhar: false,
+  );
 
   static Future<List<Map<String, dynamic>>> fetchNotificacoes({
     bool forceRefresh = false,
@@ -447,59 +582,19 @@ class SupabaseService {
     return 'Todas';
   }
 
-  static Future<void> resetPassword(String email) async {
-    final emailLimpo = email.trim();
-    if (emailLimpo.isEmpty) {
-      throw Exception('Informe um e-mail válido para recuperação.');
-    }
-
-    try {
-      final response = await _httpClient.post(
-        Uri.parse('$baseUrl/auth/reset-password'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': emailLimpo}),
-      );
-
-      if (response.statusCode == 200) {
-        return;
-      }
-
-      final body = jsonDecode(response.body);
-      throw Exception(
-        body['mensagem'] ?? 'Falha ao solicitar recuperação de senha.',
-      );
-    } catch (e) {
-      developer.log('Erro no reset de senha: $e', name: 'ApiService');
-      rethrow;
-    }
-  }
-
+  /// Registra no histórico que a notícia foi compartilhada.
   static Future<void> trackNewsShare(
     NewsModel noticia, {
     String sharedBy = 'app_user',
   }) async {
+    final usuarioId = _perfil?.id;
+    if (usuarioId == null) return;
     try {
-      final response = await _httpClient.post(
-        Uri.parse('$baseUrl/comunicacoes/compartilhamentos'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
-        },
-        body: jsonEncode({
-          'titulo': noticia.titulo,
-          'categoria': noticia.categoria,
-          'localizacao': noticia.local,
-          'sharedBy': sharedBy,
-          'data': noticia.data,
-        }),
-      );
-
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        developer.log(
-          'Falha ao registrar compartilhamento. Status: ${response.statusCode}',
-          name: 'ApiService',
-        );
-      }
+      final acao = 'Compartilhou "${noticia.titulo}"';
+      await _db.from('logs_atividade').insert({
+        'usuario_id': usuarioId,
+        'acao': acao.length > 255 ? acao.substring(0, 255) : acao,
+      });
     } catch (e) {
       developer.log(
         'Erro ao rastrear compartilhamento: $e',
@@ -508,67 +603,78 @@ class SupabaseService {
     }
   }
 
+  // ------------------------------------------------------------------
+  // Dependentes
+  // ------------------------------------------------------------------
+
   static Future<List<DependenteModel>> fetchDependentes(int usuarioId) async {
-    final response = await _httpClient.get(Uri.parse('$baseUrl/usuarios/$usuarioId/dependentes'), headers: {
-      'Content-Type': 'application/json',
-      if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
-    });
-    if (response.statusCode != 200) throw Exception('Falha ao carregar dependentes: ${response.statusCode}');
-    final decoded = jsonDecode(response.body);
-    if (decoded is! List) throw const FormatException('Lista de dependentes inválida.');
-    return decoded.whereType<Map>().map((e) => DependenteModel.fromMap(Map<String, dynamic>.from(e))).toList();
+    final linhas = await _db
+        .from('dependentes')
+        .select('id, nome_completo, data_nascimento, parentesco, sexo')
+        .eq('usuario_titular_id', usuarioId)
+        .eq('ativo', true)
+        .order('nome_completo');
+    return linhas
+        .map((e) => DependenteModel.fromMap(Map<String, dynamic>.from(e)))
+        .toList();
   }
 
-  static Future<void> criarDependente(int usuarioId, DependenteModel item) =>
-      _salvarDependente(Uri.parse('$baseUrl/usuarios/$usuarioId/dependentes'), item, criar: true);
+  static Map<String, dynamic> _dependenteParaBanco(DependenteModel item) {
+    final dados = item.toRequestMap();
+    return {
+      'nome_completo': dados['nomeCompleto'],
+      'data_nascimento': dados['dataNascimento'],
+      'parentesco': dados['parentesco'],
+      'sexo': dados['sexo'],
+    };
+  }
 
-  static Future<void> atualizarDependente(int usuarioId, DependenteModel item) {
+  static Future<void> criarDependente(int usuarioId, DependenteModel item) async {
+    await _db.from('dependentes').insert({
+      'usuario_titular_id': usuarioId,
+      ..._dependenteParaBanco(item),
+    });
+  }
+
+  static Future<void> atualizarDependente(int usuarioId, DependenteModel item) async {
     if (item.id == null) throw Exception('ID do dependente ausente.');
-    return _salvarDependente(Uri.parse('$baseUrl/usuarios/$usuarioId/dependentes/${item.id}'), item, criar: false);
+    await _db
+        .from('dependentes')
+        .update(_dependenteParaBanco(item))
+        .eq('id', item.id!)
+        .eq('usuario_titular_id', usuarioId);
   }
 
-  static Future<void> _salvarDependente(Uri uri, DependenteModel item, {required bool criar}) async {
-    final headers = {'Content-Type': 'application/json', if (jwtToken != null) 'Authorization': 'Bearer $jwtToken'};
-    final body = jsonEncode(item.toRequestMap());
-    final response = criar ? await _httpClient.post(uri, headers: headers, body: body) : await _httpClient.put(uri, headers: headers, body: body);
-    if (response.statusCode != 200 && response.statusCode != 201) throw Exception('Falha ao salvar dependente: ${response.statusCode} ${response.body}');
-  }
-
+  /// Remoção lógica: o histórico de inscrições do dependente é preservado.
   static Future<void> excluirDependente(int usuarioId, int dependenteId) async {
-    final response = await _httpClient.delete(Uri.parse('$baseUrl/usuarios/$usuarioId/dependentes/$dependenteId'), headers: {
-      'Content-Type': 'application/json',
-      if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
-    });
-    if (response.statusCode != 200 && response.statusCode != 204) throw Exception('Falha ao remover dependente: ${response.statusCode}');
+    await _db
+        .from('dependentes')
+        .update({'ativo': false})
+        .eq('id', dependenteId)
+        .eq('usuario_titular_id', usuarioId);
   }
+
+  // ------------------------------------------------------------------
+  // Inscrições em campanhas
+  // ------------------------------------------------------------------
 
   static Future<void> inscreverUsuarioEmCampanha({
     required int comunicacaoId,
     required int usuarioId,
     int? dependenteId,
   }) async {
-    final response = await _httpClient.post(
-      Uri.parse('$baseUrl/campanhas/$comunicacaoId/inscrever'),
-      headers: {
-        'Content-Type': 'application/json',
-        if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
-      },
-      body: jsonEncode({'usuario_id': usuarioId, if (dependenteId != null) 'dependente_id': dependenteId}),
-    );
-
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      String detalhe = '';
-      try {
-        final body = jsonDecode(response.body);
-        detalhe = (body is Map && body['mensagem'] != null)
-            ? body['mensagem'].toString()
-            : response.body;
-      } catch (_) {
-        detalhe = response.body;
+    try {
+      await _db.from('usuarios_campanhas').insert({
+        'usuario_id': usuarioId,
+        'comunicacao_id': comunicacaoId,
+        'dependente_id': dependenteId,
+        'notificacao_lida': false,
+      });
+    } on PostgrestException catch (e) {
+      // 23505 = essa pessoa já estava inscrita: o resultado é o mesmo.
+      if (e.code != '23505') {
+        throw Exception('Falha ao inscrever em campanha: ${e.message}');
       }
-      throw Exception(
-        'Falha ao inscrever em campanha (${response.statusCode}): $detalhe',
-      );
     }
 
     _invalidarStatusInscricoes(usuarioId);
@@ -580,98 +686,72 @@ class SupabaseService {
     required int usuarioId,
     int? dependenteId,
   }) async {
-    final uri = Uri.parse('$baseUrl/campanhas/$comunicacaoId/desinscrever')
-        .replace(queryParameters: dependenteId == null ? null : {'dependente_id': '$dependenteId'});
-    final response = await _httpClient.delete(uri,
-      headers: {
-        'Content-Type': 'application/json',
-        if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
-      },
-      body: jsonEncode({'usuario_id': usuarioId}),
-    );
-
-    if (response.statusCode != 200 && response.statusCode != 204) {
-      String detalhe = '';
-      try {
-        final body = jsonDecode(response.body);
-        detalhe = (body is Map && body['mensagem'] != null)
-            ? body['mensagem'].toString()
-            : response.body;
-      } catch (_) {
-        detalhe = response.body;
-      }
-      throw Exception(
-        'Falha ao desinscrever da campanha (${response.statusCode}): $detalhe',
-      );
+    try {
+      final consulta = _db
+          .from('usuarios_campanhas')
+          .delete()
+          .eq('usuario_id', usuarioId)
+          .eq('comunicacao_id', comunicacaoId);
+      // Sem dependente cancela só a inscrição do titular.
+      await (dependenteId == null
+          ? consulta.isFilter('dependente_id', null)
+          : consulta.eq('dependente_id', dependenteId));
+    } on PostgrestException catch (e) {
+      throw Exception('Falha ao desinscrever da campanha: ${e.message}');
     }
 
     _invalidarStatusInscricoes(usuarioId);
     _inscricoesController.add(null);
   }
 
-  static Future<List<Map<String, dynamic>>> fetchInscritosCampanha(
-    int comunicacaoId,
-  ) async {
-    final response = await _httpClient.get(
-      Uri.parse('$baseUrl/campanhas/$comunicacaoId/inscritos'),
-      headers: {
-        'Content-Type': 'application/json',
-        if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
-      },
-    );
+  /// Inscrições da conta logada, no formato usado pelas telas.
+  /// `dependente_id` nulo significa inscrição do próprio titular.
+  static Future<List<Map<String, dynamic>>> _fetchInscricoes({
+    int? comunicacaoId,
+  }) async {
+    final usuarioId = _perfil?.id;
+    if (usuarioId == null) return <Map<String, dynamic>>[];
 
-    if (response.statusCode != 200) {
-      throw Exception('Falha ao buscar inscritos: ${response.statusCode}');
+    var consulta = _db
+        .from('usuarios_campanhas')
+        .select(
+          'id, usuario_id, comunicacao_id, dependente_id, '
+          'dependente:dependentes(nome_completo, parentesco)',
+        )
+        .eq('usuario_id', usuarioId);
+    if (comunicacaoId != null) {
+      consulta = consulta.eq('comunicacao_id', comunicacaoId);
     }
 
-    final body = jsonDecode(response.body);
-
-    if (body is List) {
-      return body
-          .whereType<Map>()
-          .map((e) => Map<String, dynamic>.from(e))
-          .toList();
-    }
-
-    if (body is Map<String, dynamic>) {
-      final inscritos = body['inscritos'];
-      if (inscritos is List) {
-        return inscritos
-            .whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
-      }
-
-      final candidatosLista = body.values.whereType<List>();
-      if (candidatosLista.isNotEmpty) {
-        final primeiraLista = candidatosLista.first;
-        return primeiraLista
-            .whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
-      }
-    }
-
-    return <Map<String, dynamic>>[];
+    final linhas = await consulta;
+    return linhas.map<Map<String, dynamic>>((linha) {
+      final dependente = linha['dependente'];
+      return {
+        'inscricao_id': linha['id'],
+        'usuario_id': linha['usuario_id'],
+        'comunicacao_id': linha['comunicacao_id'],
+        'dependente_id': linha['dependente_id'],
+        'participante_nome': dependente is Map
+            ? dependente['nome_completo']
+            : _perfil?.nome,
+        'parentesco': dependente is Map ? dependente['parentesco'] : 'Titular',
+      };
+    }).toList();
   }
 
+  static Future<List<Map<String, dynamic>>> fetchInscritosCampanha(
+    int comunicacaoId,
+  ) => _fetchInscricoes(comunicacaoId: comunicacaoId);
+
   static void _invalidarStatusInscricoes(int usuarioId) {
-    _inscricaoStatusCache.removeWhere(
-      (key, value) => key.startsWith('$usuarioId:'),
-    );
     _inscricoesUsuarioCache.remove(usuarioId);
   }
 
-  /// Retorna os IDs das campanhas inscritas pelo usuário em uma única chamada.
-  ///
-  /// Retorna null apenas quando a versão do backend ainda não possui o endpoint;
-  /// nesse caso o chamador usa o fallback compatível com a API antiga.
+  /// IDs das campanhas em que a conta tem alguma inscrição (cache de 20 s).
   static Future<Set<int>?> _fetchIdsInscricoesUsuario(
     int usuarioId, {
     bool forceRefresh = false,
   }) async {
-    if (_endpointInscricoesEmLoteIndisponivel) return null;
-
     final cached = _inscricoesUsuarioCache[usuarioId];
     if (!forceRefresh &&
         cached != null &&
@@ -679,63 +759,16 @@ class SupabaseService {
       return Set<int>.from(cached.ids);
     }
 
-    final ongoing = _inscricoesUsuarioRequests[usuarioId];
-    if (ongoing != null) return ongoing;
-
-    final request = () async {
-      final response = await _httpClient.get(
-        Uri.parse('$baseUrl/campanhas/minhas'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
-        },
-      );
-
-      if (response.statusCode == 404 || response.statusCode == 405) {
-        _endpointInscricoesEmLoteIndisponivel = true;
-        return null;
-      }
-
-      if (response.statusCode != 200) {
-        throw Exception(
-          'Falha ao carregar inscrições do usuário: ${response.statusCode}',
-        );
-      }
-
-      final decoded = jsonDecode(response.body);
-      final List<dynamic> rows;
-      if (decoded is List) {
-        rows = decoded;
-      } else if (decoded is Map && decoded['inscricoes'] is List) {
-        rows = List<dynamic>.from(decoded['inscricoes'] as List);
-      } else {
-        throw const FormatException(
-          'A API retornou um formato inválido para as inscrições.',
-        );
-      }
-
-      final ids = <int>{};
-      for (final row in rows) {
-        if (row is! Map) continue;
-        final rawId = row['comunicacao_id'] ?? row['comunicacaoId'];
-        final id = rawId is num ? rawId.toInt() : int.tryParse('$rawId');
-        if (id != null) ids.add(id);
-      }
-      return ids;
-    }();
-
-    _inscricoesUsuarioRequests[usuarioId] = request;
-    try {
-      final ids = await request;
-      if (ids == null) return null;
-      _inscricoesUsuarioCache[usuarioId] = _CachedIds(
-        Set<int>.from(ids),
-        DateTime.now(),
-      );
-      return Set<int>.from(ids);
-    } finally {
-      _inscricoesUsuarioRequests.remove(usuarioId);
+    final ids = <int>{};
+    for (final linha in await _fetchInscricoes()) {
+      final id = linha['comunicacao_id'];
+      if (id is num) ids.add(id.toInt());
     }
+    _inscricoesUsuarioCache[usuarioId] = _CachedIds(
+      Set<int>.from(ids),
+      DateTime.now(),
+    );
+    return ids;
   }
 
   static Future<bool> isUsuarioInscritoEmCampanha({
@@ -743,32 +776,11 @@ class SupabaseService {
     required int usuarioId,
     bool forceRefresh = false,
   }) async {
-    final key = '$usuarioId:$comunicacaoId';
-    final cached = _inscricaoStatusCache[key];
-    if (!forceRefresh &&
-        cached != null &&
-        DateTime.now().difference(cached.cachedAt) < _inscricaoCacheTtl) {
-      return cached.value;
-    }
-
-    final ongoing = _inscricaoStatusRequests[key];
-    if (ongoing != null) return ongoing;
-
-    final request = () async {
-      final inscritos = await fetchInscritosCampanha(comunicacaoId);
-      return inscritos.any(
-        (item) => '${item['usuario_id'] ?? ''}' == '$usuarioId',
-      );
-    }();
-
-    _inscricaoStatusRequests[key] = request;
-    try {
-      final result = await request;
-      _inscricaoStatusCache[key] = _CachedBool(result, DateTime.now());
-      return result;
-    } finally {
-      _inscricaoStatusRequests.remove(key);
-    }
+    final ids = await _fetchIdsInscricoesUsuario(
+      usuarioId,
+      forceRefresh: forceRefresh,
+    );
+    return ids?.contains(comunicacaoId) ?? false;
   }
 
   static DateTime? _parseDateFlexible(String value) {
@@ -938,23 +950,8 @@ class SupabaseService {
     return null;
   }
 
-  static Future<List<Map<String, dynamic>>> fetchMinhasInscricoes() async {
-    final response = await _httpClient.get(Uri.parse('$baseUrl/campanhas/minhas'), headers: {
-      'Content-Type': 'application/json',
-      if (jwtToken != null) 'Authorization': 'Bearer $jwtToken',
-    });
-    if (response.statusCode != 200) throw Exception('Falha ao carregar inscrições: ${response.statusCode}');
-    final decoded = jsonDecode(response.body);
-    if (decoded is! List) throw const FormatException('Lista de inscrições inválida.');
-    return decoded.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
-  }
-}
-
-class _CachedBool {
-  const _CachedBool(this.value, this.cachedAt);
-
-  final bool value;
-  final DateTime cachedAt;
+  static Future<List<Map<String, dynamic>>> fetchMinhasInscricoes() =>
+      _fetchInscricoes();
 }
 
 class _CachedIds {
