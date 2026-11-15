@@ -19,7 +19,7 @@ Aplicativo cidadão do Conecta Vida, desenvolvido em Flutter para Android, iOS e
 [Assistir à demonstração do aplicativo](https://youtu.be/s7eqyfYcr3E?si=003QmXc9TUCjPm9O)
 
 > **Branch de trabalho:** `mobile`  
-> **API padrão:** `https://conecta-vida-backend-production.up.railway.app/api`  
+> **Dados e login:** Supabase (sem API Java), projeto `pborxjuuexiqollesfxw`  
 > **Pasta Flutter:** raiz deste repositório (a pasta que contém `pubspec.yaml`).
 
 ## 1. Pré-requisitos
@@ -68,38 +68,23 @@ Confira os dispositivos disponíveis:
 flutter devices
 ```
 
-## 3. Configuração da API
+## 3. Configuração do Supabase
 
-O endereço padrão está em `assets/config/app.env`, na variável `API_BASE_URL`:
+O aplicativo fala direto com o Supabase: o login é feito pelo Supabase Auth e os dados são lidos e gravados pela API do próprio banco, protegidos por regras de acesso (RLS). Não é preciso iniciar nenhum backend no computador; basta ter internet.
+
+A configuração fica em `assets/config/app.env`:
 
 ```env
-API_BASE_URL=https://conecta-vida-backend-production.up.railway.app/api
+SUPABASE_URL=https://pborxjuuexiqollesfxw.supabase.co
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+PASSWORD_RESET_URL=https://conecta-vida-admin.netlify.app/redefinir-senha
 ```
 
-Esse endereço é público e não é um segredo. O arquivo é incluído nos assets do aplicativo. **Não coloque senhas, tokens privados ou credenciais do banco nesse arquivo.**
+A chave é a **publishable** (pública), feita para ficar no aplicativo. **Não coloque a chave de serviço (`service_role`), senhas ou credenciais do banco nesse arquivo.**
 
-Com essa configuração, o aplicativo usa a Mobile API hospedada no Railway. Portanto, para o fluxo normal de desenvolvimento e teste, não é necessário iniciar o backend Java nem o banco no computador: basta ter acesso à internet.
+`PASSWORD_RESET_URL` é a página do painel (Netlify) aberta pelo link do e-mail "esqueci senha". Cada valor pode ser sobrescrito no build com `--dart-define=NOME=valor`.
 
-### Sobrescrever o endereço da API
-
-A configuração passada por `--dart-define` tem prioridade sobre o arquivo `app.env`. Use-a somente quando precisar apontar para outra instância.
-
-| Cenário | Valor de `API_BASE_URL` |
-|---|---|
-| API compartilhada no Railway | `https://conecta-vida-backend-production.up.railway.app/api` |
-| API local no emulador Android | `http://10.0.2.2:8081/api` |
-| API local no Chrome | `http://localhost:8081/api` |
-| API local em celular físico | `http://IP_DO_COMPUTADOR:8081/api` |
-
-Exemplo para executar com a API local no emulador Android:
-
-```bash
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8081/api
-```
-
-No celular físico, computador e telefone precisam estar na mesma rede; substitua `IP_DO_COMPUTADOR` pelo IP local do computador e libere a porta 8081 no firewall, se necessário.
-
-Para iniciar a API local, siga as instruções do [README da Mobile API](https://github.com/Conecta-Vida/conecta-vida-backend/blob/main/mobile-api/README.md). A API usa credenciais e variáveis próprias no ambiente Java. Não copie credenciais do backend para o aplicativo Flutter.
+O SQL das regras de acesso e a explicação da arquitetura estão no repositório do painel, em `supabase/` ([Conecta-Vida-Admin](https://github.com/gustavotenorio26062005/Conecta-Vida-Admin/tree/claude/pensive-feynman-iwcx33)).
 
 ## 4. Executar o aplicativo
 
@@ -118,7 +103,7 @@ flutter devices
 flutter run -d ID_DO_DISPOSITIVO
 ```
 
-A configuração padrão usa a API do Railway. Não use `localhost` para acessar a API online.
+O aplicativo usa o Supabase configurado em `app.env`.
 
 ### Chrome (Flutter Web local)
 
@@ -134,13 +119,7 @@ O navegador abrirá em:
 http://localhost:5000
 ```
 
-A chamada à API vai para o domínio público do Railway definido em `app.env`. A origem `http://localhost:5000` já está prevista na configuração CORS da Mobile API. Se trocar a porta, a origem correspondente deverá ser liberada no Railway.
-
-Para usar a API Java local no Chrome:
-
-```bash
-flutter run -d chrome --web-port=5000 --dart-define=API_BASE_URL=http://localhost:8081/api
-```
+O Supabase aceita chamadas de qualquer origem; quem protege os dados são as regras de acesso do banco.
 
 Observações:
 - CORS é uma restrição do navegador; não se aplica à chamada HTTP feita pelo aplicativo Android nativo.
@@ -149,7 +128,7 @@ Observações:
 
 ## 5. Gerar APK Android para testes
 
-Com a API padrão do Railway configurada em `assets/config/app.env`, gere a APK:
+Com o Supabase configurado em `assets/config/app.env`, gere a APK:
 
 ```bash
 flutter clean
@@ -220,7 +199,7 @@ lib/
   services/      # comunicação com API, notificações e serviços
   widgets/       # componentes reutilizáveis
 assets/
-  config/app.env # URL pública da Mobile API (sem segredos)
+  config/app.env # URL e chave pública do Supabase (sem segredos)
   images/        # imagens utilizadas pelo app
 android/         # configuração nativa Android
 ios/             # configuração nativa iOS
@@ -250,12 +229,12 @@ O **Meu Cronograma** escuta alterações de inscrição/cancelamento, recarrega 
 
 - A lista de comunicações/notícias é reutilizada por 30 segundos entre feed, notificações, alertas e filtros de regiões.
 - Requisições simultâneas para a mesma lista compartilham a mesma chamada HTTP.
-- Consultas de inscrição no fallback são realizadas em paralelo e usam cache curto.
+- As inscrições do usuário são lidas em uma única consulta e usam cache curto.
 - A lista de notificações e os lembretes de campanhas são carregados em paralelo.
 - A inicialização do Firebase/FCM ocorre depois do primeiro frame, sem atrasar a apresentação inicial da interface.
-- O serviço HTTP reutiliza uma instância de `http.Client`.
+- A sessão fica salva no aparelho: ao reabrir o app, o usuário não precisa entrar de novo.
+- Quando o painel publica um alerta, campanha ou notícia, o feed se atualiza e o usuário é avisado na hora (Supabase Realtime).
 
-O Flutter tenta utilizar `GET /api/campanhas/minhas` para carregar todas as inscrições do usuário em uma única chamada. Esse endpoint está proposto no [PR #4 do backend](https://github.com/Conecta-Vida/conecta-vida-backend/pull/4). Até que a alteração seja integrada e implantada na Mobile API do Railway, o aplicativo detecta a ausência do endpoint e utiliza automaticamente as rotas individuais já existentes.
 
 > A validação visual final deve incluir Android e Web, com fonte ampliada, modo escuro, alto contraste, TalkBack/VoiceOver e leitura em voz alta. A compilação Web do CI não substitui os testes nesses dispositivos.
 
@@ -263,16 +242,15 @@ O Flutter tenta utilizar `GET /api/campanhas/minhas` para carregar todas as insc
 
 ## 8. Limitações conhecidas no momento
 
-- A recuperação de senha da Mobile API ainda retorna HTTP 501; o fluxo de e-mail não está implementado.
-- O registro de tokens de push no backend utiliza armazenamento em memória e não é persistido após reiniciar a API.
+- Os e-mails de confirmação e de recuperação de senha dependem da configuração de e-mail do projeto Supabase (o serviço padrão só envia para membros do projeto e tem limite baixo por hora).
+- O aviso em tempo real funciona com o aplicativo aberto. O envio de push com o app fechado (FCM) ainda precisa de um serviço emissor; os tokens dos aparelhos já ficam salvos na tabela `dispositivos_push`.
 - A configuração de assinatura Android release ainda é de teste, conforme explicado acima.
-- A branch ainda precisa ampliar sua cobertura automatizada de testes.
+- O projeto ainda precisa ampliar sua cobertura automatizada de testes.
 
 ## 9. Serviços relacionados
 
-- [Repositório Flutter Mobile](https://github.com/Conecta-Vida/Conecta-Vida-Mobile/tree/mobile)
-- [Backend — Mobile API](https://github.com/Conecta-Vida/conecta-vida-backend/tree/main/mobile-api)
-- [README para executar a Mobile API localmente](https://github.com/Conecta-Vida/conecta-vida-backend/blob/main/mobile-api/README.md)
+- [Repositório Flutter Mobile](https://github.com/Conecta-Vida/Conecta-Vida-Mobile)
+- [Painel administrativo e SQL do Supabase](https://github.com/gustavotenorio26062005/Conecta-Vida-Admin/tree/claude/pensive-feynman-iwcx33)
 
 ---
 
@@ -284,6 +262,4 @@ IFSP — Câmpus Bragança Paulista · Curso Superior de Tecnologia em Análise 
 
 Acesse **Ajustes → Meus Dependentes** para cadastrar, editar e remover dependentes. Não é solicitado CPF, e-mail ou senha. Os dados são nome completo, data de nascimento, parentesco (Filho(a), Pai, Mãe, Cônjuge, Tutelado ou Outro) e sexo opcional.
 
-Na tela de detalhes de uma campanha, o titular escolhe se a inscrição será para si ou para um dependente ativo. O **Meu Cronograma** identifica o participante e permite cancelar a inscrição individual. A API valida titularidade pelo JWT. A remoção de um dependente é lógica para preservar o histórico.
-
-Para testar esta funcionalidade, atualize também a branch `feature/dependentes-api` do backend e aplique a migração `V2__dependentes_and_campaign_participants.sql` conforme o [README da Mobile API](https://github.com/Conecta-Vida/conecta-vida-backend/blob/feature/dependentes-api/mobile-api/README.md).
+Na tela de detalhes de uma campanha, o titular escolhe se a inscrição será para si ou para um dependente ativo. O **Meu Cronograma** identifica o participante e permite cancelar a inscrição individual. As regras do banco garantem que cada conta só inscreve a si mesma e aos próprios dependentes. A remoção de um dependente é lógica para preservar o histórico.
