@@ -8,6 +8,7 @@ import '../global/appCor.dart';
 import '../controllers/login_controller.dart';
 import '../providers/usuario_provider.dart';
 import '../services/supabase_service.dart';
+import 'confirmar_email_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,6 +19,47 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _controller = LoginController();
+  bool _entrando = false;
+  bool _senhaVisivel = false;
+
+  Future<void> _entrar() async {
+    if (!_controller.tentarLogin()) return;
+    final email = _controller.emailController.text.trim();
+
+    setState(() => _entrando = true);
+    try {
+      final usuario = await SupabaseService.signIn(
+        email,
+        _controller.senhaController.text.trim(),
+      );
+      if (!mounted) return;
+      context.read<UsuarioProvider>().setUsuario(usuario);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      // Conta criada, mas o link do e-mail ainda não foi aberto.
+      if (SupabaseService.ehErroDeEmailNaoConfirmado(error)) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ConfirmarEmailScreen(email: email),
+          ),
+        );
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: AppCor.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _entrando = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -93,13 +135,27 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _controller.senhaController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
+                        obscureText: !_senhaVisivel,
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => _entrando ? null : _entrar(),
+                        decoration: InputDecoration(
                           labelText: 'Senha',
-                          border: OutlineInputBorder(
+                          border: const OutlineInputBorder(
                             borderRadius: BorderRadius.all(
                               Radius.circular(15.0),
                             ),
+                          ),
+                          suffixIcon: IconButton(
+                            tooltip: _senhaVisivel
+                                ? 'Ocultar senha'
+                                : 'Mostrar senha',
+                            icon: Icon(
+                              _senhaVisivel
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                            ),
+                            onPressed: () =>
+                                setState(() => _senhaVisivel = !_senhaVisivel),
                           ),
                         ),
                         validator: (value) {
@@ -121,46 +177,20 @@ class _LoginScreenState extends State<LoginScreen> {
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        onPressed: () async {
-                          if (_controller.tentarLogin()) {
-                            try {
-                              final usuario = await SupabaseService.signIn(
-                                _controller.emailController.text.trim(),
-                                _controller.senhaController.text.trim(),
-                              );
-                              if (!mounted) return;
-                              // ignore: use_build_context_synchronously
-                              context.read<UsuarioProvider>().setUsuario(
-                                usuario,
-                              );
-                              // ignore: use_build_context_synchronously
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const HomeScreen(),
+                        onPressed: _entrando ? null : _entrar,
+                        child: _entrando
+                            ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
                                 ),
-                              );
-                            } catch (error) {
-                              if (!mounted) return;
-                              // ignore: use_build_context_synchronously
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    error.toString().replaceFirst(
-                                      'Exception: ',
-                                      '',
-                                    ),
-                                  ),
-                                  backgroundColor: AppCor.error,
-                                ),
-                              );
-                            }
-                          }
-                        },
-                        child: const Text(
-                          'Entrar',
-                          style: TextStyle(fontSize: 18),
-                        ),
+                              )
+                            : const Text(
+                                'Entrar',
+                                style: TextStyle(fontSize: 18),
+                              ),
                       ),
                       const SizedBox(height: 16),
                       Row(
