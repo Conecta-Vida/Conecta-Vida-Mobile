@@ -154,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _abrirInstituicoesProximas() async {
-    var consulta = 'instituições de saúde perto de mim';
+    var consulta = 'hospitais, clínicas e postos de saúde perto de mim';
 
     try {
       final servicoAtivo = await Geolocator.isLocationServiceEnabled();
@@ -172,13 +172,17 @@ class _HomeScreenState extends State<HomeScreen> {
           final posicao = await Geolocator.getCurrentPosition(
             desiredAccuracy: LocationAccuracy.high,
           );
+
+          // Usa as coordenadas reais como referência para encontrar resultados
+          // próximos, e não como o nome/endereço de um estabelecimento.
           consulta =
-              'instituições de saúde perto de ${posicao.latitude},${posicao.longitude}';
+              'hospitais, clínicas e postos de saúde perto de '
+              '${posicao.latitude},${posicao.longitude}';
         }
       }
     } catch (e) {
-      // Sem GPS/permissão, o Google Maps ainda pode usar a localização do aparelho.
-      debugPrint('Não foi possível obter GPS para a busca no Maps: $e');
+      // Sem GPS/permissão, o Maps tenta usar a localização do próprio aparelho.
+      debugPrint('Não foi possível obter GPS para o Maps: $e');
     }
 
     final url = Uri.https(
@@ -549,6 +553,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 );
               },
+              onNearbyInstitutions: _abrirInstituicoesProximas,
               onSettings: () async {
                 await Navigator.push(
                   context,
@@ -658,10 +663,6 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _categoryIndex,
         onTap: (index) {
-          if (index == 5) {
-            _abrirInstituicoesProximas();
-            return;
-          }
           setState(() {
             _categoryIndex = index;
             _refreshNoticias();
