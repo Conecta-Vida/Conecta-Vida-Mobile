@@ -38,6 +38,11 @@ class CustomBottomNavBar extends StatelessWidget {
       'inactive': Icons.campaign_outlined,
       'label': 'Campanhas',
     },
+    {
+      'active': Icons.place,
+      'inactive': Icons.place_outlined,
+      'label': 'Instituições próximas',
+    },
   ];
 
   @override
