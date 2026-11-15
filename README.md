@@ -142,7 +142,7 @@ O arquivo será criado em:
 build/app/outputs/flutter-apk/app-release.apk
 ```
 
-Copie o arquivo para o celular, abra-o e autorize a instalação quando o Android solicitar. O celular precisa de acesso à internet para falar com a API no Railway.
+Copie o arquivo para o celular, abra-o e autorize a instalação quando o Android solicitar. O celular precisa de acesso à internet para falar com o Supabase.
 
 Para gerar APKs separados por arquitetura:
 
