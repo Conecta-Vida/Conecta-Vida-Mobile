@@ -7,6 +7,7 @@ class NoticiasHeader extends StatelessWidget {
   final VoidCallback? onNotifications;
   final VoidCallback? onCalendar;
   final VoidCallback? onSettings;
+  final VoidCallback? onNearbyInstitutions;
   final ValueChanged<String>? onSearch;
 
   const NoticiasHeader({
@@ -15,6 +16,7 @@ class NoticiasHeader extends StatelessWidget {
     this.onNotifications,
     this.onCalendar,
     this.onSettings,
+    this.onNearbyInstitutions,
     this.onSearch,
   });
 
@@ -45,6 +47,8 @@ class NoticiasHeader extends StatelessWidget {
                   _buildIconButton(Icons.notifications_outlined, 'Notificações', onNotifications),
                   const SizedBox(width: 4),
                   _buildIconButton(Icons.calendar_month, 'Meu cronograma', onCalendar),
+                  const SizedBox(width: 4),
+                  _buildIconButton(Icons.local_hospital_outlined, 'Instituições próximas', onNearbyInstitutions),
                   const SizedBox(width: 4),
                   _buildIconButton(Icons.settings, 'Ajustes', onSettings),
                 ],

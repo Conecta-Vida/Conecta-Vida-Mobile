@@ -4,10 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../accessibility/accessibility_provider.dart';
 import '../accessibility/accessibility_speech_service.dart';
 import '../models/noticia.dart';
-import '../models/dependente.dart';
 import 'package:provider/provider.dart';
 import '../global/appCor.dart';
-import '../services/maps_launcher.dart';
 import '../services/supabase_service.dart';
 import '../widgets/noticia_info_botao.dart';
 import '../widgets/noticia_secao_mais.dart';
@@ -30,12 +28,7 @@ class NewsDetailsPage extends StatefulWidget {
 
 class _NewsDetailsPageState extends State<NewsDetailsPage> {
   bool _processandoCampanha = false;
-
-  /// Inscrições da conta nesta campanha: o titular (`dependenteId` nulo)
-  /// e/ou dependentes. A API permite vários participantes por campanha.
-  List<_Participante> _inscritos = [];
-
-  bool get _inscrito => _inscritos.isNotEmpty;
+  List<Map<String, dynamic>> _inscricoesUsuario = [];
 
   bool get _ehCampanha => widget.noticia.tag.toUpperCase() == 'CAMPANHA';
 
@@ -78,11 +71,15 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
     } catch (_) {
       aberto = false;
     }
-    if (!aberto) _avisar('Não foi possível abrir este link.', erro: true);
+    if (!aberto && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível abrir este link.'),
+          backgroundColor: AppCor.error,
+        ),
+      );
+    }
   }
-
-  String get _nomesInscritos =>
-      _inscrito ? _inscritos.map((p) => p.nome).join(', ') : 'Ninguém inscrito';
 
   @override
   void initState() {
@@ -90,36 +87,14 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
     _carregarStatusInscricao();
   }
 
-  static int? _lerId(dynamic valor) {
+  int? _idComoInt(dynamic valor) {
     if (valor is num) return valor.toInt();
-    if (valor == null) return null;
-    return int.tryParse('$valor');
+    return int.tryParse(valor?.toString() ?? '');
   }
 
-  Future<List<_Participante>> _buscarInscritos(int usuarioId) async {
-    final inscricoes = await SupabaseService.fetchInscritosCampanha(
-      widget.noticia.id!,
-    );
-    final participantes = <_Participante>[];
-    for (final item in inscricoes) {
-      if ('${item['usuario_id'] ?? ''}' != '$usuarioId') continue;
-      final dependenteId = _lerId(item['dependente_id']);
-      participantes.add(
-        _Participante(
-          dependenteId: dependenteId,
-          nome: dependenteId == null
-              ? 'Você'
-              : (item['participante_nome'] ?? 'Dependente').toString(),
-        ),
-      );
-    }
-    // Titular primeiro, depois dependentes em ordem alfabética.
-    participantes.sort((a, b) {
-      if (a.dependenteId == null) return -1;
-      if (b.dependenteId == null) return 1;
-      return a.nome.toLowerCase().compareTo(b.nome.toLowerCase());
-    });
-    return participantes;
+  String _chaveParticipante(Map<String, dynamic> inscricao) {
+    final dependenteId = _idComoInt(inscricao['dependente_id']);
+    return dependenteId == null ? 'titular' : 'dependente:$dependenteId';
   }
 
   Future<void> _carregarStatusInscricao() async {
@@ -128,27 +103,30 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
     }
 
     try {
-      final participantes = await _buscarInscritos(widget.userId!);
+      final inscricoes =
+          await SupabaseService.fetchInscritosCampanha(widget.noticia.id!);
+      final minhas = inscricoes
+          .where((item) => '${item['usuario_id'] ?? ''}' == '${widget.userId}')
+          .toList();
+
       if (!mounted) return;
-      setState(() => _inscritos = participantes);
+      setState(() => _inscricoesUsuario = minhas);
     } catch (_) {
       // Mantém a tela funcional mesmo se a API de inscrição falhar.
     }
   }
 
-  void _avisar(String mensagem, {bool erro = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(mensagem),
-        backgroundColor: erro ? AppCor.error : AppCor.primary,
-      ),
-    );
-  }
-
   Future<void> _alternarInscricaoCampanha() async {
-    if (widget.noticia.id == null) {
-      _avisar('Esta campanha ainda não possui ID válido para inscrição.');
+    final comunicacaoId = widget.noticia.id;
+    if (comunicacaoId == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Esta campanha ainda não possui ID válido para inscrição.',
+          ),
+        ),
+      );
       return;
     }
 
@@ -163,143 +141,197 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
     }
 
     if (usuarioId == null) {
-      _avisar('Não foi possível identificar o usuário para inscrição.');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Não foi possível identificar o usuário para inscrição.',
+          ),
+        ),
+      );
       return;
     }
 
     setState(() => _processandoCampanha = true);
 
     try {
-      // Sem dependentes a inscrição continua sendo um toque só. Se a lista
-      // não puder ser carregada, o titular ainda consegue se inscrever.
-      List<DependenteModel> dependentes;
-      try {
-        dependentes = await SupabaseService.fetchDependentes(usuarioId);
-      } catch (_) {
-        dependentes = const [];
-      }
+      final dependentes = await SupabaseService.fetchDependentes(usuarioId);
+      await _carregarStatusInscricao();
       if (!mounted) return;
 
-      // Opções: titular, dependentes ativos e inscritos que já não estão
-      // na lista de dependentes (para ainda permitir o cancelamento).
-      final opcoes = <_Participante>[
-        const _Participante(dependenteId: null, nome: 'Você'),
-        ...dependentes
-            .where((d) => d.id != null)
-            .map(
-              (d) => _Participante(
-                dependenteId: d.id,
-                nome: d.nomeCompleto,
-                detalhe: d.parentesco,
+      // Mantém também participantes já inscritos cujo cadastro foi inativado,
+      // para que o titular consiga cancelar essas inscrições.
+      final participantes = <Map<String, dynamic>>[
+        {
+          'chave': 'titular',
+          'nome': 'Eu (titular)',
+          'parentesco': 'Titular',
+          'dependente_id': null,
+        },
+      ];
+
+      for (final dependente in dependentes) {
+        if (dependente.id == null) continue;
+        participantes.add({
+          'chave': 'dependente:${dependente.id}',
+          'nome': dependente.nomeCompleto,
+          'parentesco': dependente.parentesco,
+          'dependente_id': dependente.id,
+        });
+      }
+
+      final chavesDisponiveis =
+          participantes.map((item) => item['chave'] as String).toSet();
+      for (final inscricao in _inscricoesUsuario) {
+        final dependenteId = _idComoInt(inscricao['dependente_id']);
+        if (dependenteId == null) continue;
+        final chave = 'dependente:$dependenteId';
+        if (chavesDisponiveis.contains(chave)) continue;
+
+        participantes.add({
+          'chave': chave,
+          'nome': (inscricao['participante_nome'] ?? 'Dependente').toString(),
+          'parentesco':
+              (inscricao['parentesco'] ?? 'Cadastro indisponível').toString(),
+          'dependente_id': dependenteId,
+        });
+        chavesDisponiveis.add(chave);
+      }
+
+      final selecionados = _inscricoesUsuario
+          .map(_chaveParticipante)
+          .toSet();
+
+      final escolhidos = await showDialog<Set<String>>(
+        context: context,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, refresh) => AlertDialog(
+            title: const Text('Quem participará desta campanha?'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Marque todas as pessoas que deseja inscrever. '
+                      'Você pode selecionar você e vários dependentes.',
+                    ),
+                    const SizedBox(height: 12),
+                    ...participantes.map((participante) {
+                      final chave = participante['chave'] as String;
+                      return CheckboxListTile(
+                        value: selecionados.contains(chave),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        title: Text(participante['nome'] as String),
+                        subtitle: Text(participante['parentesco'] as String),
+                        onChanged: (marcado) {
+                          refresh(() {
+                            if (marcado == true) {
+                              selecionados.add(chave);
+                            } else {
+                              selecionados.remove(chave);
+                            }
+                          });
+                        },
+                      );
+                    }),
+                  ],
+                ),
               ),
             ),
-      ];
-      for (final inscrito in _inscritos) {
-        if (!opcoes.any((o) => o.dependenteId == inscrito.dependenteId)) {
-          opcoes.add(inscrito);
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () =>
+                    Navigator.pop(ctx, Set<String>.from(selecionados)),
+                child: const Text('Salvar inscrições'),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      if (!mounted || escolhidos == null) return;
+
+      final inscricoesAtuais = _inscricoesUsuario
+          .map(_chaveParticipante)
+          .toSet();
+      final falhas = <String>[];
+      var alteracoes = 0;
+
+      // Cada participante é incluído/removido pela API existente.
+      // Assim, uma única confirmação da tela pode atualizar várias pessoas.
+      for (final participante in participantes) {
+        final chave = participante['chave'] as String;
+        final estavaInscrito = inscricoesAtuais.contains(chave);
+        final deveEstarInscrito = escolhidos.contains(chave);
+        if (estavaInscrito == deveEstarInscrito) continue;
+
+        final dependenteId = _idComoInt(participante['dependente_id']);
+        final nome = participante['nome'] as String;
+
+        try {
+          if (deveEstarInscrito) {
+            await SupabaseService.inscreverUsuarioEmCampanha(
+              comunicacaoId: comunicacaoId,
+              usuarioId: usuarioId,
+              dependenteId: dependenteId,
+            );
+          } else {
+            await SupabaseService.desinscreverUsuarioDaCampanha(
+              comunicacaoId: comunicacaoId,
+              usuarioId: usuarioId,
+              dependenteId: dependenteId,
+            );
+          }
+          alteracoes++;
+        } catch (e) {
+          falhas.add('$nome: $e');
         }
       }
 
-      final _Participante? escolhido = opcoes.length == 1
-          ? opcoes.first
-          : await _escolherParticipante(opcoes);
-      if (!mounted || escolhido == null) return;
+      await _carregarStatusInscricao();
+      if (!mounted) return;
 
-      final jaInscrito = _inscritos.any(
-        (p) => p.dependenteId == escolhido.dependenteId,
-      );
-      final quem = escolhido.dependenteId == null ? 'você' : escolhido.nome;
-
-      if (jaInscrito) {
-        await SupabaseService.desinscreverUsuarioDaCampanha(
-          comunicacaoId: widget.noticia.id!,
-          usuarioId: usuarioId,
-          dependenteId: escolhido.dependenteId,
+      if (falhas.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Algumas inscrições não foram atualizadas: ${falhas.join('; ')}',
+            ),
+            backgroundColor: AppCor.error,
+          ),
+        );
+      } else if (alteracoes == 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nenhuma alteração nas inscrições.')),
         );
       } else {
-        await SupabaseService.inscreverUsuarioEmCampanha(
-          comunicacaoId: widget.noticia.id!,
-          usuarioId: usuarioId,
-          dependenteId: escolhido.dependenteId,
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Inscrições atualizadas para ${escolhidos.length} participante(s) '
+              'em: ${widget.noticia.titulo}.',
+            ),
+            backgroundColor: AppCor.primary,
+          ),
         );
       }
-
-      // Relê da API para refletir exatamente o que ficou gravado.
-      List<_Participante> atualizados;
-      try {
-        atualizados = await _buscarInscritos(usuarioId);
-      } catch (_) {
-        atualizados = jaInscrito
-            ? _inscritos
-                  .where((p) => p.dependenteId != escolhido.dependenteId)
-                  .toList()
-            : [..._inscritos, escolhido];
-      }
-      if (!mounted) return;
-      setState(() => _inscritos = atualizados);
-
-      _avisar(
-        jaInscrito
-            ? 'Inscrição de $quem cancelada em: "${widget.noticia.titulo}".'
-            : 'Inscrição realizada para $quem em: "${widget.noticia.titulo}".',
-      );
     } catch (e) {
-      _avisar('Erro ao processar a inscrição: $e', erro: true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao processar inscrições: $e'),
+          backgroundColor: AppCor.error,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _processandoCampanha = false);
     }
-  }
-
-  Future<_Participante?> _escolherParticipante(List<_Participante> opcoes) {
-    return showDialog<_Participante>(
-      context: context,
-      builder: (ctx) => SimpleDialog(
-        title: const Text('Quem participará desta campanha?'),
-        children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(24, 0, 24, 8),
-            child: Text(
-              'Toque em um participante para inscrever ou cancelar a inscrição.',
-            ),
-          ),
-          ...opcoes.map((opcao) {
-            final inscrito = _inscritos.any(
-              (p) => p.dependenteId == opcao.dependenteId,
-            );
-            final ehTitular = opcao.dependenteId == null;
-            return SimpleDialogOption(
-              onPressed: () => Navigator.pop(ctx, opcao),
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  ehTitular ? Icons.person : Icons.family_restroom,
-                ),
-                title: Text(ehTitular ? 'Eu (titular)' : opcao.nome),
-                subtitle: Text(
-                  inscrito
-                      ? 'Inscrito · toque para cancelar'
-                      : (opcao.detalhe ?? 'Toque para inscrever'),
-                ),
-                trailing: Icon(
-                  inscrito ? Icons.check_circle : Icons.add_circle_outline,
-                  color: inscrito ? AppCor.catVacinacao : null,
-                ),
-              ),
-            );
-          }),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Fechar'),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Color _corDaCategoria(String categoria) {
@@ -503,29 +535,21 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                         NoticiasInfoBotao(
                           icone: Icons.calendar_month,
                           titulo: _ehCampanha
-                              ? 'Período (toque no ícone para inscrever)'
+                              ? 'Período (toque no ícone para gerenciar inscrições)'
                               : 'Data de publicação',
                           valor: _dataExibida,
                           iconeAcao: !_ehCampanha
                               ? null
                               : _processandoCampanha
                               ? Icons.hourglass_top
-                              : (_inscrito ? Icons.alarm_on : Icons.add_alarm),
-                          corAcao: _inscrito
+                              : (_inscricoesUsuario.isNotEmpty ? Icons.alarm_on : Icons.add_alarm),
+                          corAcao: _inscricoesUsuario.isNotEmpty
                               ? AppCor.catVacinacao
                               : AppCor.catDoacoes,
                           aoClicar: (_ehCampanha && !_processandoCampanha)
                               ? _alternarInscricaoCampanha
                               : null,
                         ),
-                        if (_ehCampanha) ...[
-                          const Divider(height: 1),
-                          NoticiasInfoBotao(
-                            icone: Icons.how_to_reg,
-                            titulo: 'Participantes inscritos',
-                            valor: _nomesInscritos,
-                          ),
-                        ],
                         const Divider(height: 1),
                         NoticiasInfoBotao(
                           icone: Icons.location_on,
@@ -533,9 +557,11 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                           valor: widget.noticia.local,
                           iconeAcao: Icons.map_outlined,
                           corAcao: AppCor.primary,
-                          aoClicar: () => MapsLauncher.abrirPesquisa(
-                            context,
-                            widget.noticia.local,
+                          aoClicar: () => _abrirLink(
+                            Uri.https('www.google.com', '/maps/search/', {
+                              'api': '1',
+                              'query': widget.noticia.local,
+                            }),
                           ),
                         ),
                         const Divider(height: 1),
@@ -657,18 +683,4 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
       ),
     );
   }
-}
-
-/// Quem participa de uma campanha: o titular da conta (`dependenteId` nulo)
-/// ou um dos seus dependentes.
-class _Participante {
-  const _Participante({
-    required this.dependenteId,
-    required this.nome,
-    this.detalhe,
-  });
-
-  final int? dependenteId;
-  final String nome;
-  final String? detalhe;
 }

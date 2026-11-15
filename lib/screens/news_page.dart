@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../accessibility/accessibility_motion.dart';
 import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
 import '../controllers/noticia_controller.dart';
 import '../models/noticia.dart';
 import '../providers/usuario_provider.dart';
-import '../services/maps_launcher.dart';
 import '../services/supabase_service.dart';
 import '../widgets/noticia_card.dart';
 import '../widgets/bottom_navbar.dart';
@@ -149,6 +151,100 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     } catch (_) {
       // Se a API falhar, apenas não mostra o popup.
+    }
+  }
+
+  Future<void> _abrirInstituicoesProximas() async {
+    const consulta =
+        'hospitais, clínicas e postos de saúde';
+
+    Position? posicao;
+    try {
+      final servicoAtivo = await Geolocator.isLocationServiceEnabled();
+      if (servicoAtivo) {
+        var permissao = await Geolocator.checkPermission();
+        if (permissao == LocationPermission.denied) {
+          permissao = await Geolocator.requestPermission();
+        }
+
+        final permitido =
+            permissao == LocationPermission.whileInUse ||
+            permissao == LocationPermission.always;
+
+        if (permitido) {
+          posicao = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Não foi possível obter a localização para o Maps: $e');
+    }
+
+    Uri url;
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      // Android Maps Intent: geo:lat,lon?q=termo pesquisa vários locais
+      // nas proximidades das coordenadas fornecidas.
+      final centro = posicao == null
+          ? '0,0'
+          : '${posicao.latitude},${posicao.longitude}';
+      final query = Uri.encodeComponent(consulta);
+      url = Uri.parse('geo:$centro?z=14&q=$query');
+    } else if (defaultTargetPlatform == TargetPlatform.iOS &&
+        posicao != null) {
+      // O esquema iOS aceita q + center para pesquisar ao redor do ponto.
+      final parametros = Uri(
+        queryParameters: {
+          'q': consulta,
+          'center': '${posicao.latitude},${posicao.longitude}',
+          'zoom': '14',
+        },
+      ).query;
+      url = Uri.parse('comgooglemaps://?$parametros');
+    } else {
+      // Link universal: sem coordenadas no texto para não pesquisar um pin.
+      url = Uri.https(
+        'www.google.com',
+        '/maps/search/',
+        {'api': '1', 'query': consulta},
+      );
+    }
+
+    try {
+      var abriu = await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+
+      // Se o Google Maps não tiver o esquema nativo disponível no iOS,
+      // abre a pesquisa universal; o Maps usa a localização do aparelho.
+      if (!abriu &&
+          defaultTargetPlatform == TargetPlatform.iOS &&
+          url.scheme == 'comgooglemaps') {
+        final fallback = Uri.https(
+          'www.google.com',
+          '/maps/search/',
+          {'api': '1', 'query': consulta},
+        );
+        abriu = await launchUrl(
+          fallback,
+          mode: LaunchMode.externalApplication,
+        );
+      }
+
+      if (!abriu && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não foi possível abrir o Google Maps.'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao abrir o Google Maps: $e')),
+        );
+      }
     }
   }
 
@@ -493,6 +589,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 );
               },
+              onNearbyInstitutions: _abrirInstituicoesProximas,
               onSettings: () async {
                 await Navigator.push(
                   context,
@@ -507,29 +604,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 36),
             _buildCidadeChips(context),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () =>
-                      MapsLauncher.abrirInstituicoesProximas(context),
-                  icon: const Icon(Icons.local_hospital_outlined, size: 20),
-                  label: const Text('Instituições de Saúde Próximas'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: colors.primary,
-                    minimumSize: const Size.fromHeight(44),
-                    side: BorderSide(
-                      color: AccessibilityPalette.border(context),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ),
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),

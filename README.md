@@ -287,9 +287,3 @@ Acesse **Ajustes → Meus Dependentes** para cadastrar, editar e remover depende
 Na tela de detalhes de uma campanha, o titular escolhe se a inscrição será para si ou para um dependente ativo. O **Meu Cronograma** identifica o participante e permite cancelar a inscrição individual. A API valida titularidade pelo JWT. A remoção de um dependente é lógica para preservar o histórico.
 
 Para testar esta funcionalidade, atualize também a branch `feature/dependentes-api` do backend e aplique a migração `V2__dependentes_and_campaign_participants.sql` conforme o [README da Mobile API](https://github.com/Conecta-Vida/conecta-vida-backend/blob/feature/dependentes-api/mobile-api/README.md).
-
-Um titular pode inscrever a si mesmo e a vários dependentes na mesma campanha: ao tocar no ícone de inscrição, o aplicativo lista os participantes e cada toque inscreve ou cancela a inscrição daquela pessoa. A linha **Participantes inscritos** mostra quem já está inscrito.
-
-## Instituições de saúde próximas
-
-Na tela inicial, o botão **Instituições de Saúde Próximas** abre o Google Maps com a pesquisa `instituições de saúde perto de mim` (URL universal `https://www.google.com/maps/search/?api=1&query=...`). No celular o link abre o aplicativo Google Maps quando instalado; caso contrário, e no navegador, abre o site. A lógica fica em `lib/services/maps_launcher.dart` e também é usada pelo campo **Local** dos detalhes da notícia.
