@@ -21,6 +21,7 @@ import '../widgets/bottom_navbar.dart';
 import '../widgets/noticias_header.dart';
 import 'autorizacoes_screen.dart';
 import 'notifications_screen.dart';
+import 'unidades_screen.dart';
 import 'settings_screen.dart';
 import 'calendar_screen.dart';
 
@@ -192,44 +193,62 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// Mostra, uma única vez, o alerta ativo mais recente que vale para a
+  /// cidade do usuário (ou para todas). Alertas já vistos não reaparecem.
   Future<void> _mostrarPopupAlertaCritico() async {
     if (!mounted || _popupAlertaExibido) return;
 
     try {
+      final box = Hive.isBoxOpen('preferencias')
+          ? Hive.box('preferencias')
+          : await Hive.openBox('preferencias');
+      final vistos = List<String>.from(
+        box.get('alertas_vistos', defaultValue: <String>[]),
+      ).toSet();
+
+      final cidade = context.read<UsuarioProvider>().usuario?.localizacao ?? '';
       final notificacoes = await SupabaseService.fetchNotificacoes();
-      final alertaCritico = notificacoes.firstWhere(
-        (item) => (item['tipo'] ?? '').toString().toUpperCase() == 'ALERTA',
-        orElse: () => <String, dynamic>{},
-      );
+      final alerta = notificacoes.firstWhere((item) {
+        if ((item['tipo'] ?? '').toString().toUpperCase() != 'ALERTA') {
+          return false;
+        }
+        if ((item['status'] ?? '') != 'ATIVO') return false;
+        if (vistos.contains('${item['id']}')) return false;
+        final local = (item['localizacao'] ?? '').toString();
+        final geral = local.trim().isEmpty || Texto.normalizar(local) == 'geral';
+        return geral || cidade.isEmpty || Texto.contem(local, cidade);
+      }, orElse: () => <String, dynamic>{});
 
-      if (alertaCritico.isEmpty || !mounted || _popupAlertaExibido) return;
-
+      if (alerta.isEmpty || !mounted || _popupAlertaExibido) return;
       _popupAlertaExibido = true;
+      vistos.add('${alerta['id']}');
+      await box.put('alertas_vistos', vistos.toList());
+      if (!mounted) return;
 
       showDialog<void>(
         context: context,
-        barrierDismissible: false,
         builder: (ctx) {
           return AlertDialog(
-            title: Text(
-              (alertaCritico['titulo'] ?? 'ALERTA CRÍTICO').toString(),
+            icon: const Icon(
+              Icons.warning_amber_rounded,
+              color: AppCor.error,
+              size: 36,
             ),
+            title: Text((alerta['titulo'] ?? 'Alerta de saúde').toString()),
             content: Text(
-              (alertaCritico['descricao'] ??
-                      'Mensagem crítica de saúde pública.')
-                  .toString(),
+              (alerta['descricao'] ?? '').toString(),
             ),
             actions: [
-              TextButton(
+              FilledButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Fechar'),
+                child: const Text('Entendi'),
               ),
             ],
           );
         },
       );
     } catch (_) {
-      // Se a API falhar, apenas não mostra o popup.
+      // Sem conexão: o alerta continua disponível em Notificações.
     }
   }
 
@@ -773,7 +792,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 );
               },
-              onNearbyInstitutions: _abrirInstituicoesProximas,
+              onNearbyInstitutions: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => UnidadesScreen(
+                      onBuscarNoMapa: _abrirInstituicoesProximas,
+                    ),
+                  ),
+                );
+              },
               onSettings: () async {
                 await Navigator.push(
                   context,

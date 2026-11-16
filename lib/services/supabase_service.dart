@@ -7,6 +7,7 @@ import '../global/texto.dart';
 import '../models/noticia.dart';
 import '../models/usuario.dart';
 import '../models/dependente.dart';
+import '../models/unidade_saude.dart';
 
 /// Camada de dados do aplicativo.
 ///
@@ -369,6 +370,8 @@ class SupabaseService {
       final linhas = await _db
           .from('comunicacoes')
           .select('*, instituicao:instituicoes_saude(*)')
+          // Notícias antigas arquivadas pelo banco não aparecem no app.
+          .neq('status', 'ARQUIVADO')
           .order('data_postada', ascending: false);
       return linhas.map((item) => Map<String, dynamic>.from(item)).toList();
     }();
@@ -595,6 +598,7 @@ class SupabaseService {
           'data': data,
           'localizacao': (item['localizacao'] ?? '').toString(),
           'tipo': tipo,
+          'status': (item['status'] ?? '').toString().toUpperCase(),
         };
       }).toList();
 
@@ -677,6 +681,25 @@ class SupabaseService {
         name: 'ApiService',
       );
     }
+  }
+
+  // ------------------------------------------------------------------
+  // Unidades de saúde
+  // ------------------------------------------------------------------
+
+  /// Unidades reais (CNES) de UBS, hospitais, UPAs, CAPS e SAMU.
+  static Future<List<UnidadeSaude>> fetchUnidadesDeSaude() async {
+    final linhas = await _db
+        .from('instituicoes_saude')
+        .select(
+          'id, tipo_instituicao, nome, telefone, endereco, horario_seg_sex, '
+          'horario_sabado, horario_domingo, latitude, longitude',
+        )
+        .not('codigo_cnes', 'is', null)
+        .order('nome');
+    return linhas
+        .map((e) => UnidadeSaude.fromMap(Map<String, dynamic>.from(e)))
+        .toList();
   }
 
   // ------------------------------------------------------------------
