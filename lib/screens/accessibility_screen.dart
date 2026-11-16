@@ -12,9 +12,7 @@ class AccessibilityScreen extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Acessibilidade'),
-      ),
+      appBar: AppBar(title: const Text('Acessibilidade')),
       body: Consumer<AccessibilityProvider>(
         builder: (context, preferences, _) {
           return ListView(
@@ -187,9 +185,9 @@ class AccessibilityScreen extends StatelessWidget {
       child: Text(
         title,
         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.8,
-            ),
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.8,
+        ),
       ),
     );
   }

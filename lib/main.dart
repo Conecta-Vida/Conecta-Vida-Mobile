@@ -135,13 +135,11 @@ class ConectaVidaApp extends StatelessWidget {
       textTheme: preferences.boldText
           ? _withHeavierWeights(
               base.textTheme.apply(
-                fontFamily:
-                    preferences.fontFamily == 'serif' ? 'serif' : null,
+                fontFamily: preferences.fontFamily == 'serif' ? 'serif' : null,
               ),
             )
           : base.textTheme.apply(
-              fontFamily:
-                  preferences.fontFamily == 'serif' ? 'serif' : null,
+              fontFamily: preferences.fontFamily == 'serif' ? 'serif' : null,
             ),
       appBarTheme: AppBarTheme(
         backgroundColor: brightness == Brightness.dark
@@ -157,9 +155,7 @@ class ConectaVidaApp extends StatelessWidget {
               ? Colors.white
               : AppCor.textoPrimario,
           fontSize: 20,
-          fontWeight: preferences.boldText
-              ? FontWeight.w800
-              : FontWeight.bold,
+          fontWeight: preferences.boldText ? FontWeight.w800 : FontWeight.bold,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(

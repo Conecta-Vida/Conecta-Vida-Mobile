@@ -27,8 +27,7 @@ class _CalendarScreenState extends State<CalendarScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _inscricoesSubscription =
-        SupabaseService.inscricoesAlteradas.listen((_) {
+    _inscricoesSubscription = SupabaseService.inscricoesAlteradas.listen((_) {
       if (mounted) _carregarDadosUnificados();
     });
     _carregarDadosUnificados();
@@ -55,12 +54,19 @@ class _CalendarScreenState extends State<CalendarScreen>
     try {
       // CARREGAR INSCRIÇÕES DA API (ONLINE)
       if (widget.usuario.id != null) {
-        final campanhasInscritas = await SupabaseService.fetchCampanhasAtivasDoUsuario(widget.usuario.id!);
+        final campanhasInscritas =
+            await SupabaseService.fetchCampanhasAtivasDoUsuario(
+              widget.usuario.id!,
+            );
         final inscricoes = await SupabaseService.fetchMinhasInscricoes();
         for (final campanha in campanhasInscritas) {
-          final participantes = inscricoes.where((row) =>
-            '${row['comunicacao_id'] ?? row['comunicacaoId']}' == '${campanha.id}'
-          ).toList();
+          final participantes = inscricoes
+              .where(
+                (row) =>
+                    '${row['comunicacao_id'] ?? row['comunicacaoId']}' ==
+                    '${campanha.id}',
+              )
+              .toList();
           if (participantes.isEmpty) {
             eventosCarregados.add({
               'objeto': campanha,
@@ -122,7 +128,9 @@ class _CalendarScreenState extends State<CalendarScreen>
       await SupabaseService.desinscreverUsuarioDaCampanha(
         comunicacaoId: comunicacaoId,
         usuarioId: usuarioId,
-        dependenteId: evento['dependente_id'] is num ? (evento['dependente_id'] as num).toInt() : null,
+        dependenteId: evento['dependente_id'] is num
+            ? (evento['dependente_id'] as num).toInt()
+            : null,
       );
 
       if (!mounted) return;
@@ -217,11 +225,15 @@ class _CalendarScreenState extends State<CalendarScreen>
 
                                 return Container(
                                   decoration: BoxDecoration(
-                                    color: AccessibilityPalette.surface(context),
+                                    color: AccessibilityPalette.surface(
+                                      context,
+                                    ),
                                     borderRadius: BorderRadius.circular(18),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: AccessibilityPalette.shadow(context),
+                                        color: AccessibilityPalette.shadow(
+                                          context,
+                                        ),
                                         blurRadius: 12,
                                         offset: const Offset(0, 4),
                                       ),
@@ -240,7 +252,9 @@ class _CalendarScreenState extends State<CalendarScreen>
                                       evento['titulo'] ?? 'Sem Título',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: Theme.of(context).colorScheme.onSurface,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurface,
                                       ),
                                     ),
                                     subtitle: Padding(
@@ -258,12 +272,16 @@ class _CalendarScreenState extends State<CalendarScreen>
                                           const SizedBox(height: 2),
                                           Text(
                                             'Participante: ${evento['participante'] ?? 'Você'}',
-                                            style: TextStyle(color: colors.onSurfaceVariant),
+                                            style: TextStyle(
+                                              color: colors.onSurfaceVariant,
+                                            ),
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
                                             evento['local'] ?? '',
-                                            style: TextStyle(color: colors.onSurfaceVariant),
+                                            style: TextStyle(
+                                              color: colors.onSurfaceVariant,
+                                            ),
                                           ),
                                         ],
                                       ),

@@ -44,11 +44,23 @@ class NoticiasHeader extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  _buildIconButton(Icons.notifications_outlined, 'Notificações', onNotifications),
+                  _buildIconButton(
+                    Icons.notifications_outlined,
+                    'Notificações',
+                    onNotifications,
+                  ),
                   const SizedBox(width: 4),
-                  _buildIconButton(Icons.calendar_month, 'Meu cronograma', onCalendar),
+                  _buildIconButton(
+                    Icons.calendar_month,
+                    'Meu cronograma',
+                    onCalendar,
+                  ),
                   const SizedBox(width: 4),
-                  _buildIconButton(Icons.local_hospital_outlined, 'Instituições próximas', onNearbyInstitutions),
+                  _buildIconButton(
+                    Icons.local_hospital_outlined,
+                    'Instituições próximas',
+                    onNearbyInstitutions,
+                  ),
                   const SizedBox(width: 4),
                   _buildIconButton(Icons.settings, 'Ajustes', onSettings),
                 ],
@@ -70,16 +82,17 @@ class NoticiasHeader extends StatelessWidget {
             ],
           ),
         ),
-        Positioned(bottom: -25, left: 24, right: 24, child: _buildSearchBar(context)),
+        Positioned(
+          bottom: -25,
+          left: 24,
+          right: 24,
+          child: _buildSearchBar(context),
+        ),
       ],
     );
   }
 
-  Widget _buildIconButton(
-    IconData icon,
-    String label,
-    VoidCallback? action,
-  ) {
+  Widget _buildIconButton(IconData icon, String label, VoidCallback? action) {
     return IconButton(
       tooltip: label,
       onPressed: action,
@@ -99,7 +112,10 @@ class NoticiasHeader extends StatelessWidget {
         color: AccessibilityPalette.surface(context),
         borderRadius: BorderRadius.circular(25),
         boxShadow: [
-          BoxShadow(color: AccessibilityPalette.shadow(context), blurRadius: 10),
+          BoxShadow(
+            color: AccessibilityPalette.shadow(context),
+            blurRadius: 10,
+          ),
         ],
       ),
       child: TextField(

@@ -1,21 +1,21 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_app/models/noticia.dart';
 
-NewsModel _campanha({String status = 'ATIVA', String dataFim = ''}) => NewsModel(
-  id: 1,
-  tag: 'CAMPANHA',
-  data: '2026-01-01',
-  dataFim: dataFim,
-  titulo: 'Campanha',
-  subtitulo: '',
-  descricao: '',
-  imagem: '',
-  status: status,
-);
+NewsModel _campanha({String status = 'ATIVA', String dataFim = ''}) =>
+    NewsModel(
+      id: 1,
+      tag: 'CAMPANHA',
+      data: '2026-01-01',
+      dataFim: dataFim,
+      titulo: 'Campanha',
+      subtitulo: '',
+      descricao: '',
+      imagem: '',
+      status: status,
+    );
 
-String _dia(int deslocamento) => DateTime.now()
-    .add(Duration(days: deslocamento))
-    .toIso8601String();
+String _dia(int deslocamento) =>
+    DateTime.now().add(Duration(days: deslocamento)).toIso8601String();
 
 void main() {
   group('NewsModel.encerrada', () {
@@ -32,8 +32,14 @@ void main() {
     });
 
     test('campanha encerrada pelo painel está encerrada mesmo no prazo', () {
-      expect(_campanha(status: 'ENCERRADA', dataFim: _dia(5)).encerrada, isTrue);
-      expect(_campanha(status: 'Concluída', dataFim: _dia(5)).encerrada, isTrue);
+      expect(
+        _campanha(status: 'ENCERRADA', dataFim: _dia(5)).encerrada,
+        isTrue,
+      );
+      expect(
+        _campanha(status: 'Concluída', dataFim: _dia(5)).encerrada,
+        isTrue,
+      );
     });
 
     test('campanha sem data de término fica aberta', () {
@@ -69,6 +75,11 @@ void main() {
     expect(em('Região Geral').abrangenciaGeral, isTrue);
     expect(em('').abrangenciaGeral, isTrue);
     expect(em('Atibaia').abrangenciaGeral, isFalse);
+    expect(em('Brasil').abrangenciaGeral, isFalse);
+    expect(em('Atibaia').localEhCidade, isTrue);
+    expect(em('Brasil').localEhCidade, isFalse);
+    expect(em('Estado de SP').localEhCidade, isFalse);
+    expect(em('Geral').localEhCidade, isFalse);
   });
 
   test('data e tipo aparecem em formato legível', () {
