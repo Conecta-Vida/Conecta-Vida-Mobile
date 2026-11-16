@@ -86,6 +86,10 @@ A chave é a **publishable** (pública), feita para ficar no aplicativo. **Não 
 
 O SQL das regras de acesso e a explicação da arquitetura estão no repositório do painel, em `supabase/` ([Conecta-Vida-Admin](https://github.com/gustavotenorio26062005/Conecta-Vida-Admin/tree/claude/pensive-feynman-iwcx33)).
 
+### Login com Microsoft (opcional)
+
+O botão **Entrar com Microsoft** só aparece quando o provedor está ligado no Supabase (veja o README do painel, seção "Login com Microsoft"). No celular, a Microsoft devolve o usuário ao app pelo endereço `br.edu.ifsp.conectavida://login-callback`, já configurado no Android e no iOS.
+
 ## 4. Executar o aplicativo
 
 ### Android (emulador ou celular conectado)
