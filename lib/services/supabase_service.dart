@@ -219,12 +219,33 @@ class SupabaseService {
   static bool ehErroDeEmailNaoConfirmado(Object erro) =>
       erro.toString().contains('Confirme seu e-mail');
 
+  static Future<bool> _migrarContaAntiga(String email, String senha) async {
+    try {
+      final r = await _db.functions.invoke(
+        'entrar-conta-antiga',
+        body: {'email': email, 'senha': senha},
+      );
+      return r.data is Map && (r.data as Map)['migrada'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   static Future<UserModel> signIn(String email, String senha) async {
     try {
       await _db.auth.signInWithPassword(email: email.trim(), password: senha);
     } on AuthException catch (e) {
       developer.log('Erro ao fazer login: ${e.message}', name: 'ApiService');
-      throw Exception(_mensagemAuth(e));
+      // Conta criada pela antiga API Java: confere a senha antiga, cria o
+      // login no Supabase com ela e tenta de novo.
+      if (!await _migrarContaAntiga(email.trim(), senha)) {
+        throw Exception(_mensagemAuth(e));
+      }
+      try {
+        await _db.auth.signInWithPassword(email: email.trim(), password: senha);
+      } on AuthException catch (e2) {
+        throw Exception(_mensagemAuth(e2));
+      }
     }
 
     final perfil = await _carregarPerfil();
