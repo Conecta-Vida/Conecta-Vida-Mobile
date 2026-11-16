@@ -78,6 +78,12 @@ class SupabaseService {
     if (m.contains('already registered') || m.contains('already been registered')) {
       return 'Este e-mail já está cadastrado.';
     }
+    if (m.contains('is invalid') || e.code == 'email_address_invalid') {
+      return 'Este e-mail não foi aceito. Confira se digitou o endereço certo.';
+    }
+    if (m.contains('not authorized') || m.contains('error sending')) {
+      return 'Não foi possível enviar o e-mail agora. Tente de novo mais tarde.';
+    }
     if (m.contains('password should be')) {
       return 'A senha deve ter pelo menos 6 caracteres.';
     }
