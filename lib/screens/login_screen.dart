@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'
+    show AuthChangeEvent, AuthState;
 import 'package:mobile_app/screens/news_page.dart';
 import 'package:mobile_app/screens/forgot_password_screen.dart';
 import 'package:mobile_app/screens/signup_screen.dart';
@@ -20,6 +24,44 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _controller = LoginController();
   bool _entrando = false;
+  bool _microsoftDisponivel = false;
+  StreamSubscription<AuthState>? _retornoMicrosoft;
+
+  @override
+  void initState() {
+    super.initState();
+    SupabaseService.microsoftDisponivel().then((ligado) {
+      if (mounted) setState(() => _microsoftDisponivel = ligado);
+    });
+    // No celular, a Microsoft devolve o usuário ao app e a sessão chega aqui.
+    _retornoMicrosoft = SupabaseService.mudancasDeLogin.listen((estado) async {
+      if (estado.event != AuthChangeEvent.signedIn || _entrando || !mounted) {
+        return;
+      }
+      final usuario = await SupabaseService.restaurarSessao();
+      if (usuario == null || !mounted) return;
+      context.read<UsuarioProvider>().setUsuario(usuario);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    });
+  }
+
+  Future<void> _entrarComMicrosoft() async {
+    try {
+      await SupabaseService.entrarComMicrosoft();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: AppCor.error,
+        ),
+      );
+    }
+  }
+
   bool _senhaVisivel = false;
 
   Future<void> _entrar() async {
@@ -63,6 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    _retornoMicrosoft?.cancel();
     _controller.limparMemoria();
     super.dispose();
   }
@@ -192,6 +235,23 @@ class _LoginScreenState extends State<LoginScreen> {
                                 style: TextStyle(fontSize: 18),
                               ),
                       ),
+                      if (_microsoftDisponivel) ...[
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed: _entrando ? null : _entrarComMicrosoft,
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          icon: const _LogoMicrosoft(),
+                          label: const Text(
+                            'Entrar com Microsoft',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -228,6 +288,39 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Logotipo de quatro quadrados usado no botão "Entrar com Microsoft".
+class _LogoMicrosoft extends StatelessWidget {
+  const _LogoMicrosoft();
+
+  @override
+  Widget build(BuildContext context) {
+    Widget quadrado(Color cor) => Container(width: 8, height: 8, color: cor);
+    return SizedBox(
+      width: 18,
+      height: 18,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              quadrado(const Color(0xFFF25022)),
+              quadrado(const Color(0xFF7FBA00)),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              quadrado(const Color(0xFF00A4EF)),
+              quadrado(const Color(0xFFFFB900)),
+            ],
+          ),
+        ],
       ),
     );
   }

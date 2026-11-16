@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../global/texto.dart';
@@ -123,6 +124,40 @@ class SupabaseService {
     _ouvirNovasComunicacoes();
     return _perfil;
   }
+
+  /// Endereço para onde a Microsoft devolve o usuário depois do login.
+  static const String retornoLoginApp = 'br.edu.ifsp.conectavida://login-callback';
+
+  /// O login com Microsoft está ligado no Supabase?
+  static Future<bool> microsoftDisponivel() async {
+    try {
+      final resposta = await _httpClient.get(
+        Uri.parse('$supabaseUrl/auth/v1/settings'),
+        headers: {'apikey': supabaseKey},
+      );
+      final dados = jsonDecode(resposta.body);
+      return dados is Map && dados['external']?['azure'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Abre a tela de login da Microsoft. No navegador a página volta para o
+  /// site do app; no celular, para o próprio aplicativo.
+  static Future<void> entrarComMicrosoft() async {
+    try {
+      await _db.auth.signInWithOAuth(
+        OAuthProvider.azure,
+        scopes: 'email',
+        redirectTo: kIsWeb ? Uri.base.origin : retornoLoginApp,
+      );
+    } on AuthException catch (e) {
+      throw Exception(_mensagemAuth(e));
+    }
+  }
+
+  /// Avisa quando um login feito fora do app (Microsoft) é concluído.
+  static Stream<AuthState> get mudancasDeLogin => _db.auth.onAuthStateChange;
 
   /// Se o usuário já entrou neste aparelho, devolve o perfil sem pedir login.
   static Future<UserModel?> restaurarSessao() async {
