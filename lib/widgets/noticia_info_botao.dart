@@ -55,7 +55,7 @@ class NoticiasInfoBotao extends StatelessWidget {
                   ],
                 ),
               ),
-              if (iconeAcao != null)
+              if (iconeAcao != null && aoClicar != null)
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(

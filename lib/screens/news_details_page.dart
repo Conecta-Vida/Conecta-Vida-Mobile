@@ -32,7 +32,8 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
 
   bool get _ehCampanha => widget.noticia.tag.toUpperCase() == 'CAMPANHA';
 
-  bool get _temTelefone => widget.noticia.orgaoTelefone.trim().isNotEmpty;
+  bool get _temTelefone =>
+      widget.noticia.orgaoTelefone.replaceAll(RegExp(r'\D'), '').length >= 3;
 
   /// Link da matéria original, quando a notícia veio de uma fonte oficial.
   Uri? get _fonte {

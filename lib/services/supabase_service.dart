@@ -747,6 +747,23 @@ class SupabaseService {
   // ------------------------------------------------------------------
 
   /// Unidades reais (CNES) de UBS, hospitais, UPAs, CAPS e SAMU.
+  /// Unidades do SUS de qualquer cidade do Brasil. A Edge Function
+  /// "unidades-proximas" acha o município no IBGE e, se preciso, busca as
+  /// unidades no CNES. Devolve o nome do município ("Recife - PE") e a lista.
+  static Future<({String municipio, List<UnidadeSaude> unidades})>
+  fetchUnidadesDaCidade(String cidade, {String? uf}) async {
+    final r = await _db.functions.invoke(
+      'unidades-proximas',
+      body: {'cidade': cidade, if (uf != null && uf.isNotEmpty) 'uf': uf},
+    );
+    final dados = Map<String, dynamic>.from(r.data as Map);
+    final m = Map<String, dynamic>.from(dados['municipio'] as Map);
+    final lista = (dados['unidades'] as List? ?? [])
+        .map((e) => UnidadeSaude.fromMap(Map<String, dynamic>.from(e as Map)))
+        .toList();
+    return (municipio: '${m['nome']} - ${m['uf']}', unidades: lista);
+  }
+
   static Future<List<UnidadeSaude>> fetchUnidadesDeSaude() async {
     final linhas = await _db
         .from('instituicoes_saude')
@@ -1145,6 +1162,40 @@ class SupabaseService {
         name: 'ApiService',
       );
       return <Map<String, dynamic>>[];
+    }
+  }
+
+  /// Cidade e sigla do estado ("SP") de uma coordenada, em qualquer lugar do Brasil.
+  static Future<({String cidade, String? uf})?> fetchLocalFromCoords(
+    double lat,
+    double lon,
+  ) async {
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lon&format=json&accept-language=pt&zoom=10',
+      );
+      final response = await _httpClient.get(
+        uri,
+        headers: {'User-Agent': 'ConectaVidaApp/1.0'},
+      );
+      if (response.statusCode != 200) return null;
+      final address =
+          (jsonDecode(response.body) as Map<String, dynamic>)['address']
+              as Map<String, dynamic>?;
+      if (address == null) return null;
+      final cidade =
+          address['city'] as String? ??
+          address['town'] as String? ??
+          address['municipality'] as String? ??
+          address['village'] as String? ??
+          address['county'] as String?;
+      if (cidade == null) return null;
+      final iso = address['ISO3166-2-lvl4'] as String?; // ex.: "BR-SP"
+      final uf = iso != null && iso.startsWith('BR-') ? iso.substring(3) : null;
+      return (cidade: cidade, uf: uf);
+    } catch (e) {
+      developer.log('Erro no reverse geocoding: $e', name: 'ApiService');
+      return null;
     }
   }
 

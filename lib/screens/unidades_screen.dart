@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../global/appCor.dart';
 import '../global/texto.dart';
 import '../models/unidade_saude.dart';
+import '../providers/usuario_provider.dart';
 import '../services/supabase_service.dart';
 
-/// Unidades de saúde reais (CNES), das mais próximas para as mais distantes
-/// quando o usuário permite a localização.
+/// Unidades de saúde do SUS (CNES) da cidade do usuário, em qualquer lugar do
+/// Brasil, das mais próximas para as mais distantes quando a localização é
+/// permitida. A cidade vem do GPS ou do perfil, e pode ser trocada.
 class UnidadesScreen extends StatefulWidget {
   /// Pesquisa ampla no Google Maps (hospitais, clínicas e postos por perto).
   final Future<void> Function()? onBuscarNoMapa;
@@ -29,6 +32,10 @@ class _UnidadesScreenState extends State<UnidadesScreen> {
   String _busca = '';
   bool _somente24h = false;
   bool _semLocalizacao = false;
+
+  /// Cidade pesquisada ("Recife - PE") e a escolhida à mão (sobrepõe o GPS).
+  String? _municipio;
+  ({String cidade, String? uf})? _cidadeEscolhida;
 
   @override
   void initState() {
@@ -55,19 +62,50 @@ class _UnidadesScreenState extends State<UnidadesScreen> {
     }
   }
 
+  /// Cidade do perfil, quando o GPS não está disponível.
+  String? get _cidadeDoPerfil {
+    final cidade = context.read<UsuarioProvider>().usuario?.localizacao.trim();
+    if (cidade == null ||
+        cidade.isEmpty ||
+        cidade == 'Não informado' ||
+        cidade == 'Não disponível') {
+      return null;
+    }
+    return cidade;
+  }
+
   Future<void> _carregar() async {
     setState(() {
       _carregando = true;
       _erro = null;
     });
     try {
-      final resultados = await Future.wait<Object?>([
-        SupabaseService.fetchUnidadesDeSaude(),
-        _posicaoAtual(),
-      ]);
-      var unidades = resultados[0] as List<UnidadeSaude>;
-      final posicao = resultados[1] as Position?;
+      final posicao = await _posicaoAtual();
+      var local = _cidadeEscolhida;
+      if (local == null && posicao != null) {
+        local = await SupabaseService.fetchLocalFromCoords(
+          posicao.latitude,
+          posicao.longitude,
+        );
+      }
+      if (local == null && _cidadeDoPerfil != null) {
+        local = (cidade: _cidadeDoPerfil!, uf: null);
+      }
 
+      List<UnidadeSaude> unidades;
+      String? municipio;
+      if (local != null) {
+        final r = await SupabaseService.fetchUnidadesDaCidade(
+          local.cidade,
+          uf: local.uf,
+        );
+        unidades = r.unidades;
+        municipio = r.municipio;
+      } else {
+        unidades = await SupabaseService.fetchUnidadesDeSaude();
+      }
+
+      // A distância só faz sentido quando o GPS está na cidade pesquisada.
       if (posicao != null) {
         unidades =
             unidades
@@ -93,6 +131,7 @@ class _UnidadesScreenState extends State<UnidadesScreen> {
       if (!mounted) return;
       setState(() {
         _unidades = unidades;
+        _municipio = municipio;
         _semLocalizacao = posicao == null;
       });
     } catch (_) {
@@ -102,6 +141,69 @@ class _UnidadesScreenState extends State<UnidadesScreen> {
     } finally {
       if (mounted) setState(() => _carregando = false);
     }
+  }
+
+  /// Pesquisa as unidades de outra cidade do Brasil.
+  Future<void> _trocarCidade() async {
+    final cidade = TextEditingController();
+    final uf = TextEditingController();
+    final escolha = await showDialog<({String cidade, String? uf})>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Ver unidades de outra cidade'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: cidade,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Cidade',
+                hintText: 'Ex.: Campinas',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: uf,
+              maxLength: 2,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(
+                labelText: 'Estado (opcional)',
+                hintText: 'Ex.: SP',
+                counterText: '',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          if (_cidadeEscolhida != null)
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, (cidade: '', uf: null)),
+              child: const Text('Usar minha localização'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (cidade.text.trim().isEmpty) return;
+              Navigator.pop(ctx, (
+                cidade: cidade.text.trim(),
+                uf: uf.text.trim().isEmpty
+                    ? null
+                    : uf.text.trim().toUpperCase(),
+              ));
+            },
+            child: const Text('Buscar'),
+          ),
+        ],
+      ),
+    );
+    if (escolha == null) return;
+    _cidadeEscolhida = escolha.cidade.isEmpty ? null : escolha;
+    await _carregar();
   }
 
   List<UnidadeSaude> get _visiveis => _unidades.where((u) {
@@ -163,6 +265,7 @@ class _UnidadesScreenState extends State<UnidadesScreen> {
       ),
       body: Column(
         children: [
+          _cabecalhoCidade(cores),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: TextField(
@@ -246,6 +349,60 @@ class _UnidadesScreenState extends State<UnidadesScreen> {
                       itemBuilder: (context, i) => _cartao(visiveis[i], cores),
                     ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _cabecalhoCidade(ColorScheme cores) {
+    final texto = Theme.of(context).textTheme;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [cores.primary, cores.primary.withValues(alpha: 0.82)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            _cidadeEscolhida == null
+                ? Icons.my_location
+                : Icons.location_city_outlined,
+            color: cores.onPrimary,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _carregando
+                      ? 'Buscando unidades do SUS…'
+                      : (_municipio ?? 'Unidades cadastradas'),
+                  style: texto.titleMedium?.copyWith(
+                    color: cores.onPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  _carregando
+                      ? 'Dados oficiais do CNES (Ministério da Saúde)'
+                      : '${_unidades.length} unidades · fonte: CNES',
+                  style: texto.bodySmall?.copyWith(
+                    color: cores.onPrimary.withValues(alpha: 0.85),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: _carregando ? null : _trocarCidade,
+            style: TextButton.styleFrom(foregroundColor: cores.onPrimary),
+            child: const Text('Trocar'),
           ),
         ],
       ),

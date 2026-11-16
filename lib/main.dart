@@ -115,11 +115,15 @@ class ConectaVidaApp extends StatelessWidget {
     required Brightness brightness,
     required AccessibilityProvider preferences,
   }) {
+    // "fidelity" mantém o azul da marca vivo em todas as telas (o padrão do
+    // Material 3 deixava botões e cartões num roxo acinzentado).
     final colorScheme = ColorScheme.fromSeed(
       seedColor: AppCor.primary,
       brightness: brightness,
+      dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
       contrastLevel: preferences.highContrast ? 1.0 : 0.0,
     ).copyWith(error: AppCor.error);
+    final escuro = brightness == Brightness.dark;
 
     final base = ThemeData(
       useMaterial3: true,
@@ -173,6 +177,61 @@ class ConectaVidaApp extends StatelessWidget {
         color: brightness == Brightness.dark
             ? Colors.white70
             : AppCor.textoCinza,
+      ),
+      // Visual único para cartões, campos, chips e botões em todas as telas.
+      cardTheme: CardThemeData(
+        elevation: 0,
+        color: escuro ? const Color(0xFF1E1E1E) : Colors.white,
+        surfaceTintColor: Colors.transparent,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: escuro ? Colors.white12 : const Color(0xFFE6E8F0),
+          ),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: escuro ? const Color(0xFF1E1E1E) : Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+            color: escuro ? Colors.white24 : const Color(0xFFDDE1EC),
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+            color: escuro ? Colors.white24 : const Color(0xFFDDE1EC),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        shape: const StadiumBorder(),
+        side: BorderSide(
+          color: escuro ? Colors.white24 : const Color(0xFFDDE1EC),
+        ),
+        showCheckmark: false,
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(48, 48),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      dialogTheme: DialogThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
     );
   }
