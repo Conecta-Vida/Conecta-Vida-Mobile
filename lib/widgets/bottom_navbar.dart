@@ -91,7 +91,9 @@ class CustomBottomNavBar extends StatelessWidget {
             child: Center(
               child: Icon(
                 isSelected ? activeIcon : inactiveIcon,
-                color: isSelected ? AppCor.primary : Theme.of(context).colorScheme.onSurfaceVariant,
+                color: isSelected
+                    ? AppCor.primary
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
                 size: 28,
               ),
             ),

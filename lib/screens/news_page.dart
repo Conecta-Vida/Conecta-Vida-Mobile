@@ -77,9 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'VER',
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const AutorizacoesScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const AutorizacoesScreen()),
               );
             },
           ),
@@ -132,8 +130,21 @@ class _HomeScreenState extends State<HomeScreen> {
           : await Hive.openBox('preferencias');
 
       final regioesSalvas = List<String>.from(
-        box.get('regioes_interesse', defaultValue: <String>[]),
+        // Na primeira vez, além da cidade do usuário, mostra as notícias
+        // nacionais e do Estado.
+        box.get(
+          'regioes_interesse',
+          defaultValue: <String>['Brasil', 'Estado de SP'],
+        ),
       );
+      // Filtros salvos antes das abrangências existirem: inclui-as uma vez.
+      if (box.get('abrangencias_incluidas') != true) {
+        for (final ampla in ['Brasil', 'Estado de SP']) {
+          if (!regioesSalvas.contains(ampla)) regioesSalvas.add(ampla);
+        }
+        await box.put('regioes_interesse', regioesSalvas);
+        await box.put('abrangencias_incluidas', true);
+      }
       final gpsLigado = box.get('usar_gps', defaultValue: true);
 
       if (mounted) {
@@ -215,7 +226,8 @@ class _HomeScreenState extends State<HomeScreen> {
         if ((item['status'] ?? '') != 'ATIVO') return false;
         if (vistos.contains('${item['id']}')) return false;
         final local = (item['localizacao'] ?? '').toString();
-        final geral = local.trim().isEmpty || Texto.normalizar(local) == 'geral';
+        final geral =
+            local.trim().isEmpty || Texto.normalizar(local) == 'geral';
         return geral || cidade.isEmpty || Texto.contem(local, cidade);
       }, orElse: () => <String, dynamic>{});
 
@@ -235,9 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
               size: 36,
             ),
             title: Text((alerta['titulo'] ?? 'Alerta de saúde').toString()),
-            content: Text(
-              (alerta['descricao'] ?? '').toString(),
-            ),
+            content: Text((alerta['descricao'] ?? '').toString()),
             actions: [
               FilledButton(
                 onPressed: () => Navigator.of(ctx).pop(),

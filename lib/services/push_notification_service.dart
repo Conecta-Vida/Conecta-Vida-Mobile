@@ -46,8 +46,9 @@ class PushNotificationService {
   static Future<void> inicializar() async {
     FirebaseMessaging.onBackgroundMessage(firebaseBackgroundHandler);
 
-    const androidSettings =
-        AndroidInitializationSettings('@drawable/ifsp_logo');
+    const androidSettings = AndroidInitializationSettings(
+      '@drawable/ifsp_logo',
+    );
     const initSettings = InitializationSettings(android: androidSettings);
 
     await _localNotifications.initialize(
@@ -57,12 +58,14 @@ class PushNotificationService {
 
     await _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.requestNotificationsPermission();
 
     await _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(_canal);
 
     final messaging = FirebaseMessaging.instance;
@@ -98,10 +101,9 @@ class PushNotificationService {
       if (!Hive.isBoxOpen('preferencias')) {
         await Hive.openBox('preferencias');
       }
-      return Hive.box('preferencias').get(
-        'notificacoes_ligadas',
-        defaultValue: true,
-      );
+      return Hive.box(
+        'preferencias',
+      ).get('notificacoes_ligadas', defaultValue: true);
     } catch (e) {
       developer.log('Erro ao ler preferências de push: $e', name: 'FCM');
       return true;
@@ -128,8 +130,9 @@ class PushNotificationService {
   }) async {
     if (!await _notificacoesAtivas()) return;
 
-    final idNotification =
-        DateTime.now().millisecondsSinceEpoch.remainder(100000);
+    final idNotification = DateTime.now().millisecondsSinceEpoch.remainder(
+      100000,
+    );
 
     await _localNotifications.show(
       idNotification,
@@ -140,9 +143,7 @@ class PushNotificationService {
     );
   }
 
-  static void _onDidReceiveNotificationResponse(
-    NotificationResponse details,
-  ) {
+  static void _onDidReceiveNotificationResponse(NotificationResponse details) {
     developer.log(
       'Selecionado: ${details.actionId} | ${details.payload}',
       name: 'FCM',

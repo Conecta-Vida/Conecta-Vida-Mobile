@@ -44,6 +44,7 @@ class ApiConfig {
   }
 
   /// Página que recebe o link do e-mail de recuperação de senha.
-  static String urlRedefinirSenha() =>
-      _resetNoBuild.isNotEmpty ? _resetNoBuild : (_doEnv('PASSWORD_RESET_URL') ?? '');
+  static String urlRedefinirSenha() => _resetNoBuild.isNotEmpty
+      ? _resetNoBuild
+      : (_doEnv('PASSWORD_RESET_URL') ?? '');
 }

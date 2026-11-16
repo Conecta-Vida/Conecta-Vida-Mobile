@@ -33,35 +33,55 @@ void main() {
 
     test('menor de idade entra pela declaração do responsável', () {
       expect(
-        DependenteModel.exigeAutorizacaoDoDependente(DateTime(2016, 5, 4), 'Filho(a)', hoje: hoje),
+        DependenteModel.exigeAutorizacaoDoDependente(
+          DateTime(2016, 5, 4),
+          'Filho(a)',
+          hoje: hoje,
+        ),
         isFalse,
       );
     });
 
     test('quem faz 18 anos amanhã ainda é menor', () {
       expect(
-        DependenteModel.exigeAutorizacaoDoDependente(DateTime(2008, 11, 16), 'Filho(a)', hoje: hoje),
+        DependenteModel.exigeAutorizacaoDoDependente(
+          DateTime(2008, 11, 16),
+          'Filho(a)',
+          hoje: hoje,
+        ),
         isFalse,
       );
     });
 
     test('quem fez 18 anos hoje precisa autorizar', () {
       expect(
-        DependenteModel.exigeAutorizacaoDoDependente(DateTime(2008, 11, 15), 'Filho(a)', hoje: hoje),
+        DependenteModel.exigeAutorizacaoDoDependente(
+          DateTime(2008, 11, 15),
+          'Filho(a)',
+          hoje: hoje,
+        ),
         isTrue,
       );
     });
 
     test('adulto tutelado entra pela declaração do responsável', () {
       expect(
-        DependenteModel.exigeAutorizacaoDoDependente(DateTime(1990, 1, 1), ' Tutelado ', hoje: hoje),
+        DependenteModel.exigeAutorizacaoDoDependente(
+          DateTime(1990, 1, 1),
+          ' Tutelado ',
+          hoje: hoje,
+        ),
         isFalse,
       );
     });
 
     test('adulto comum precisa autorizar', () {
       expect(
-        DependenteModel.exigeAutorizacaoDoDependente(DateTime(1960, 1, 1), 'Pai', hoje: hoje),
+        DependenteModel.exigeAutorizacaoDoDependente(
+          DateTime(1960, 1, 1),
+          'Pai',
+          hoje: hoje,
+        ),
         isTrue,
       );
     });

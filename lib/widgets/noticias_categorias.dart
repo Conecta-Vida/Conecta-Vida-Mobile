@@ -35,7 +35,13 @@ class Categorias extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Row(
             children: [
-              _categoryItem(context, 'Notícias', AppCor.catNoticias, Icons.article, 0),
+              _categoryItem(
+                context,
+                'Notícias',
+                AppCor.catNoticias,
+                Icons.article,
+                0,
+              ),
               _categoryItem(
                 context,
                 'Vacinação',
@@ -43,7 +49,13 @@ class Categorias extends StatelessWidget {
                 Icons.vaccines,
                 1,
               ),
-              _categoryItem(context, 'Doações', AppCor.catDoacoes, Icons.water_drop, 2),
+              _categoryItem(
+                context,
+                'Doações',
+                AppCor.catDoacoes,
+                Icons.water_drop,
+                2,
+              ),
               _categoryItem(
                 context,
                 'Urgentes',
@@ -51,7 +63,13 @@ class Categorias extends StatelessWidget {
                 Icons.warning_rounded,
                 3,
               ),
-              _categoryItem(context, 'Eventos', AppCor.catEventos, Icons.event, 4),
+              _categoryItem(
+                context,
+                'Eventos',
+                AppCor.catEventos,
+                Icons.event,
+                4,
+              ),
             ],
           ),
         ),

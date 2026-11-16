@@ -21,14 +21,21 @@ class NewsModel {
   /// Endereço da matéria original, quando veio de uma fonte oficial.
   final String fonteUrl;
 
-  /// Vale para todas as cidades (ex.: notícias nacionais do Ministério da Saúde).
+  /// Sem local definido: aparece com qualquer filtro de cidade.
   bool get abrangenciaGeral {
     final onde = local.trim().toLowerCase();
-    return onde.isEmpty ||
-        onde == 'geral' ||
-        onde == 'região geral' ||
-        onde == 'nacional';
+    return onde.isEmpty || onde == 'geral' || onde == 'região geral';
   }
+
+  /// Abrangências que não são uma cidade (o filtro as trata como opções
+  /// próprias: "Brasil" para notícias nacionais, "Estado de SP" para as do
+  /// Governo do Estado).
+  static const abrangenciasAmplas = {'brasil', 'nacional', 'estado de sp'};
+
+  /// O local é uma cidade de verdade (pode ser aberto no mapa).
+  bool get localEhCidade =>
+      !abrangenciaGeral &&
+      !abrangenciasAmplas.contains(local.trim().toLowerCase());
 
   bool get ehCampanha => tag.toUpperCase() == 'CAMPANHA';
 

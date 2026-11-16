@@ -38,7 +38,10 @@ class NoticiasInfoBotao extends StatelessWidget {
                   children: [
                     Text(
                       titulo,
-                      style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: colors.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -56,7 +59,7 @@ class NoticiasInfoBotao extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: corAcao!.withValues(alpha:0.1),
+                    color: corAcao!.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(iconeAcao, color: corAcao, size: 20),

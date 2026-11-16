@@ -39,12 +39,11 @@ class NoticiaCard extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                NewsDetailsPage(
-                  noticia: noticia,
-                  sharedBy: userEmail,
-                  userId: userId,
-                ),
+            builder: (context) => NewsDetailsPage(
+              noticia: noticia,
+              sharedBy: userEmail,
+              userId: userId,
+            ),
           ),
         );
       },
@@ -195,7 +194,10 @@ class NoticiaCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow
                         .ellipsis, // Adiciona "..." se o texto for maior que as 2 linhas
-                    style: TextStyle(fontSize: 14, color: colors.onSurfaceVariant),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: colors.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),

@@ -77,7 +77,8 @@ class SupabaseService {
     if (m.contains('email not confirmed')) {
       return 'Confirme seu e-mail antes de entrar (veja a caixa de entrada).';
     }
-    if (m.contains('already registered') || m.contains('already been registered')) {
+    if (m.contains('already registered') ||
+        m.contains('already been registered')) {
       return 'Este e-mail já está cadastrado.';
     }
     if (m.contains('is invalid') || e.code == 'email_address_invalid') {
@@ -126,7 +127,8 @@ class SupabaseService {
   }
 
   /// Endereço para onde a Microsoft devolve o usuário depois do login.
-  static const String retornoLoginApp = 'br.edu.ifsp.conectavida://login-callback';
+  static const String retornoLoginApp =
+      'br.edu.ifsp.conectavida://login-callback';
 
   /// O login com Microsoft está ligado no Supabase?
   static Future<bool> microsoftDisponivel() async {
@@ -262,12 +264,15 @@ class SupabaseService {
         throw Exception("ID não encontrado. Faça login novamente.");
       }
 
-      await _db.from('usuarios').update({
-        'nome': user.nome.trim(),
-        'sexo': user.sexo,
-        'localizacao': user.localizacao,
-        'data_nascimento': user.dataNascimento,
-      }).eq('id', user.id!);
+      await _db
+          .from('usuarios')
+          .update({
+            'nome': user.nome.trim(),
+            'sexo': user.sexo,
+            'localizacao': user.localizacao,
+            'data_nascimento': user.dataNascimento,
+          })
+          .eq('id', user.id!);
 
       if (senha.trim().isNotEmpty) {
         await _db.auth.updateUser(UserAttributes(password: senha.trim()));
@@ -350,7 +355,9 @@ class SupabaseService {
           table: 'comunicacoes',
           callback: (payload) {
             _limparCachesDeComunicacoes();
-            _novasComunicacoes.add(Map<String, dynamic>.from(payload.newRecord));
+            _novasComunicacoes.add(
+              Map<String, dynamic>.from(payload.newRecord),
+            );
           },
         )
         .subscribe();
@@ -377,7 +384,6 @@ class SupabaseService {
     return source.map((item) => Map<String, dynamic>.from(item)).toList();
   }
 
-
   /// Lista comum usada por notícias, notificações e filtros.
   ///
   /// Evita repetir a consulta quando várias telas abrem juntas.
@@ -387,7 +393,8 @@ class SupabaseService {
   }) async {
     final tokenAtual = _db.auth.currentUser?.id;
     final agora = DateTime.now();
-    final cacheValido = _comunicacoesCache != null &&
+    final cacheValido =
+        _comunicacoesCache != null &&
         _comunicacoesCacheAt != null &&
         agora.difference(_comunicacoesCacheAt!) < _comunicacoesCacheTtl &&
         _cacheToken == tokenAtual;
@@ -460,9 +467,7 @@ class SupabaseService {
     bool forceRefresh = false,
   }) async {
     try {
-      final dynamicList = await _fetchComunicacoes(
-        forceRefresh: forceRefresh,
-      );
+      final dynamicList = await _fetchComunicacoes(forceRefresh: forceRefresh);
 
       var noticias = dynamicList.map((item) {
         final instituicao = item['instituicao'];
@@ -608,9 +613,7 @@ class SupabaseService {
     bool forceRefresh = false,
   }) async {
     try {
-      final dynamicList = await _fetchComunicacoes(
-        forceRefresh: forceRefresh,
-      );
+      final dynamicList = await _fetchComunicacoes(forceRefresh: forceRefresh);
 
       final notificacoes = dynamicList.map<Map<String, dynamic>>((item) {
         final tipo = (item['tipo'] ?? 'COMUNICACAO').toString().toUpperCase();
@@ -745,8 +748,7 @@ class SupabaseService {
   static Exception _erroDoBanco(Object erro, String contexto) {
     if (erro is PostgrestException) {
       final negado =
-          erro.code == '42501' ||
-          erro.message.contains('row-level security');
+          erro.code == '42501' || erro.message.contains('row-level security');
       return Exception(
         negado ? '$contexto: operação não permitida.' : erro.message,
       );
@@ -790,7 +792,10 @@ class SupabaseService {
 
   /// O banco decide a situação do vínculo: ativo (menor/tutelado, com a
   /// declaração do responsável) ou pendente (adulto, até ele autorizar).
-  static Future<void> criarDependente(int usuarioId, DependenteModel item) async {
+  static Future<void> criarDependente(
+    int usuarioId,
+    DependenteModel item,
+  ) async {
     try {
       await _db.from('dependentes').insert({
         'usuario_titular_id': usuarioId,
@@ -803,7 +808,10 @@ class SupabaseService {
     }
   }
 
-  static Future<void> atualizarDependente(int usuarioId, DependenteModel item) async {
+  static Future<void> atualizarDependente(
+    int usuarioId,
+    DependenteModel item,
+  ) async {
     if (item.id == null) throw Exception('ID do dependente ausente.');
     try {
       await _db
@@ -821,7 +829,9 @@ class SupabaseService {
   static Future<List<ConviteDependente>> fetchConvitesDeDependente() async {
     final linhas = await _db.rpc('meus_convites_de_dependente') as List;
     return linhas
-        .map((e) => ConviteDependente.fromMap(Map<String, dynamic>.from(e as Map)))
+        .map(
+          (e) => ConviteDependente.fromMap(Map<String, dynamic>.from(e as Map)),
+        )
         .toList();
   }
 

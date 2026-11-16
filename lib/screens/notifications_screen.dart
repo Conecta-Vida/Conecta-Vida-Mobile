@@ -90,10 +90,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         Future.value(<Map<String, dynamic>>[]),
     ]);
 
-    final data = <Map<String, dynamic>>[
-      ...resultados[0],
-      ...resultados[1],
-    ];
+    final data = <Map<String, dynamic>>[...resultados[0], ...resultados[1]];
 
     // 3. Mapeia e ordena as notificações da mais recente para a mais antiga
     final itens = data.map(_NotificacaoItem.fromMap).toList();
@@ -174,7 +171,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           content: const Text(
             'Os detalhes completos deste alerta não estão disponíveis.',
           ),
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+          backgroundColor: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest,
         ),
       );
     }
@@ -229,7 +228,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     if (_inicializando) {
-      return Scaffold(backgroundColor: colors.surface,
+      return Scaffold(
+        backgroundColor: colors.surface,
         body: Center(child: CircularProgressIndicator(color: AppCor.primary)),
       );
     }

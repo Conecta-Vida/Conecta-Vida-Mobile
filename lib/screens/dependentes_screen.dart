@@ -38,7 +38,9 @@ class _DependentesScreenState extends State<DependentesScreen> {
     }
 
     try {
-      final dependentes = await SupabaseService.fetchDependentes(widget.usuarioId);
+      final dependentes = await SupabaseService.fetchDependentes(
+        widget.usuarioId,
+      );
       if (!mounted) return;
       setState(() => items = dependentes);
 
@@ -80,7 +82,11 @@ class _DependentesScreenState extends State<DependentesScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Dependentes carregados, mas não foi possível buscar as campanhas: $e')),
+            SnackBar(
+              content: Text(
+                'Dependentes carregados, mas não foi possível buscar as campanhas: $e',
+              ),
+            ),
           );
         }
       }
@@ -135,7 +141,9 @@ class _DependentesScreenState extends State<DependentesScreen> {
               DependenteModel.exigeAutorizacaoDoDependente(birth!, relation);
 
           return AlertDialog(
-            title: Text(novoCadastro ? 'Adicionar dependente' : 'Editar dependente'),
+            title: Text(
+              novoCadastro ? 'Adicionar dependente' : 'Editar dependente',
+            ),
             content: SingleChildScrollView(
               child: Form(
                 key: key,
@@ -146,9 +154,12 @@ class _DependentesScreenState extends State<DependentesScreen> {
                     TextFormField(
                       controller: name,
                       textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(labelText: 'Nome completo'),
-                      validator: (v) =>
-                          v == null || v.trim().isEmpty ? 'Informe o nome' : null,
+                      decoration: const InputDecoration(
+                        labelText: 'Nome completo',
+                      ),
+                      validator: (v) => v == null || v.trim().isEmpty
+                          ? 'Informe o nome'
+                          : null,
                     ),
                     ListTile(
                       contentPadding: EdgeInsets.zero,
@@ -170,7 +181,8 @@ class _DependentesScreenState extends State<DependentesScreen> {
                         final d = await showDatePicker(
                           context: ctx,
                           initialDate:
-                              birth ?? DateTime(hoje.year - 10, hoje.month, hoje.day),
+                              birth ??
+                              DateTime(hoje.year - 10, hoje.month, hoje.day),
                           firstDate: DateTime(1900),
                           lastDate: hoje,
                           helpText: 'Data de nascimento',
@@ -185,9 +197,13 @@ class _DependentesScreenState extends State<DependentesScreen> {
                     ),
                     DropdownButtonFormField<String>(
                       initialValue: relation,
-                      decoration: const InputDecoration(labelText: 'Parentesco'),
+                      decoration: const InputDecoration(
+                        labelText: 'Parentesco',
+                      ),
                       items: relations
-                          .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                          .map(
+                            (v) => DropdownMenuItem(value: v, child: Text(v)),
+                          )
                           .toList(),
                       onChanged: (v) =>
                           refresh(() => relation = v ?? relations.first),
@@ -204,10 +220,18 @@ class _DependentesScreenState extends State<DependentesScreen> {
                       ),
                     DropdownButtonFormField<String>(
                       initialValue: sex.isEmpty ? null : sex,
-                      decoration: const InputDecoration(labelText: 'Sexo (opcional)'),
+                      decoration: const InputDecoration(
+                        labelText: 'Sexo (opcional)',
+                      ),
                       items: const [
-                        DropdownMenuItem(value: 'Feminino', child: Text('Feminino')),
-                        DropdownMenuItem(value: 'Masculino', child: Text('Masculino')),
+                        DropdownMenuItem(
+                          value: 'Feminino',
+                          child: Text('Feminino'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Masculino',
+                          child: Text('Masculino'),
+                        ),
                         DropdownMenuItem(value: 'Outro', child: Text('Outro')),
                         DropdownMenuItem(
                           value: 'Não informado',
@@ -227,11 +251,14 @@ class _DependentesScreenState extends State<DependentesScreen> {
                           autocorrect: false,
                           decoration: const InputDecoration(
                             labelText: 'E-mail do dependente',
-                            helperText: 'O mesmo e-mail da conta dele no Conecta Vida',
+                            helperText:
+                                'O mesmo e-mail da conta dele no Conecta Vida',
                           ),
                           validator: (v) {
                             final texto = (v ?? '').trim();
-                            if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(texto)) {
+                            if (!RegExp(
+                              r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                            ).hasMatch(texto)) {
                               return 'Informe um e-mail válido';
                             }
                             return null;
@@ -241,7 +268,11 @@ class _DependentesScreenState extends State<DependentesScreen> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.info_outline, size: 18, color: cores.primary),
+                            Icon(
+                              Icons.info_outline,
+                              size: 18,
+                              color: cores.primary,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -291,7 +322,10 @@ class _DependentesScreenState extends State<DependentesScreen> {
                         final formOk = key.currentState!.validate();
                         final semData = birth == null;
                         final semDeclaracao =
-                            novoCadastro && !semData && !precisaAutorizar && !declarou;
+                            novoCadastro &&
+                            !semData &&
+                            !precisaAutorizar &&
+                            !declarou;
                         if (semData || semDeclaracao) {
                           refresh(() {
                             birthMissing = semData;
@@ -304,11 +338,13 @@ class _DependentesScreenState extends State<DependentesScreen> {
                           id: old?.id,
                           nomeCompleto: name.text.trim(),
                           dataNascimento: birth!,
-                          parentesco:
-                              relation == 'Outro' ? other.text.trim() : relation,
+                          parentesco: relation == 'Outro'
+                              ? other.text.trim()
+                              : relation,
                           sexo: sex.isEmpty ? null : sex,
-                          emailDependente:
-                              precisaAutorizar ? email.text.trim() : null,
+                          emailDependente: precisaAutorizar
+                              ? email.text.trim()
+                              : null,
                           declarouResponsabilidade: declarou,
                         );
                         refresh(() => salvando = true);
@@ -380,9 +416,7 @@ class _DependentesScreenState extends State<DependentesScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', '')),
-          ),
+          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
         );
       }
     }
@@ -400,99 +434,109 @@ class _DependentesScreenState extends State<DependentesScreen> {
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : items.isEmpty
-              ? const Center(child: Text('Nenhum dependente cadastrado.'))
-              : RefreshIndicator(
-                  onRefresh: load,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: items.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (ctx, i) {
-                      final item = items[i];
-                      final campanhas = item.id == null
-                          ? const <NewsModel>[]
-                          : campanhasPorDependente[item.id!] ?? [];
+          ? const Center(child: Text('Nenhum dependente cadastrado.'))
+          : RefreshIndicator(
+              onRefresh: load,
+              child: ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: items.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (ctx, i) {
+                  final item = items[i];
+                  final campanhas = item.id == null
+                      ? const <NewsModel>[]
+                      : campanhasPorDependente[item.id!] ?? [];
 
-                      return Card(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ListTile(
-                                leading: const CircleAvatar(
-                                  child: Icon(Icons.person),
+                  return Card(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ListTile(
+                            leading: const CircleAvatar(
+                              child: Icon(Icons.person),
+                            ),
+                            title: Text(item.nomeCompleto),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${item.parentesco} • ${_formatarData(item.dataNascimento)}',
                                 ),
-                                title: Text(item.nomeCompleto),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${item.parentesco} • ${_formatarData(item.dataNascimento)}',
+                                if (item.pendente) ...[
+                                  const SizedBox(height: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
                                     ),
-                                    if (item.pendente) ...[
-                                      const SizedBox(height: 6),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 3,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.amber.withValues(alpha: 0.2),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Text(
-                                          'Aguardando autorização de ${item.emailDependente ?? 'e-mail informado'}',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.copyWith(fontWeight: FontWeight.w600),
-                                        ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.amber.withValues(
+                                        alpha: 0.2,
                                       ),
-                                    ],
-                                  ],
-                                ),
-                                trailing: PopupMenuButton<String>(
-                                  onSelected: (v) =>
-                                      v == 'editar' ? edit(item) : remove(item),
-                                  itemBuilder: (_) => const [
-                                    PopupMenuItem(
-                                      value: 'editar',
-                                      child: Text('Editar'),
+                                      borderRadius: BorderRadius.circular(6),
                                     ),
-                                    PopupMenuItem(
-                                      value: 'remover',
-                                      child: Text('Remover'),
+                                    child: Text(
+                                      'Aguardando autorização de ${item.emailDependente ?? 'e-mail informado'}',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                     ),
-                                  ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                            trailing: PopupMenuButton<String>(
+                              onSelected: (v) =>
+                                  v == 'editar' ? edit(item) : remove(item),
+                              itemBuilder: (_) => const [
+                                PopupMenuItem(
+                                  value: 'editar',
+                                  child: Text('Editar'),
                                 ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (item.pendente)
-                                      Text(
-                                        'Depois de autorizado, você poderá inscrever esta pessoa em campanhas.',
-                                        style: Theme.of(context).textTheme.bodySmall,
-                                      )
-                                    else ...[
+                                PopupMenuItem(
+                                  value: 'remover',
+                                  child: Text('Remover'),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (item.pendente)
+                                  Text(
+                                    'Depois de autorizado, você poderá inscrever esta pessoa em campanhas.',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  )
+                                else ...[
+                                  Text(
+                                    'Campanhas inscritas',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.labelLarge,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  if (campanhas.isEmpty)
                                     Text(
-                                      'Campanhas inscritas',
-                                      style: Theme.of(context).textTheme.labelLarge,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    if (campanhas.isEmpty)
-                                      Text(
-                                        'Nenhuma inscrição em campanha.',
-                                        style: Theme.of(context).textTheme.bodySmall,
-                                      )
-                                    else
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 4,
-                                        children: campanhas
+                                      'Nenhuma inscrição em campanha.',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall,
+                                    )
+                                  else
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 4,
+                                      children: campanhas
                                           .map(
                                             (campanha) => ActionChip(
                                               avatar: const Icon(
@@ -500,32 +544,35 @@ class _DependentesScreenState extends State<DependentesScreen> {
                                                 size: 18,
                                               ),
                                               label: Text(campanha.titulo),
-                                              tooltip: 'Ver informações da campanha',
+                                              tooltip:
+                                                  'Ver informações da campanha',
                                               onPressed: () {
                                                 Navigator.of(ctx).push(
                                                   MaterialPageRoute(
-                                                    builder: (_) => NewsDetailsPage(
-                                                      noticia: campanha,
-                                                      userId: widget.usuarioId,
-                                                    ),
+                                                    builder: (_) =>
+                                                        NewsDetailsPage(
+                                                          noticia: campanha,
+                                                          userId:
+                                                              widget.usuarioId,
+                                                        ),
                                                   ),
                                                 );
                                               },
                                             ),
                                           )
                                           .toList(),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ],
+                                    ),
+                                ],
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
     );
   }
 }

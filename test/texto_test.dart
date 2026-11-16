@@ -6,7 +6,10 @@ void main() {
     test('remove acentos, maiúsculas e espaços sobrando', () {
       expect(Texto.normalizar('  Bragança   Paulista '), 'braganca paulista');
       expect(Texto.normalizar('VACINAÇÃO'), 'vacinacao');
-      expect(Texto.normalizar('Bom Jesus dos Perdões\r\n'), 'bom jesus dos perdoes');
+      expect(
+        Texto.normalizar('Bom Jesus dos Perdões\r\n'),
+        'bom jesus dos perdoes',
+      );
     });
 
     test('trata como iguais as grafias diferentes da mesma cidade', () {

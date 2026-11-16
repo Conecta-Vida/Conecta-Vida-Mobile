@@ -206,9 +206,7 @@ class _NoticiasSecaoMaisState extends State<NoticiasSecaoMais> {
                           style: TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: 12,
-                            color: ehUrgente
-                                ? AppCor.error
-                                : colors.onSurface,
+                            color: ehUrgente ? AppCor.error : colors.onSurface,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

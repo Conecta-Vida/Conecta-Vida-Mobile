@@ -49,7 +49,9 @@ class _AutorizacoesScreenState extends State<AutorizacoesScreen> {
       final confirmou = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text(acao == 'recusar' ? 'Recusar pedido?' : 'Revogar autorização?'),
+          title: Text(
+            acao == 'recusar' ? 'Recusar pedido?' : 'Revogar autorização?',
+          ),
           content: Text(
             acao == 'recusar'
                 ? '${convite.titularNome} não poderá inscrever você em campanhas.'
@@ -171,7 +173,9 @@ class _AutorizacoesScreenState extends State<AutorizacoesScreen> {
               children: [
                 CircleAvatar(
                   child: Icon(
-                    convite.pendente ? Icons.mark_email_unread_outlined : Icons.verified_user,
+                    convite.pendente
+                        ? Icons.mark_email_unread_outlined
+                        : Icons.verified_user,
                   ),
                 ),
                 const SizedBox(width: 12),

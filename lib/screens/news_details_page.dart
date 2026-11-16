@@ -111,8 +111,9 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
     }
 
     try {
-      final inscricoes =
-          await SupabaseService.fetchInscritosCampanha(widget.noticia.id!);
+      final inscricoes = await SupabaseService.fetchInscritosCampanha(
+        widget.noticia.id!,
+      );
       final minhas = inscricoes
           .where((item) => '${item['usuario_id'] ?? ''}' == '${widget.userId}')
           .toList();
@@ -129,9 +130,7 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
     // inscrito ainda pode abrir o diálogo para cancelar.
     if (widget.noticia.encerrada && _inscricoesUsuario.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Esta campanha já foi encerrada.'),
-        ),
+        const SnackBar(content: Text('Esta campanha já foi encerrada.')),
       );
       return;
     }
@@ -202,8 +201,9 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
         });
       }
 
-      final chavesDisponiveis =
-          participantes.map((item) => item['chave'] as String).toSet();
+      final chavesDisponiveis = participantes
+          .map((item) => item['chave'] as String)
+          .toSet();
       for (final inscricao in _inscricoesUsuario) {
         final dependenteId = _idComoInt(inscricao['dependente_id']);
         if (dependenteId == null) continue;
@@ -213,16 +213,14 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
         participantes.add({
           'chave': chave,
           'nome': (inscricao['participante_nome'] ?? 'Dependente').toString(),
-          'parentesco':
-              (inscricao['parentesco'] ?? 'Cadastro indisponível').toString(),
+          'parentesco': (inscricao['parentesco'] ?? 'Cadastro indisponível')
+              .toString(),
           'dependente_id': dependenteId,
         });
         chavesDisponiveis.add(chave);
       }
 
-      final selecionados = _inscricoesUsuario
-          .map(_chaveParticipante)
-          .toSet();
+      final selecionados = _inscricoesUsuario.map(_chaveParticipante).toSet();
 
       final escolhidos = await showDialog<Set<String>>(
         context: context,
@@ -387,11 +385,7 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
               color: colors.surface.withValues(alpha: 0.92),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.arrow_back,
-              color: colors.onSurface,
-              size: 20,
-            ),
+            child: Icon(Icons.arrow_back, color: colors.onSurface, size: 20),
           ),
           onPressed: () => Navigator.pop(context),
         ),
@@ -548,9 +542,7 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                     decoration: BoxDecoration(
                       color: colors.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: colors.outlineVariant,
-                      ),
+                      border: Border.all(color: colors.outlineVariant),
                     ),
                     child: Column(
                       children: [
@@ -566,7 +558,9 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                               ? null
                               : _processandoCampanha
                               ? Icons.hourglass_top
-                              : (_inscricoesUsuario.isNotEmpty ? Icons.alarm_on : Icons.add_alarm),
+                              : (_inscricoesUsuario.isNotEmpty
+                                    ? Icons.alarm_on
+                                    : Icons.add_alarm),
                           corAcao: _inscricoesUsuario.isNotEmpty
                               ? AppCor.catVacinacao
                               : AppCor.catDoacoes,
@@ -577,16 +571,24 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                         const Divider(height: 1),
                         NoticiasInfoBotao(
                           icone: Icons.location_on,
-                          titulo: 'Local (Toque para abrir)',
-                          valor: widget.noticia.local,
+                          titulo: widget.noticia.localEhCidade
+                              ? 'Local (Toque para abrir)'
+                              : 'Abrangência',
+                          valor: widget.noticia.abrangenciaGeral
+                              ? 'Todas as cidades'
+                              : widget.noticia.local,
                           iconeAcao: Icons.map_outlined,
                           corAcao: AppCor.primary,
-                          aoClicar: () => _abrirLink(
-                            Uri.https('www.google.com', '/maps/search/', {
-                              'api': '1',
-                              'query': widget.noticia.local,
-                            }),
-                          ),
+                          // "Brasil" ou "Estado de SP" não são um ponto no mapa.
+                          aoClicar: widget.noticia.localEhCidade
+                              ? () => _abrirLink(
+                                  Uri.https('www.google.com', '/maps/search/', {
+                                    'api': '1',
+                                    'query':
+                                        '${widget.noticia.local.trim()}, SP',
+                                  }),
+                                )
+                              : null,
                         ),
                         const Divider(height: 1),
                         NoticiasInfoBotao(
@@ -659,7 +661,9 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                       child: TextButton.icon(
                         onPressed: () => _abrirLink(_fonte!),
                         icon: const Icon(Icons.open_in_new, size: 18),
-                        label: Text('Ler a notícia completa em ${_fonte!.host}'),
+                        label: Text(
+                          'Ler a notícia completa em ${_fonte!.host}',
+                        ),
                       ),
                     ),
                   ],

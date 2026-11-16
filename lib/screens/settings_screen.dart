@@ -21,6 +21,17 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  bool _temConvites = false;
+
+  Future<void> _verificarConvites() async {
+    try {
+      final convites = await SupabaseService.fetchConvitesDeDependente();
+      if (mounted && convites.isNotEmpty) setState(() => _temConvites = true);
+    } catch (_) {
+      // Sem conexão: a opção continua escondida.
+    }
+  }
+
   // Estado do formulário de Conta
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nomeController;
@@ -41,6 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
+    _verificarConvites();
     // Inicializa campos de texto com os dados do usuário atual
     final usuario = context.read<UsuarioProvider>().usuario!;
     _nomeController = TextEditingController(text: usuario.nome);
@@ -168,7 +180,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('Cancelar', style: TextStyle(color: Theme.of(ctx).colorScheme.onSurfaceVariant)),
+            child: Text(
+              'Cancelar',
+              style: TextStyle(
+                color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -291,32 +308,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ListTile(
                 leading: const Icon(Icons.family_restroom),
                 title: const Text('Meus Dependentes'),
-                subtitle: const Text('Adicione e gerencie pessoas para inscrevê-las em campanhas'),
+                subtitle: const Text(
+                  'Adicione e gerencie pessoas para inscrevê-las em campanhas',
+                ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   final usuarioId = context.read<UsuarioProvider>().usuario!.id;
                   if (usuarioId == null) return;
-                  Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => DependentesScreen(usuarioId: usuarioId),
-                  ));
-                },
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.verified_user_outlined),
-                title: const Text('Autorizações'),
-                subtitle: const Text(
-                  'Pedidos para incluir você como dependente de outra conta',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => const AutorizacoesScreen(),
+                      builder: (_) => DependentesScreen(usuarioId: usuarioId),
                     ),
                   );
                 },
               ),
+              // Só aparece quando um adulto foi cadastrado como dependente
+              // de outra conta e precisa autorizar (ou já autorizou) o vínculo.
+              if (_temConvites) ...[
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.verified_user_outlined),
+                  title: const Text('Autorizações'),
+                  subtitle: const Text(
+                    'Pedidos para incluir você como dependente de outra conta',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const AutorizacoesScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ]),
             const SizedBox(height: 24),
 
@@ -423,7 +448,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ListTile(
                 title: Text(
                   'E-mail (Não editável)',
-                  style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
+                  style: TextStyle(
+                    color: colors.onSurfaceVariant,
+                    fontSize: 13,
+                  ),
                 ),
                 subtitle: Text(
                   context.watch<UsuarioProvider>().usuario!.email,
