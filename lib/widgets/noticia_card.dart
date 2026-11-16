@@ -1,5 +1,6 @@
 // lib/components/news_card.dart
 import 'package:flutter/material.dart';
+import '../global/appCor.dart';
 import '../accessibility/accessibility_palette.dart';
 import '../models/noticia.dart';
 import '../screens/news_details_page.dart';
@@ -22,6 +23,15 @@ class NoticiaCard extends StatelessWidget {
     final String imagePath = noticia.imagem.trim();
     final bool hasImage = imagePath.isNotEmpty;
     final bool isNetworkImage = hasImage && imagePath.startsWith('http');
+
+    // Cada tipo tem cor e ícone próprios, para ser reconhecido de relance
+    // (e sem depender só da cor).
+    final (Color corDoTipo, IconData iconeDoTipo) = switch (noticia.tag
+        .toUpperCase()) {
+      'ALERTA' => (AppCor.error, Icons.warning_amber_rounded),
+      'CAMPANHA' => (const Color(0xFF00897B), Icons.campaign_outlined),
+      _ => (const Color(0xFF1E88E5), Icons.article_outlined),
+    };
 
     return GestureDetector(
       onTap: () {
@@ -113,16 +123,23 @@ class NoticiaCard extends StatelessWidget {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
+                          color: corDoTipo.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(
-                          noticia.tag,
-                          style: const TextStyle(
-                            color: Color(0xFF1E88E5),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(iconeDoTipo, size: 14, color: corDoTipo),
+                            const SizedBox(width: 4),
+                            Text(
+                              noticia.tipoLegivel,
+                              style: TextStyle(
+                                color: corDoTipo,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       if (noticia.encerrada)
@@ -151,7 +168,7 @@ class NoticiaCard extends StatelessWidget {
                         ),
                       const Spacer(),
                       Text(
-                        noticia.data,
+                        noticia.dataLegivel,
                         style: TextStyle(
                           color: colors.onSurfaceVariant,
                           fontSize: 12,

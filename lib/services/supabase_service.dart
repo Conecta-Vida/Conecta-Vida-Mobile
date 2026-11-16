@@ -23,6 +23,9 @@ class SupabaseService {
   /// Página (hospedada no Netlify) aberta pelo link do e-mail de recuperação.
   static String urlRedefinirSenha = '';
 
+  /// Página aberta pelo link do e-mail de confirmação do cadastro.
+  static String urlEmailConfirmado = '';
+
   static final http.Client _httpClient = http.Client();
   static SupabaseClient get _db => Supabase.instance.client;
 
@@ -75,6 +78,12 @@ class SupabaseService {
     if (m.contains('already registered') || m.contains('already been registered')) {
       return 'Este e-mail já está cadastrado.';
     }
+    if (m.contains('is invalid') || e.code == 'email_address_invalid') {
+      return 'Este e-mail não foi aceito. Confira se digitou o endereço certo.';
+    }
+    if (m.contains('not authorized') || m.contains('error sending')) {
+      return 'Não foi possível enviar o e-mail agora. Tente de novo mais tarde.';
+    }
     if (m.contains('password should be')) {
       return 'A senha deve ter pelo menos 6 caracteres.';
     }
@@ -125,11 +134,15 @@ class SupabaseService {
     }
   }
 
-  static Future<void> signUp(UserModel usuario, String senha) async {
+  /// Cria a conta. Devolve `true` quando o cadastro ficou aguardando a
+  /// confirmação do e-mail (o usuário ainda não pode entrar).
+  static Future<bool> signUp(UserModel usuario, String senha) async {
     try {
       final resposta = await _db.auth.signUp(
         email: usuario.email.trim(),
         password: senha.trim(),
+        // Página aberta pelo link do e-mail de confirmação.
+        emailRedirectTo: urlEmailConfirmado.isEmpty ? null : urlEmailConfirmado,
         // O banco cria o perfil a partir destes dados; a permissão nunca
         // vem do aplicativo.
         data: {
@@ -145,16 +158,28 @@ class SupabaseService {
       if (resposta.user?.identities?.isEmpty ?? false) {
         throw Exception('Este e-mail já está cadastrado.');
       }
-      if (resposta.session == null) {
-        throw Exception(
-          'Conta criada! Confirme o e-mail enviado para '
-          '${usuario.email.trim()} e depois faça login.',
-        );
-      }
+      return resposta.session == null;
     } on AuthException catch (e) {
       throw Exception(_mensagemAuth(e));
     }
   }
+
+  /// Envia de novo o e-mail de confirmação do cadastro.
+  static Future<void> reenviarConfirmacao(String email) async {
+    try {
+      await _db.auth.resend(
+        type: OtpType.signup,
+        email: email.trim(),
+        emailRedirectTo: urlEmailConfirmado.isEmpty ? null : urlEmailConfirmado,
+      );
+    } on AuthException catch (e) {
+      throw Exception(_mensagemAuth(e));
+    }
+  }
+
+  /// O login falhou porque o e-mail ainda não foi confirmado?
+  static bool ehErroDeEmailNaoConfirmado(Object erro) =>
+      erro.toString().contains('Confirme seu e-mail');
 
   static Future<UserModel> signIn(String email, String senha) async {
     try {
@@ -658,13 +683,38 @@ class SupabaseService {
   // Dependentes
   // ------------------------------------------------------------------
 
-  static Future<List<DependenteModel>> fetchDependentes(int usuarioId) async {
-    final linhas = await _db
+  /// Mensagem do banco (regras de dependentes) sem o jargão técnico.
+  static Exception _erroDoBanco(Object erro, String contexto) {
+    if (erro is PostgrestException) {
+      final negado =
+          erro.code == '42501' ||
+          erro.message.contains('row-level security');
+      return Exception(
+        negado ? '$contexto: operação não permitida.' : erro.message,
+      );
+    }
+    return Exception('$contexto: $erro');
+  }
+
+  /// Dependentes da conta. Com [somenteAtivos], só os que já podem ser
+  /// inscritos em campanhas (vínculo autorizado); sem ele, inclui os que
+  /// aguardam a autorização do dependente adulto.
+  static Future<List<DependenteModel>> fetchDependentes(
+    int usuarioId, {
+    bool somenteAtivos = false,
+  }) async {
+    var consulta = _db
         .from('dependentes')
-        .select('id, nome_completo, data_nascimento, parentesco, sexo')
-        .eq('usuario_titular_id', usuarioId)
-        .eq('ativo', true)
-        .order('nome_completo');
+        .select(
+          'id, nome_completo, data_nascimento, parentesco, sexo, status, '
+          'email_dependente, declarou_responsabilidade',
+        )
+        .eq('usuario_titular_id', usuarioId);
+    consulta = somenteAtivos
+        ? consulta.eq('status', 'ativo')
+        : consulta.neq('status', 'revogado');
+
+    final linhas = await consulta.order('nome_completo');
     return linhas
         .map((e) => DependenteModel.fromMap(Map<String, dynamic>.from(e)))
         .toList();
@@ -680,20 +730,53 @@ class SupabaseService {
     };
   }
 
+  /// O banco decide a situação do vínculo: ativo (menor/tutelado, com a
+  /// declaração do responsável) ou pendente (adulto, até ele autorizar).
   static Future<void> criarDependente(int usuarioId, DependenteModel item) async {
-    await _db.from('dependentes').insert({
-      'usuario_titular_id': usuarioId,
-      ..._dependenteParaBanco(item),
-    });
+    try {
+      await _db.from('dependentes').insert({
+        'usuario_titular_id': usuarioId,
+        ..._dependenteParaBanco(item),
+        'email_dependente': item.emailDependente,
+        'declarou_responsabilidade': item.declarouResponsabilidade,
+      });
+    } catch (e) {
+      throw _erroDoBanco(e, 'Não foi possível cadastrar o dependente');
+    }
   }
 
   static Future<void> atualizarDependente(int usuarioId, DependenteModel item) async {
     if (item.id == null) throw Exception('ID do dependente ausente.');
-    await _db
-        .from('dependentes')
-        .update(_dependenteParaBanco(item))
-        .eq('id', item.id!)
-        .eq('usuario_titular_id', usuarioId);
+    try {
+      await _db
+          .from('dependentes')
+          .update(_dependenteParaBanco(item))
+          .eq('id', item.id!)
+          .eq('usuario_titular_id', usuarioId);
+    } catch (e) {
+      throw _erroDoBanco(e, 'Não foi possível salvar o dependente');
+    }
+  }
+
+  /// Pedidos para a conta logada ser dependente de alguém, e vínculos que
+  /// ela já autorizou (para poder revogar).
+  static Future<List<ConviteDependente>> fetchConvitesDeDependente() async {
+    final linhas = await _db.rpc('meus_convites_de_dependente') as List;
+    return linhas
+        .map((e) => ConviteDependente.fromMap(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
+  /// [acao]: `autorizar`, `recusar` (pedido pendente) ou `revogar` (vínculo ativo).
+  static Future<void> responderConviteDeDependente(int id, String acao) async {
+    try {
+      await _db.rpc(
+        'responder_convite_dependente',
+        params: {'p_dependente_id': id, 'p_acao': acao},
+      );
+    } catch (e) {
+      throw _erroDoBanco(e, 'Não foi possível registrar a resposta');
+    }
   }
 
   /// Remoção lógica: o histórico de inscrições do dependente é preservado.

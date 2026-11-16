@@ -33,6 +33,7 @@ Future<void> main() async {
     SupabaseService.supabaseKey,
   );
   SupabaseService.urlRedefinirSenha = ApiConfig.urlRedefinirSenha();
+  SupabaseService.urlEmailConfirmado = ApiConfig.urlEmailConfirmado();
   await SupabaseService.init();
   debugPrint('🌐 Supabase: ${SupabaseService.supabaseUrl}');
 

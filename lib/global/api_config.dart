@@ -31,6 +31,18 @@ class ApiConfig {
       ? _chaveNoBuild
       : (_doEnv('SUPABASE_PUBLISHABLE_KEY') ?? padrao);
 
+  /// Página aberta pelo link do e-mail de confirmação de cadastro. Por padrão
+  /// fica no mesmo site da página de redefinição de senha.
+  static String urlEmailConfirmado() {
+    const noBuild = String.fromEnvironment('EMAIL_CONFIRM_URL');
+    if (noBuild.isNotEmpty) return noBuild;
+    final doEnv = _doEnv('EMAIL_CONFIRM_URL');
+    if (doEnv != null) return doEnv;
+    final redefinir = Uri.tryParse(urlRedefinirSenha());
+    if (redefinir == null || !redefinir.hasAuthority) return '';
+    return redefinir.replace(path: '/email-confirmado').toString();
+  }
+
   /// Página que recebe o link do e-mail de recuperação de senha.
   static String urlRedefinirSenha() =>
       _resetNoBuild.isNotEmpty ? _resetNoBuild : (_doEnv('PASSWORD_RESET_URL') ?? '');

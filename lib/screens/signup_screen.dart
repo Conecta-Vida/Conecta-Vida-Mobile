@@ -6,6 +6,7 @@ import '../global/appCor.dart';
 import '../models/usuario.dart';
 import '../providers/usuario_provider.dart';
 import '../services/supabase_service.dart';
+import 'confirmar_email_screen.dart';
 import 'news_page.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -124,8 +125,22 @@ class _SignupScreenState extends State<SignupScreen> {
 
         String senhaDigitada = _senhaController.text.trim();
 
-        // 2. Manda o Java salvar no banco (O Java vai gerar o ID 32, por exemplo)
-        await SupabaseService.signUp(usuarioLocal, senhaDigitada);
+        // 2. Cria a conta no Supabase Auth (o banco cria o perfil).
+        final aguardandoConfirmacao = await SupabaseService.signUp(
+          usuarioLocal,
+          senhaDigitada,
+        );
+        if (aguardandoConfirmacao) {
+          // O e-mail precisa ser confirmado antes do primeiro acesso.
+          if (!mounted) return;
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) =>
+                  ConfirmarEmailScreen(email: usuarioLocal.email),
+            ),
+          );
+          return;
+        }
 
         // 3. Faz login automático por baixo dos panos para ganhar o Token JWT
         await SupabaseService.signIn(usuarioLocal.email, senhaDigitada);
@@ -147,20 +162,12 @@ class _SignupScreenState extends State<SignupScreen> {
         );
       } catch (error) {
         if (!mounted) return;
-        final mensagem = error.toString().replaceAll('Exception: ', '');
-        // Conta criada, mas aguardando o clique no e-mail de confirmação:
-        // não é um erro; volta para o login com a orientação.
-        final aguardandoConfirmacao = mensagem.startsWith('Conta criada');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(mensagem),
-            backgroundColor: aguardandoConfirmacao
-                ? AppCor.primary
-                : AppCor.error,
-            duration: Duration(seconds: aguardandoConfirmacao ? 8 : 4),
+            content: Text(error.toString().replaceAll('Exception: ', '')),
+            backgroundColor: AppCor.error,
           ),
         );
-        if (aguardandoConfirmacao) Navigator.of(context).pop();
       }
     }
   }
