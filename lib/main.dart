@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -49,9 +48,8 @@ Future<void> main() async {
     ),
   );
 
-  // O push não deve atrasar o primeiro frame do aplicativo. A inicialização
-  // do Firebase, a obtenção do token e o registro no banco acontecem em segundo
-  // plano depois que a interface já pode ser exibida.
+  // Notificações locais (alertas novos chegam em tempo real pelo Supabase).
+  // Não atrasam o primeiro frame do aplicativo.
   if (!kIsWeb) {
     unawaited(_inicializarNotificacoesPush());
   }
@@ -59,10 +57,9 @@ Future<void> main() async {
 
 Future<void> _inicializarNotificacoesPush() async {
   try {
-    await Firebase.initializeApp();
     await PushNotificationService.inicializar();
   } catch (e) {
-    debugPrint('⚠️ Push notifications indisponíveis: $e');
+    debugPrint('⚠️ Notificações indisponíveis: $e');
   }
 }
 
@@ -276,12 +273,48 @@ class ConectaVidaApp extends StatelessWidget {
                 disableAnimations:
                     preferences.reduceMotion || media.disableAnimations,
               ),
-              child: child ?? const SizedBox.shrink(),
+              child: _MolduraDesktop(child: child ?? const SizedBox.shrink()),
             );
           },
           home: const SplashScreen(),
         );
       },
+    );
+  }
+}
+
+/// No computador (navegador largo), o app aparece centralizado com largura de
+/// celular, sobre um fundo neutro, em vez de esticar campos e cartões pela
+/// tela inteira. No celular nada muda.
+class _MolduraDesktop extends StatelessWidget {
+  final Widget child;
+  const _MolduraDesktop({required this.child});
+
+  static const _larguraMaxima = 480.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final largura = MediaQuery.sizeOf(context).width;
+    if (largura <= _larguraMaxima + 120) return child;
+
+    final escuro = Theme.of(context).brightness == Brightness.dark;
+    return ColoredBox(
+      color: escuro ? const Color(0xFF0B0B0F) : const Color(0xFFE8EBF7),
+      child: Center(
+        child: Container(
+          width: _larguraMaxima,
+          decoration: BoxDecoration(
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 32,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: ClipRect(child: child),
+        ),
+      ),
     );
   }
 }

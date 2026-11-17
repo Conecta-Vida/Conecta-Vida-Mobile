@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../accessibility/accessibility_palette.dart';
 import '../global/appCor.dart';
@@ -136,6 +137,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         dataNascimento: int.tryParse(_idadeController.text.trim()),
         sexo: _sexo,
         localizacao: _cidadeController.text.trim(),
+        permissao: usuarioAtual.permissao,
       );
 
       await SupabaseService.upsertUsuario(userAtt);
@@ -342,6 +344,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                 ),
               ],
+            ]),
+            const SizedBox(height: 24),
+
+            // Atalho para o painel web, só para administradores.
+            if (context.watch<UsuarioProvider>().usuario?.ehAdministrador ??
+                false) ...[
+              _buildSecaoTitulo('ADMINISTRAÇÃO'),
+              _buildContainerGrupo([
+                ListTile(
+                  leading: const Icon(Icons.admin_panel_settings_outlined),
+                  title: const Text('Painel administrativo'),
+                  subtitle: const Text(
+                    'Publicar campanhas, alertas e notícias e gerenciar usuários',
+                  ),
+                  trailing: const Icon(Icons.open_in_new),
+                  onTap: () => _abrirSite(SupabaseService.urlPainelAdmin),
+                ),
+              ]),
+              const SizedBox(height: 24),
+            ],
+
+            _buildSecaoTitulo('SOBRE'),
+            _buildContainerGrupo([
+              ListTile(
+                leading: const Icon(Icons.privacy_tip_outlined),
+                title: const Text('Política de privacidade'),
+                subtitle: const Text('Quais dados usamos e por quê (LGPD)'),
+                trailing: const Icon(Icons.open_in_new),
+                onTap: () =>
+                    _abrirSite('${SupabaseService.urlPainelAdmin}/privacidade'),
+              ),
             ]),
             const SizedBox(height: 24),
 
@@ -626,6 +659,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _abrirSite(String endereco) async {
+    final abriu = await launchUrl(
+      Uri.parse(endereco),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!abriu && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível abrir o site.')),
+      );
+    }
   }
 
   Widget _buildContainerGrupo(List<Widget> children) {

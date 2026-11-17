@@ -1,4 +1,4 @@
-package com.example.mobile_app
+package br.edu.ifsp.conectavida
 
 import io.flutter.embedding.android.FlutterActivity
 

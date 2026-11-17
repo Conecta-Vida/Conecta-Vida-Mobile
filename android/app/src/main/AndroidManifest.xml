@@ -44,24 +44,6 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- FCM: canal de notificação padrão -->
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="ifsp_channel" />
-
-        <!-- FCM: ícone e cor padrão da notificação -->
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@drawable/ifsp_logo" />
-
-        <!-- FCM: serviço de background que recebe mensagens -->
-        <service
-            android:name="com.google.firebase.messaging.FirebaseMessagingService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

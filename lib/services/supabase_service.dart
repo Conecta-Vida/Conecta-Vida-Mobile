@@ -99,6 +99,10 @@ class SupabaseService {
     return e.message;
   }
 
+  /// Site do painel administrativo (também hospeda a política de privacidade
+  /// e a página de exclusão de conta exigidas pela Play Store).
+  static const urlPainelAdmin = 'https://conecta-vida-admin.netlify.app';
+
   static UserModel _usuarioDeLinha(Map<String, dynamic> linha) => UserModel(
     id: (linha['id'] as num?)?.toInt(),
     nome: (linha['nome'] ?? '').toString(),
@@ -106,6 +110,7 @@ class SupabaseService {
     dataNascimento: (linha['data_nascimento'] as num?)?.toInt(),
     sexo: (linha['sexo'] ?? 'Não informado').toString(),
     localizacao: (linha['localizacao'] ?? 'Não informado').toString(),
+    permissao: (linha['permissao'] ?? 'Usuário Comum').toString(),
   );
 
   /// Lê o perfil da conta logada e prepara push e tempo real.

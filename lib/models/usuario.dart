@@ -6,6 +6,11 @@ class UserModel {
   final String sexo;
   final String localizacao;
 
+  /// "Administrador" ou "Usuário Comum".
+  final String permissao;
+
+  bool get ehAdministrador => permissao.toLowerCase() == 'administrador';
+
   const UserModel({
     this.id,
     required this.nome,
@@ -13,6 +18,7 @@ class UserModel {
     this.dataNascimento,
     required this.sexo,
     required this.localizacao,
+    this.permissao = 'Usuário Comum',
   });
 
   Map<String, dynamic> toMap({String senha = ''}) {
@@ -38,6 +44,7 @@ class UserModel {
           : (map['idade'] is int ? map['idade'] : null),
       sexo: map['sexo'] ?? '',
       localizacao: map['localizacao'] ?? '',
+      permissao: map['permissao'] ?? 'Usuário Comum',
     );
   }
 }

@@ -269,6 +269,17 @@ class _SignupScreenState extends State<SignupScreen> {
                   if (data == null) {
                     return 'Digite uma data válida no formato DD/MM/AAAA';
                   }
+                  // Contas são para maiores de 18 anos; menores entram como
+                  // dependentes de um responsável (política de privacidade).
+                  final hoje = DateTime.now();
+                  var idade = hoje.year - data.year;
+                  if (hoje.month < data.month ||
+                      (hoje.month == data.month && hoje.day < data.day)) {
+                    idade--;
+                  }
+                  if (idade < 18) {
+                    return 'É preciso ter 18 anos. Menores entram como dependentes de um responsável.';
+                  }
                   return null;
                 },
               ),
