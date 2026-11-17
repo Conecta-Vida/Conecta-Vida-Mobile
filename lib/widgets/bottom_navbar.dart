@@ -42,8 +42,11 @@ class CustomBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Normalmente zero: o app já reserva o espaço dos botões do sistema
+    // (main.dart). Fica aqui caso a barra seja usada fora desse cuidado.
+    final espacoDoSistema = MediaQuery.paddingOf(context).bottom;
     return Container(
-      height: 70,
+      padding: EdgeInsets.only(bottom: espacoDoSistema),
       decoration: BoxDecoration(
         color: AccessibilityPalette.surface(context),
         boxShadow: [
@@ -54,15 +57,19 @@ class CustomBottomNavBar extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: List.generate(
-          _items.length,
-          (index) => _buildNavItem(
-            context,
-            _items[index]['active'] as IconData,
-            _items[index]['inactive'] as IconData,
-            index,
+      child: SizedBox(
+        height: 66,
+        child: Row(
+          children: List.generate(
+            _items.length,
+            (index) => Expanded(
+              child: _buildNavItem(
+                context,
+                _items[index]['active'] as IconData,
+                _items[index]['inactive'] as IconData,
+                index,
+              ),
+            ),
           ),
         ),
       ),
@@ -75,29 +82,48 @@ class CustomBottomNavBar extends StatelessWidget {
     IconData inactiveIcon,
     int index,
   ) {
-    bool isSelected = currentIndex == index;
+    final isSelected = currentIndex == index;
+    final cor = isSelected
+        ? AppCor.primary
+        : Theme.of(context).colorScheme.onSurfaceVariant;
+    final rotulo = _items[index]['label'] as String;
     return Semantics(
-      label: _items[index]['label'] as String,
+      label: rotulo,
       button: true,
       selected: isSelected,
-      child: Tooltip(
-        message: _items[index]['label'] as String,
-        child: GestureDetector(
-          onTap: () => onTap(index),
-          behavior: HitTestBehavior.opaque,
-          child: SizedBox(
-            width: 48,
-            height: 48,
-            child: Center(
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: () => onTap(index),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppCor.primary.withValues(alpha: 0.12)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Icon(
                 isSelected ? activeIcon : inactiveIcon,
-                color: isSelected
-                    ? AppCor.primary
-                    : Theme.of(context).colorScheme.onSurfaceVariant,
-                size: 28,
+                color: cor,
+                size: 24,
               ),
             ),
-          ),
+            const SizedBox(height: 4),
+            Text(
+              rotulo,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                color: cor,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
     );
