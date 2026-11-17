@@ -12,6 +12,7 @@ import '../global/appCor.dart';
 import '../global/texto.dart';
 import '../controllers/noticia_controller.dart';
 import '../models/noticia.dart';
+import '../models/usuario.dart';
 import '../providers/usuario_provider.dart';
 import '../services/push_notification_service.dart';
 import '../services/supabase_service.dart';
@@ -56,6 +57,72 @@ class _HomeScreenState extends State<HomeScreen> {
       _aoPublicarComunicacao,
     );
     _avisarPedidosDeAutorizacao();
+    _atualizarCidadePeloGps();
+  }
+
+  /// Com o GPS ligado nos Ajustes, mantém a cidade do perfil igual à cidade
+  /// onde a pessoa está (no máximo uma vez por dia). É dela que dependem o
+  /// filtro de notícias, os recomendados, os alertas da cidade, as unidades de
+  /// saúde e o monitoramento automático de dengue.
+  Future<void> _atualizarCidadePeloGps() async {
+    if (kIsWeb) return; // no navegador o GPS pede permissão a cada visita
+    try {
+      final box = Hive.isBoxOpen('preferencias')
+          ? Hive.box('preferencias')
+          : await Hive.openBox('preferencias');
+      if (box.get('usar_gps', defaultValue: true) != true) return;
+      final hoje = DateTime.now().toIso8601String().substring(0, 10);
+      if (box.get('cidade_gps_verificada_em') == hoje) return;
+
+      if (!await Geolocator.isLocationServiceEnabled()) return;
+      var permissao = await Geolocator.checkPermission();
+      if (permissao == LocationPermission.denied) {
+        permissao = await Geolocator.requestPermission();
+      }
+      if (permissao != LocationPermission.whileInUse &&
+          permissao != LocationPermission.always) {
+        return;
+      }
+      final posicao = await Geolocator.getCurrentPosition().timeout(
+        const Duration(seconds: 15),
+      );
+      final local = await SupabaseService.fetchLocalFromCoords(
+        posicao.latitude,
+        posicao.longitude,
+      );
+      await box.put('cidade_gps_verificada_em', hoje);
+      if (local == null || !mounted) return;
+
+      final provider = context.read<UsuarioProvider>();
+      final atual = provider.usuario;
+      if (atual == null ||
+          Texto.normalizar(atual.localizacao) ==
+              Texto.normalizar(local.cidade)) {
+        return;
+      }
+      final atualizado = UserModel(
+        id: atual.id,
+        nome: atual.nome,
+        email: atual.email,
+        dataNascimento: atual.dataNascimento,
+        sexo: atual.sexo,
+        localizacao: local.cidade,
+        permissao: atual.permissao,
+      );
+      await SupabaseService.upsertUsuario(atualizado);
+      if (!mounted) return;
+      provider.setUsuario(atualizado);
+      await _carregarFiltrosSalvos();
+      _refreshNoticias();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Sua cidade foi atualizada para ${local.cidade}.'),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Cidade pelo GPS indisponível: $e');
+    }
   }
 
   /// Se alguém pediu para incluir este usuário como dependente, avisa ao
