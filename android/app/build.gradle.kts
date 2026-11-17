@@ -1,13 +1,23 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services")
+}
+
+// Chave de assinatura da Play Store: lida de android/key.properties, que NUNCA
+// vai para o GitHub (ver android/key.properties.exemplo e PUBLICAR_NA_PLAY_STORE.md).
+val propriedadesDaChave = Properties()
+val arquivoDaChave = rootProject.file("key.properties")
+if (arquivoDaChave.exists()) {
+    propriedadesDaChave.load(FileInputStream(arquivoDaChave))
 }
 
 android {
-    namespace = "com.example.mobile_app"
+    namespace = "br.edu.ifsp.conectavida"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -22,21 +32,34 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.mobile_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        // Identificador único na Play Store (não pode mudar depois de publicado).
+        applicationId = "br.edu.ifsp.conectavida"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            if (arquivoDaChave.exists()) {
+                keyAlias = propriedadesDaChave["keyAlias"] as String
+                keyPassword = propriedadesDaChave["keyPassword"] as String
+                storeFile = file(propriedadesDaChave["storeFile"] as String)
+                storePassword = propriedadesDaChave["storePassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Com android/key.properties: assinatura oficial (Play Store).
+            // Sem ele: chave de teste, só para instalar direto no celular.
+            signingConfig = if (arquivoDaChave.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

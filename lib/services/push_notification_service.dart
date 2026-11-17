@@ -1,19 +1,12 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
 
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive/hive.dart';
 import 'supabase_service.dart';
 
-@pragma('vm:entry-point')
-Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
-  developer.log(
-    'Push recebido em background: ${message.notification?.title}',
-    name: 'FCM',
-  );
-}
-
+/// Notificações locais do aparelho. Os alertas de saúde chegam em tempo real
+/// pelo Supabase (Realtime) enquanto o app está aberto e viram notificação aqui.
 class PushNotificationService {
   static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
@@ -44,8 +37,6 @@ class PushNotificationService {
 
   /// Inicializar nas plataformas nativas antes do runApp.
   static Future<void> inicializar() async {
-    FirebaseMessaging.onBackgroundMessage(firebaseBackgroundHandler);
-
     const androidSettings = AndroidInitializationSettings(
       '@drawable/ifsp_logo',
     );
@@ -67,33 +58,6 @@ class PushNotificationService {
           AndroidFlutterLocalNotificationsPlugin
         >()
         ?.createNotificationChannel(_canal);
-
-    final messaging = FirebaseMessaging.instance;
-    await messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      criticalAlert: true,
-    );
-
-    final token = await messaging.getToken();
-    if (token != null) {
-      developer.log('Token FCM obtido.', name: 'FCM');
-      await SupabaseService.registrarTokenPush(token);
-    }
-
-    messaging.onTokenRefresh.listen(SupabaseService.registrarTokenPush);
-
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      await _exibirNotificacaoLocal(message);
-    });
-
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      developer.log(
-        'App aberto por push: ${message.notification?.title}',
-        name: 'FCM',
-      );
-    });
   }
 
   static Future<bool> _notificacoesAtivas() async {
@@ -108,19 +72,6 @@ class PushNotificationService {
       developer.log('Erro ao ler preferências de push: $e', name: 'FCM');
       return true;
     }
-  }
-
-  static Future<void> _exibirNotificacaoLocal(RemoteMessage message) async {
-    if (!await _notificacoesAtivas()) return;
-
-    final notification = message.notification;
-    if (notification == null) return;
-
-    await showNotification(
-      notification.title ?? 'Notificação',
-      notification.body ?? '',
-      payload: jsonEncode(message.data),
-    );
   }
 
   static Future<void> showNotification(

@@ -1,0 +1,5 @@
+# Copie para android/key.properties (NÃO envie esse arquivo para o GitHub).
+storePassword=SENHA_DO_KEYSTORE
+keyPassword=SENHA_DA_CHAVE
+keyAlias=upload
+storeFile=/caminho/para/upload-keystore.jks
