@@ -273,7 +273,19 @@ class ConectaVidaApp extends StatelessWidget {
                 disableAnimations:
                     preferences.reduceMotion || media.disableAnimations,
               ),
-              child: _MolduraDesktop(child: child ?? const SizedBox.shrink()),
+              // Android 15+ desenha o app até a borda: o rodapé de todas as
+              // telas fica acima dos botões/gesto de navegação do sistema.
+              child: _MolduraDesktop(
+                child: ColoredBox(
+                  color: Theme.of(context).colorScheme.surface,
+                  child: SafeArea(
+                    top: false,
+                    left: false,
+                    right: false,
+                    child: child ?? const SizedBox.shrink(),
+                  ),
+                ),
+              ),
             );
           },
           home: const SplashScreen(),
