@@ -55,7 +55,10 @@ class NewsModel {
   }
 
   /// Campanha encerrada pelo painel ou com a data de término já passada.
-  bool get encerrada {
+  bool get encerrada => encerradaEm(DateTime.now());
+
+  /// Mesma regra de [encerrada], com o "hoje" informado (facilita os testes).
+  bool encerradaEm(DateTime hoje) {
     if (!ehCampanha) return false;
     final situacao = status.toUpperCase();
     if (situacao.startsWith('ENCERR') || situacao.startsWith('CONCLU')) {
@@ -64,7 +67,6 @@ class NewsModel {
     if (dataFim.trim().length < 10) return false;
     final fim = DateTime.tryParse(dataFim.trim().substring(0, 10));
     if (fim == null) return false;
-    final hoje = DateTime.now();
     return fim.isBefore(DateTime(hoje.year, hoje.month, hoje.day));
   }
 

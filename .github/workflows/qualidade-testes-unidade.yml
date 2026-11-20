@@ -1,0 +1,61 @@
+# Trabalho 2 de Qualidade de Software: testes de unidade do caso de uso
+# "Inscrever-se em campanha", cobertura (lcov) e diagrama de classes por
+# engenharia reversa (dcdg + PlantUML).
+name: Qualidade - testes de unidade e cobertura
+
+on:
+  push:
+    branches: [ "qualidade/**" ]
+  workflow_dispatch:
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Análise estática
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Testes de unidade com cobertura
+        run: |
+          mkdir -p qualidade/relatorios
+          flutter test --coverage --reporter expanded \
+            --file-reporter json:qualidade/relatorios/testes.json \
+            | tee qualidade/relatorios/testes.txt
+      - name: Relatório de cobertura (lcov/genhtml)
+        if: always()
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lcov
+          lcov --extract coverage/lcov.info \
+            '*/lib/usecases/*' '*/lib/models/inscricao.dart' \
+            '*/lib/models/noticia.dart' '*/lib/models/dependente.dart' \
+            -o qualidade/relatorios/lcov-caso-de-uso.info --ignore-errors unused
+          genhtml qualidade/relatorios/lcov-caso-de-uso.info \
+            -o qualidade/relatorios/cobertura --title "Conecta Vida - Inscrever-se em campanha"
+          lcov --list qualidade/relatorios/lcov-caso-de-uso.info | tee qualidade/relatorios/cobertura.txt
+      - name: Diagrama de classes por engenharia reversa
+        if: always()
+        continue-on-error: true
+        run: |
+          dart pub global activate dcdg
+          export PATH="$PATH:$HOME/.pub-cache/bin"
+          dcdg -s lib/usecases -s lib/models -s test/usecases \
+            -o qualidade/relatorios/classes-dcdg.puml || true
+          python3 qualidade/engenharia_reversa.py \
+            lib/usecases lib/models/inscricao.dart lib/models/noticia.dart \
+            lib/models/dependente.dart lib/services/supabase_inscricao_repository.dart \
+            test/usecases -o qualidade/relatorios/classes.puml
+          curl -sSL -o plantuml.jar https://github.com/plantuml/plantuml/releases/download/v1.2024.7/plantuml-1.2024.7.jar
+          sudo apt-get install -y -qq graphviz
+          java -jar plantuml.jar -tpng qualidade/relatorios/*.puml
+      - name: Publicar relatórios
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-qualidade
+          path: qualidade/relatorios/
