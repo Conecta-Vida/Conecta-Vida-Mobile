@@ -1,0 +1,134 @@
+Resolving dependencies...
+Downloading packages...
+  clock 1.1.2 (1.1.3 available)
+  code_assets 1.0.0 (2.2.0 available)
+  cross_file 0.3.5+2 (0.4.0 available)
+  crypto 3.0.7 (3.0.8 available)
+  dbus 0.7.14 (0.8.1 available)
+  flutter_dotenv 5.2.1 (6.0.2 available)
+  flutter_lints 2.0.3 (6.0.0 available)
+  flutter_local_notifications 17.2.2 (23.0.3 available)
+  flutter_local_notifications_linux 4.0.1 (9.0.0 available)
+  flutter_local_notifications_platform_interface 7.2.0 (13.0.0 available)
+  functions_client 2.6.4 (2.7.1 available)
+  geolocator 9.0.2 (14.1.2 available)
+  geolocator_android 4.6.2 (5.2.1 available)
+  geolocator_apple 2.3.13 (2.4.3 available)
+  geolocator_platform_interface 4.2.6 (4.4.1 available)
+  geolocator_web 2.2.1 (4.1.4 available)
+  geolocator_windows 0.1.3 (0.2.5 available)
+  glob 2.1.3 (2.2.0 available)
+  google_fonts 8.0.2 (9.0.0 available)
+  gotrue 2.26.0 (2.27.3 available)
+  hooks 1.0.2 (2.2.0 available)
+  intl 0.20.2 (0.20.3 available)
+  lints 2.1.1 (6.1.0 available)
+  matcher 0.12.19 (0.12.20 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.18.0 (1.19.0 available)
+  mime 1.0.6 (2.1.0 available)
+  native_toolchain_c 0.17.6 (0.19.6 available)
+  objective_c 9.3.0 (9.6.4 available)
+  path_provider 2.1.5 (2.1.6 available)
+  path_provider_android 2.2.23 (2.3.1 available)
+  path_provider_linux 2.2.1 (2.2.2 available)
+  path_provider_platform_interface 2.1.2 (2.1.3 available)
+  petitparser 7.0.2 (7.1.0 available)
+  platform 3.1.6 (3.2.0 available)
+  postgrest 2.8.0 (2.9.1 available)
+  pub_semver 2.2.0 (2.2.1 available)
+  realtime_client 2.11.0 (2.13.2 available)
+  rxdart 0.27.7 (0.28.0 available)
+  share_plus 12.0.2 (13.3.1 available)
+  share_plus_platform_interface 6.1.0 (7.2.0 available)
+  shared_preferences 2.5.5 (2.5.6 available)
+  shared_preferences_android 2.4.23 (2.5.5 available)
+  shared_preferences_foundation 2.5.6 (2.6.2 available)
+  stack_trace 1.12.1 (1.12.2 available)
+  storage_client 2.6.0 (2.8.1 available)
+  supabase 2.14.0 (2.16.5 available)
+  supabase_flutter 2.16.0 (2.18.3 available)
+  test_api 0.7.11 (0.7.15 available)
+  timezone 0.9.4 (0.11.2 available)
+  url_launcher 6.3.2 (6.3.3 available)
+  url_launcher_android 6.3.29 (6.3.35 available)
+  url_launcher_ios 6.4.1 (6.4.2 available)
+  url_launcher_linux 3.2.2 (3.2.3 available)
+  url_launcher_macos 3.2.5 (3.2.6 available)
+  url_launcher_web 2.4.2 (2.4.3 available)
+  url_launcher_windows 3.1.5 (3.1.6 available)
+  uuid 4.5.3 (4.6.0 available)
+  vector_math 2.2.0 (2.4.4 available)
+  vm_service 15.2.0 (15.4.0 available)
+  web 1.1.1 (1.1.2 available)
+  win32 5.15.0 (6.4.0 available)
+  xml 6.6.1 (7.1.0 available)
+  yaml 3.1.3 (3.1.4 available)
+Got dependencies!
+64 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart
+00:00 +0: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/unidade_saude_test.dart: distância formatada em metros ou quilômetros
+00:00 +1: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.encerrada campanha ativa e dentro do prazo não está encerrada
+00:00 +2: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.encerrada campanha ativa e dentro do prazo não está encerrada
+00:00 +3: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.encerrada campanha ativa e dentro do prazo não está encerrada
+00:00 +4: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.encerrada campanha que termina hoje ainda vale
+00:00 +5: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.encerrada campanha com data de término passada está encerrada
+00:00 +6: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.encerrada campanha encerrada pelo painel está encerrada mesmo no prazo
+00:00 +7: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.encerrada campanha sem data de término fica aberta
+00:00 +8: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.encerrada notícias e alertas nunca são "encerrados"
+00:00 +9: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: conteúdo de abrangência geral vale para qualquer cidade
+00:00 +10: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: data e tipo aparecem em formato legível
+00:00 +11: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.fromMap lê o link da fonte oficial
+00:00 +12: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.fromMap lê o status e corta a data de publicação
+00:00 +13: loading /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart
+00:00 +13: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: DependenteModel.fromMap aceita as colunas do banco
+00:00 +14: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: toRequestMap formata a data com zeros à esquerda e limpa espaços
+00:00 +15: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: regra de autorização do vínculo menor de idade entra pela declaração do responsável
+00:00 +16: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: regra de autorização do vínculo quem faz 18 anos amanhã ainda é menor
+00:00 +17: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: regra de autorização do vínculo quem fez 18 anos hoje precisa autorizar
+00:00 +18: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: regra de autorização do vínculo adulto tutelado entra pela declaração do responsável
+00:00 +19: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: regra de autorização do vínculo adulto comum precisa autorizar
+00:00 +20: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: DependenteModel.fromMap lê a situação do vínculo
+00:01 +21: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/texto_test.dart: Texto.normalizar remove acentos, maiúsculas e espaços sobrando
+00:01 +22: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/texto_test.dart: Texto.normalizar trata como iguais as grafias diferentes da mesma cidade
+00:01 +23: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/texto_test.dart: Texto.contem encontra o trecho ignorando acentos e maiúsculas
+00:01 +24: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/texto_test.dart: Texto.contem não encontra o que não existe
+00:01 +25: loading /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart
+00:01 +25: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: verificarAcesso (passo 4) campanha aberta e usuário identificado: libera
+00:01 +26: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: verificarAcesso (passo 4) RN01: comunicação que não é campanha é recusada
+00:01 +27: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: verificarAcesso (passo 4) E1/RN02: campanha encerrada sem inscrições é recusada
+00:01 +28: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: verificarAcesso (passo 4) A4: campanha encerrada com inscrições abre para cancelar
+00:01 +29: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: verificarAcesso (passo 4) E2: campanha sem ID é recusada
+00:01 +30: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: verificarAcesso (passo 4) E3: usuário não identificado é recusado
+00:01 +31: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: listarParticipantes (passo 4) titular sempre primeiro, seguido dos dependentes ativos
+00:01 +32: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: listarParticipantes (passo 4) RN03: ignora dependente pendente e dependente sem id
+00:01 +33: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: listarParticipantes (passo 4) inscrito que perdeu o vínculo aparece só para cancelamento
+00:01 +34: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: inscricoesDoUsuario devolve só as inscrições da própria conta
+00:01 +35: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) fluxo principal: inscreve titular e dependente
+00:01 +36: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) A1: desmarcar participante cancela a inscrição
+00:01 +37: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) A3/RN04: sem alterações não chama o banco
+00:01 +38: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) RN02: campanha encerrada não aceita inscrição nova
+00:01 +39: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) RN02/A4: campanha encerrada permite cancelar
+00:01 +40: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) RN03: dependente sem vínculo ativo não é inscrito
+00:01 +41: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) RN03: dependente sem vínculo ativo ainda pode ser cancelado
+00:01 +42: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) E4: falha no banco de um participante não impede os outros
+00:01 +43: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) E4: falha ao cancelar também é informada
+00:01 +44: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) E2: campanha sem ID é recusada antes de gravar
+00:01 +45: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) RN01: notícia é recusada antes de gravar
+00:01 +46: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) E3: usuário nulo é recusado antes de gravar
+00:01 +47: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) RN06 limite: 11 participantes (titular + 10) são aceitos
+00:01 +48: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) RN06 limite: 12 participantes são recusados
+00:01 +49: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: InscricaoException.mensagem todas as recusas têm mensagem para o usuário
+00:02 +50: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao fromMap lê números e textos vindos do banco
+00:02 +51: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao dependente_id nulo é a inscrição do titular
+00:02 +52: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao valores ausentes ou inválidos viram padrão
+00:02 +53: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Participante titular tem chave "titular" e vínculo ativo
+00:02 +54: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Participante dependente tem chave com o id
+00:02 +55: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: NewsModel.encerradaEm (RN02) término ontem (limite inferior): encerrada
+00:02 +56: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: NewsModel.encerradaEm (RN02) término hoje (no limite): ainda aberta
+00:02 +57: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: NewsModel.encerradaEm (RN02) término amanhã (acima do limite): aberta
+00:02 +58: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: NewsModel.encerradaEm (RN02) status ENCERRADA ou CONCLUÍDA encerra mesmo no prazo
+00:02 +59: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: NewsModel.encerradaEm (RN02) sem data de término ou data inválida: aberta
+00:02 +60: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: NewsModel.encerradaEm (RN02) notícia nunca é "encerrada"
+00:02 +61: All tests passed!
