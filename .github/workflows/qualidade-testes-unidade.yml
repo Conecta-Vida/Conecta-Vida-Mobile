@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: qualidade-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   testes:
     runs-on: ubuntu-latest
@@ -87,4 +91,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f qualidade/relatorios qualidade/diagramas
           git commit -m "chore(qualidade): relatórios de testes e cobertura [skip ci]" || exit 0
+          git pull --rebase -X theirs origin "${GITHUB_REF_NAME}"
           git push
