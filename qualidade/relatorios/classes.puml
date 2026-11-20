@@ -148,6 +148,11 @@ package "teste" {
     +salvarInscricoes (passos 5 a 7)()
     +InscricaoException.mensagem()
   }
+  class InscricaoEntidadesTest <<test>> {
+    +Inscricao()
+    +Participante()
+    +NewsModel.encerradaEm (RN02)()
+  }
 }
 Inscricao ..> Participante
 InscricaoCampanhaService ..> Inscricao
@@ -167,6 +172,9 @@ InscricaoCampanhaServiceTest ..> NewsModel
 InscricaoCampanhaServiceTest ..> Participante
 InscricaoCampanhaServiceTest ..> RepositorioStub
 InscricaoCampanhaServiceTest ..> ResultadoInscricao
+InscricaoEntidadesTest ..> Inscricao
+InscricaoEntidadesTest ..> NewsModel
+InscricaoEntidadesTest ..> Participante
 InscricaoException ..> InscricaoCampanhaService
 InscricaoException --> MotivoRecusa
 InscricaoRepository ..> DependenteModel
