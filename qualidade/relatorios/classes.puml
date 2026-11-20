@@ -152,6 +152,8 @@ package "teste" {
     +Inscricao()
     +Participante()
     +NewsModel.encerradaEm (RN02)()
+    +NewsModel (Campanha) — conversões()
+    +Dependente — vínculo usado na inscrição (RN03)()
   }
 }
 Inscricao ..> Participante
@@ -172,6 +174,8 @@ InscricaoCampanhaServiceTest ..> NewsModel
 InscricaoCampanhaServiceTest ..> Participante
 InscricaoCampanhaServiceTest ..> RepositorioStub
 InscricaoCampanhaServiceTest ..> ResultadoInscricao
+InscricaoEntidadesTest ..> ConviteDependente
+InscricaoEntidadesTest ..> DependenteModel
 InscricaoEntidadesTest ..> Inscricao
 InscricaoEntidadesTest ..> NewsModel
 InscricaoEntidadesTest ..> Participante
