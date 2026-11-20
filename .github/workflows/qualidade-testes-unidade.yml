@@ -8,6 +8,9 @@ on:
     branches: [ "qualidade/**" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   testes:
     runs-on: ubuntu-latest
@@ -31,13 +34,20 @@ jobs:
         if: always()
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq lcov
+          cp coverage/lcov.info qualidade/relatorios/lcov-completo.info
+          head -5 coverage/lcov.info
           lcov --extract coverage/lcov.info \
+            'lib/usecases/*' 'lib/models/inscricao.dart' \
+            'lib/models/noticia.dart' 'lib/models/dependente.dart' \
             '*/lib/usecases/*' '*/lib/models/inscricao.dart' \
             '*/lib/models/noticia.dart' '*/lib/models/dependente.dart' \
-            -o qualidade/relatorios/lcov-caso-de-uso.info --ignore-errors unused
+            -o qualidade/relatorios/lcov-caso-de-uso.info \
+            --ignore-errors unused,empty,inconsistent
           genhtml qualidade/relatorios/lcov-caso-de-uso.info \
-            -o qualidade/relatorios/cobertura --title "Conecta Vida - Inscrever-se em campanha"
-          lcov --list qualidade/relatorios/lcov-caso-de-uso.info | tee qualidade/relatorios/cobertura.txt
+            -o qualidade/relatorios/cobertura --title "Conecta Vida - Inscrever-se em campanha" \
+            --ignore-errors inconsistent,category,source
+          lcov --list qualidade/relatorios/lcov-caso-de-uso.info --ignore-errors inconsistent \
+            | tee qualidade/relatorios/cobertura.txt
       - name: Diagrama de classes por engenharia reversa
         if: always()
         continue-on-error: true
@@ -59,3 +69,12 @@ jobs:
         with:
           name: relatorios-qualidade
           path: qualidade/relatorios/
+      - name: Guardar relatórios no branch
+        if: always()
+        run: |
+          rm -f plantuml.jar
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f qualidade/relatorios
+          git commit -m "chore(qualidade): relatórios de testes e cobertura [skip ci]" || exit 0
+          git push
