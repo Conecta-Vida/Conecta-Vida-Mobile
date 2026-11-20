@@ -1,0 +1,29 @@
+// Exercício 4 - Grafo de Fluxo de Controle obtido do Diagrama de Atividades
+// Nós predicados (decisões): 2, 4, 7, 8, 10, 11, 12, 16, 18
+digraph gfc {
+  graph [rankdir=TB, fontname="DejaVu Sans", fontsize=11, nodesep=0.45, ranksep=0.4, pad=0.3,
+         label="GFC — N = 21 nós, E = 29 arestas, P = 9 nós predicados  →  V(G) = E − N + 2 = 10  =  P + 1 = 10", labelloc=b];
+  node  [shape=circle, fontname="DejaVu Sans", fontsize=10, width=0.42, fixedsize=true, style=filled, fillcolor="#ffffff"];
+  edge  [arrowsize=0.6, fontname="DejaVu Sans", fontsize=8];
+  node [fillcolor="#ffe3b3"]; 2; 4; 7; 8; 10; 11; 12; 16; 18;
+  node [fillcolor="#ffffff"];
+  21 [shape=doublecircle, width=0.38];
+  1 -> 2;
+  2 -> 3 [label="s"]; 2 -> 4 [label="n"];
+  3 -> 21;
+  4 -> 5 [label="n"]; 4 -> 6 [label="s"];
+  5 -> 21;
+  6 -> 7;
+  7 -> 21 [label="n"]; 7 -> 8 [label="s"];
+  8 -> 9 [label="n"]; 8 -> 10 [label="s"];
+  9 -> 21;
+  10 -> 11 [label="s"]; 10 -> 18 [label="n"];
+  11 -> 12 [label="s"]; 11 -> 15 [label="n"];
+  12 -> 13 [label="n"]; 12 -> 14 [label="s"];
+  13 -> 10;
+  14 -> 16; 15 -> 16;
+  16 -> 10 [label="s"]; 16 -> 17 [label="n"];
+  17 -> 10;
+  18 -> 19 [label="s"]; 18 -> 20 [label="n"];
+  19 -> 21; 20 -> 21;
+}

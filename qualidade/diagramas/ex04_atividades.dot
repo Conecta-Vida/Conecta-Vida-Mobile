@@ -1,0 +1,70 @@
+// Exercício 4 - Diagrama de Atividades (raias) do caso de uso "Inscrever-se em campanha"
+// Os números entre colchetes [n] são os nós do Grafo de Fluxo de Controle.
+digraph atividades {
+  graph [rankdir=TB, fontname="DejaVu Sans", fontsize=12, nodesep=0.3, ranksep=0.32, pad=0.3, newrank=true, splines=true];
+  node  [fontname="DejaVu Sans", fontsize=9, shape=box, style="rounded,filled", fillcolor="#ffffff", width=1.8];
+  edge  [fontname="DejaVu Sans", fontsize=8, arrowsize=0.7];
+
+  subgraph cluster_cid { label="Cidadão (ator primário)"; style="filled"; fillcolor="#f6f9fd"; color="#4a78b5"; penwidth=1.5;
+    ini [shape=circle, style=filled, fillcolor=black, label="", width=0.22];
+    a1  [label="[1] Abrir os detalhes\nde uma campanha"];
+    a3  [label="[1] Tocar no ícone\n\"gerenciar inscrições\""];
+    a9  [label="[6] Marcar / desmarcar\nparticipantes"];
+    d3  [shape=diamond, label="[7] Confirmou?", width=1.2, height=0.7];
+  }
+
+  subgraph cluster_app { label="Sistema Conecta Vida (App Flutter + InscricaoCampanhaService)"; style="filled"; fillcolor="#f4f9f1"; color="#5b9a3c"; penwidth=1.5;
+    a2  [label="[1] Exibir detalhes, período\ne situação da inscrição"];
+    d1  [shape=diamond, label="[2] Encerrada e\nsem inscrições?\n(RN02)", width=1.6, height=0.9];
+    e1  [label="[3] Exibir \"Esta campanha\njá foi encerrada\" (E1)", fillcolor="#fde8e8"];
+    d2  [shape=diamond, label="[4] ID da campanha e\nusuário válidos?\n(RN01)", width=1.8, height=0.9];
+    e23 [label="[5] Exibir mensagem\nde erro (E2 / E3)", fillcolor="#fde8e8"];
+    a8  [label="[6] Exibir titular e dependentes\nativos (RN03); se encerrada,\nsó permite desmarcar (A4)"];
+    d4  [shape=diamond, label="[8] Houve\nalteração?", width=1.3, height=0.8];
+    a3x [label="[9] Exibir \"Nenhuma\nalteração nas inscrições\" (A3)", fillcolor="#fff6e0"];
+    d5  [shape=diamond, label="[10] Há participante\nalterado a processar?", width=2.0, height=0.9];
+    d6  [shape=diamond, label="[11] Marcado para\ninscrever?", width=1.6, height=0.8];
+    d7  [shape=diamond, label="[12] Campanha aberta e\nvínculo ativo?\n(RN02, RN03, RN06)", width=2.0, height=1.0];
+    rec [label="[13] Registrar recusa\ndo participante", fillcolor="#fde8e8"];
+    d8  [shape=diamond, label="[16] Gravou?", width=1.2, height=0.7];
+    fal [label="[17] Registrar falha\n(E4)", fillcolor="#fde8e8"];
+    d9  [shape=diamond, label="[18] Houve falhas\nou recusas?", width=1.6, height=0.8];
+    msgf[label="[19] Exibir \"Algumas inscrições\nnão foram atualizadas\"", fillcolor="#fde8e8"];
+    msgs[label="[20] Exibir \"Inscrições atualizadas\npara N participante(s)\"", fillcolor="#e6f4e1"];
+    fim [shape=doublecircle, style=filled, fillcolor=black, label="", width=0.15];
+  }
+
+  subgraph cluster_sb { label="Supabase (ator secundário: Auth + PostgreSQL/RLS)"; style="filled"; fillcolor="#fdf8ef"; color="#c9892b"; penwidth=1.5;
+    a7  [label="[6] Buscar dependentes ativos\ne inscrições da conta (RLS)"];
+    gr  [label="[14] Gravar inscrição\nusuarios_campanhas\n(RLS RN01/RN03, índice único RN04)"];
+    rm  [label="[15] Remover inscrição (A1)\n(revogação cancela: RN05)"];
+  }
+
+  ini -> a1 -> a2 -> a3 -> d1;
+  d1 -> e1  [label="[sim]"];
+  d1 -> d2  [label="[não]"];
+  e1 -> fim;
+  d2 -> e23 [label="[não]"];
+  d2 -> a7  [label="[sim]"];
+  e23 -> fim;
+  a7 -> a8 -> a9 -> d3;
+  d3 -> fim [label="[não] Cancelar (A2)"];
+  d3 -> d4  [label="[sim] Salvar"];
+  d4 -> a3x [label="[não]"];
+  d4 -> d5  [label="[sim]"];
+  a3x -> fim;
+  d5 -> d6  [label="[sim]"];
+  d5 -> d9  [label="[não]"];
+  d6 -> d7  [label="[sim]"];
+  d6 -> rm  [label="[não]"];
+  d7 -> rec [label="[não]"];
+  d7 -> gr  [label="[sim]"];
+  rec -> d5;
+  gr -> d8; rm -> d8;
+  d8 -> d5  [label="[sim]"];
+  d8 -> fal [label="[não]"];
+  fal -> d5;
+  d9 -> msgf [label="[sim]"];
+  d9 -> msgs [label="[não]"];
+  msgf -> fim; msgs -> fim;
+}

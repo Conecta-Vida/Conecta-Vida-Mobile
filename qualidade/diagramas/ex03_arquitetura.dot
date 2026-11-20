@@ -1,0 +1,65 @@
+// Exercício 3 - Diagrama Arquitetural do Conecta Vida
+digraph arquitetura {
+  graph [rankdir=TB, fontname="DejaVu Sans", fontsize=12, nodesep=0.35, ranksep=0.8, pad=0.3, compound=true, newrank=true];
+  node  [fontname="DejaVu Sans", fontsize=9, shape=box, style="rounded,filled", fillcolor="#ffffff"];
+  edge  [fontname="DejaVu Sans", fontsize=8, color="#444444"];
+
+  subgraph cluster_atores { label="Atores"; style=dashed; color="#999999";
+    cidadao [shape=none, fillcolor=none, label="🧑\nCidadão (titular)\nAndroid · iOS · navegador"];
+    gestor  [shape=none, fillcolor=none, label="👨‍💼\nGestor de saúde\nnavegador"];
+  }
+
+  subgraph cluster_front { label="FRONT-END  (hospedado no Netlify, deploy a cada push na main)"; style="rounded,filled"; fillcolor="#eef4fb"; color="#4a78b5";
+    subgraph cluster_app { label="App Conecta Vida — Flutter 3.44 / Dart 3.12"; style="rounded"; color="#4a78b5";
+      telas  [label="Apresentação\nlib/screens · lib/widgets\n(NewsDetailsPage)"];
+      usecase[label="Aplicação (use case)\nlib/usecases\nInscricaoCampanhaService", fillcolor="#dbe8f7"];
+      dominio[label="Domínio\nlib/models\nNewsModel · Inscricao · DependenteModel"];
+      infra  [label="Infraestrutura\nlib/services\nSupabaseInscricaoRepository\nSupabaseService (supabase_flutter)"];
+      local  [label="Hive (preferências)\nflutter_local_notifications\nGeolocator · flutter_tts", fillcolor="#f7f7f7"];
+    }
+    painel [label="Painel administrativo\nReact 19 + TypeScript + Vite\nTailwind · shadcn/ui · Recharts · jsPDF\n(@supabase/supabase-js)"];
+  }
+
+  subgraph cluster_back { label="BACK-END como serviço (BaaS) — Supabase (nuvem)"; style="rounded,filled"; fillcolor="#f2f8ee"; color="#5b9a3c";
+    auth  [label="Supabase Auth\ncadastro · confirmação de e-mail\nlogin · recuperação de senha"];
+    rest  [label="API REST/RPC (PostgREST)\nusuarios_campanhas · dependentes\nresponder_convite_dependente()"];
+    rt    [label="Supabase Realtime\nalertas em tempo real"];
+    ef    [label="Edge Functions (Deno/TypeScript)\nadmin-usuarios · importar-dados\nunidades-proximas · entrar-conta-antiga"];
+    st    [label="Supabase Storage\nimagens · APK"];
+    cron  [label="pg_cron + pg_net + Vault\nencerrar_campanhas_vencidas() 03h05\nimportação de notícias e alertas"];
+  }
+
+  subgraph cluster_db { label="PERSISTÊNCIA"; style="rounded,filled"; fillcolor="#fff6e6"; color="#c9892b";
+    pg [shape=cylinder, label="PostgreSQL 17\nRLS em todas as tabelas\npolíticas cv_inscricoes_* (RN01, RN03)\ngatilhos app.aplicar_regras_dependente (RN06)\napp.cancelar_inscricoes_do_revogado (RN05)\níndices únicos de inscrição (RN04)"];
+  }
+
+  subgraph cluster_ext { label="APIs externas (fontes oficiais)"; style=dashed; color="#999999";
+    gov  [label="gov.br/saude e Agência SP\n(RSS)"];
+    cnes [label="CNES · IBGE\n(dados abertos)"];
+    info [label="InfoDengue\n(Fiocruz/FGV)"];
+    osm  [label="OpenStreetMap\n(cidade pelo GPS)"];
+  }
+
+  subgraph cluster_ci { label="Qualidade / CI"; style=dashed; color="#999999";
+    gha [label="GitHub Actions\nflutter test + lcov · pytest + PostgreSQL"];
+  }
+
+  cidadao -> telas [label="HTTPS"];
+  gestor  -> painel [label="HTTPS"];
+  telas -> usecase -> infra;
+  usecase -> dominio [style=dashed];
+  telas -> local [style=dashed];
+  infra -> rest [lhead=cluster_back, label="supabase_flutter\nHTTPS + JWT · WebSocket"];
+  infra -> osm [label="HTTPS"];
+  painel -> ef [lhead=cluster_back, label="supabase-js\nHTTPS + JWT"];
+  rest -> pg [label="SQL + RLS", ltail=cluster_back, lhead=cluster_db];
+  ef -> info [lhead=cluster_ext, label="HTTPS"];
+  gha -> pg [style=dotted, lhead=cluster_db, label="testes RN01–RN06 (pytest)"];
+  // ordem das camadas (de cima para baixo)
+  { rank=same; auth; rest; rt; ef; st; }
+  edge [style=invis];
+  usecase -> rest; dominio -> rt; painel -> ef; local -> auth;
+  auth -> cron; rest -> pg; cron -> pg; ef -> gov; ef -> cnes; infra -> osm;
+  edge [style=dotted];
+  gha -> usecase [style=dotted, label="testes de unidade (flutter test)"];
+}

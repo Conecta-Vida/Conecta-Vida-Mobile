@@ -59,7 +59,7 @@ jobs:
           python3 qualidade/engenharia_reversa.py \
             lib/usecases lib/models/inscricao.dart lib/models/noticia.dart \
             lib/models/dependente.dart lib/services/supabase_inscricao_repository.dart \
-            test/usecases -o qualidade/relatorios/classes.puml
+            test/usecases test/models/inscricao_entidades_test.dart -o qualidade/relatorios/classes.puml
           curl -sSL -o plantuml.jar https://github.com/plantuml/plantuml/releases/download/v1.2024.7/plantuml-1.2024.7.jar
           sudo apt-get install -y -qq graphviz
           java -jar plantuml.jar -tpng qualidade/relatorios/*.puml
