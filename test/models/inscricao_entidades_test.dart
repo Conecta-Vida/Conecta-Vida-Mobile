@@ -2,6 +2,7 @@
 // "Inscrever-se em campanha": Inscricao, Participante e a regra de
 // encerramento da campanha (NewsModel.encerradaEm).
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile_app/models/dependente.dart';
 import 'package:mobile_app/models/inscricao.dart';
 import 'package:mobile_app/models/noticia.dart';
 
@@ -112,6 +113,73 @@ void main() {
         imagem: '',
       );
       expect(noticia.encerradaEm(hoje), isFalse);
+    });
+  });
+
+  group('NewsModel (Campanha) — conversões', () {
+    test('toMap e fromMap preservam os dados da campanha', () {
+      final original = NewsModel(
+        id: 9,
+        tag: 'CAMPANHA',
+        data: '2026-11-01',
+        dataInicio: '2026-11-01',
+        dataFim: '2026-11-30',
+        titulo: 'Novembro Azul',
+        subtitulo: 'Saúde do homem',
+        descricao: 'Exames',
+        imagem: 'capa.png',
+        categoria: 'Vacinação',
+        local: 'Bragança Paulista',
+        status: 'ATIVA',
+        fonteUrl: 'https://www.gov.br/saude',
+      );
+      final copia = NewsModel.fromMap(original.toMap());
+      expect(copia.toMap(), original.toMap());
+      expect(copia.encerradaEm(DateTime(2026, 11, 20)), isFalse);
+    });
+
+    test('tipoLegivel traduz os tipos e mantém um tipo desconhecido', () {
+      NewsModel com(String tag) => NewsModel(
+        tag: tag,
+        data: '',
+        titulo: '',
+        subtitulo: '',
+        descricao: '',
+        imagem: '',
+      );
+      expect(com('CAMPANHA').tipoLegivel, 'Campanha');
+      expect(com('NOTICIA').tipoLegivel, 'Notícia');
+      expect(com('ALERTA').tipoLegivel, 'Alerta');
+      expect(com('EVENTO').tipoLegivel, 'EVENTO');
+    });
+  });
+
+  group('Dependente — vínculo usado na inscrição (RN03)', () {
+    test('fromMap aceita id em texto e status pendente', () {
+      final d = DependenteModel.fromMap({
+        'id': '12',
+        'nome_completo': 'Mãe',
+        'data_nascimento': '1960-05-10',
+        'parentesco': 'Mãe',
+        'status': 'pendente',
+        'email_dependente': 'mae@teste.com',
+      });
+      expect(d.id, 12);
+      expect(d.pendente, isTrue);
+      expect(d.ativo, isFalse);
+    });
+
+    test('ConviteDependente lê o pedido de autorização', () {
+      final c = ConviteDependente.fromMap({
+        'id': 5,
+        'titular_nome': 'Titular',
+        'parentesco': 'Filho(a)',
+        'status': 'pendente',
+      });
+      expect(c.id, 5);
+      expect(c.titularNome, 'Titular');
+      expect(c.pendente, isTrue);
+      expect(ConviteDependente.fromMap({'id': 6, 'status': 'ativo'}).pendente, isFalse);
     });
   });
 }

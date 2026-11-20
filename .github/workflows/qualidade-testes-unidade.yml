@@ -48,6 +48,15 @@ jobs:
             --ignore-errors inconsistent,category,source
           lcov --list qualidade/relatorios/lcov-caso-de-uso.info --ignore-errors inconsistent \
             | tee qualidade/relatorios/cobertura.txt
+      - name: Cobertura por método e GFC (complexidade ciclomática)
+        if: always()
+        run: |
+          python3 qualidade/cobertura_por_metodo.py qualidade/relatorios/lcov-caso-de-uso.info \
+            lib/usecases lib/models/inscricao.dart lib/models/noticia.dart lib/models/dependente.dart \
+            --html qualidade/relatorios/cobertura-por-metodo.html --md qualidade/relatorios/cobertura-por-metodo.md
+          python3 qualidade/gfc_dart.py lib/usecases/inscricao_campanha_service.dart \
+            --metodo salvarInscricoes --dot qualidade/relatorios/gfc-salvarInscricoes.dot \
+            --md qualidade/relatorios/complexidade-ciclomatica.md
       - name: Diagrama de classes por engenharia reversa
         if: always()
         continue-on-error: true
@@ -62,7 +71,8 @@ jobs:
             test/usecases test/models/inscricao_entidades_test.dart -o qualidade/relatorios/classes.puml
           curl -sSL -o plantuml.jar https://github.com/plantuml/plantuml/releases/download/v1.2024.7/plantuml-1.2024.7.jar
           sudo apt-get install -y -qq graphviz
-          java -jar plantuml.jar -tpng qualidade/relatorios/*.puml
+          java -jar plantuml.jar -tpng qualidade/relatorios/*.puml qualidade/diagramas/*.puml
+          dot -Tpng -Gdpi=150 qualidade/relatorios/gfc-salvarInscricoes.dot -o qualidade/relatorios/gfc-salvarInscricoes.png
       - name: Publicar relatórios
         if: always()
         uses: actions/upload-artifact@v4
@@ -75,6 +85,6 @@ jobs:
           rm -f plantuml.jar
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f qualidade/relatorios
+          git add -f qualidade/relatorios qualidade/diagramas
           git commit -m "chore(qualidade): relatórios de testes e cobertura [skip ci]" || exit 0
           git push
