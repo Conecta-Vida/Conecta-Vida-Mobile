@@ -160,6 +160,7 @@ def comandos(s):
 class Grafo:
     def __init__(self):
         self.rotulos, self.arestas, self.predicados = [], [], set()
+        self.blocos = set()   # nós de bloco básico (comandos em sequência)
 
     def no(self, rotulo):
         self.rotulos.append(rotulo)
@@ -177,11 +178,20 @@ def construir(lista, g, entradas, ctx):
         if not abertas:
             break  # código inalcançável depois de return/throw/continue
         if tipo in ("simples", "return", "throw", "continue", "break"):
-            texto = dados if len(dados) < 60 else dados[:57] + "..."
-            n = g.no(texto)
-            for a, r in abertas:
-                g.liga(a, n, r)
+            texto = dados if len(dados) < 140 else dados[:137] + "..."
             pode_lancar = ctx.get("catch") is not None and "await" in dados
+            # Bloco básico: comando em sequência entra no mesmo nó do anterior
+            # (como no ComplexGraph), desde que não possa lançar exceção.
+            if (len(abertas) == 1 and abertas[0][1] == "" and abertas[0][0] in g.blocos
+                    and not pode_lancar):
+                n = abertas[0][0]
+                g.rotulos[n - 1] += "; " + texto
+            else:
+                n = g.no(texto)
+                for a, r in abertas:
+                    g.liga(a, n, r)
+                if not pode_lancar:
+                    g.blocos.add(n)
             if pode_lancar:
                 g.predicados.add(n)
                 ctx["catch_entradas"].append((n, "exceção"))
@@ -228,6 +238,7 @@ def construir(lista, g, entradas, ctx):
 def analisar(nome, corpo):
     g = Grafo()
     inicio = g.no(f"início de {nome}()")
+    g.blocos.add(inicio)
     saida_idx = len(g.rotulos) + 1
     g.rotulos.append("fim")          # nó de saída reservado
     ctx = {"saida": saida_idx, "catch": None, "quebras": []}
@@ -241,20 +252,51 @@ def analisar(nome, corpo):
 
 def dot(g, m):
     linhas = [f'digraph "{m["metodo"]}" {{',
-              f'  graph [fontname="DejaVu Sans", fontsize=11, labelloc=b, label="{m["metodo"]}() — N = {m["N"]}, '
+              f'  graph [fontname="DejaVu Sans", fontsize=14, labelloc=b, rankdir=TB, nodesep=0.3, ranksep=0.22, label="{m["metodo"]}() — N = {m["N"]}, '
               f'E = {m["E"]}, P = {m["P"]}  →  V(G) = E − N + 2 = {m["V_EN"]} = P + 1 = {m["V_P"]} = R = {m["R"]}"];',
-              '  node [shape=circle, fontname="DejaVu Sans", fontsize=10, width=0.42, fixedsize=true, style=filled, fillcolor="#ffffff"];',
-              '  edge [fontname="DejaVu Sans", fontsize=8, arrowsize=0.6];']
+              '  node [shape=circle, fontname="DejaVu Sans", fontsize=13, width=0.42, fixedsize=true, style=filled, fillcolor="#ffffff"];',
+              '  edge [fontname="DejaVu Sans", fontsize=12, arrowsize=0.6];']
     for i, _ in enumerate(g.rotulos, start=1):
         cor = "#ffe3b3" if i in g.predicados else "#ffffff"
         forma = ", shape=doublecircle" if g.rotulos[i - 1] == "fim" else ""
         linhas.append(f'  {i} [fillcolor="{cor}"{forma}];')
     for a, b, r in g.arestas:
         linhas.append(f'  {a} -> {b}' + (f' [label="{r}"]' if r else "") + ";")
-    legenda = "\\l".join(f"{i:>2}  {t.replace(chr(34), chr(39))}" for i, t in enumerate(g.rotulos, start=1))
-    linhas.append(f'  legenda [shape=note, fixedsize=false, fontname="DejaVu Sans Mono", fontsize=8, fillcolor="#fffef2", label="{legenda}\\l"];')
+    def curto(t, n=50):
+        t = re.sub(r"throw const InscricaoException\(MotivoRecusa\.(\w+)\)", r"throw \1", t)
+        t = re.sub(r"\$\{participante\.nome\}: ", "", t)
+        t = re.sub(r"\(\s*comunicacaoId: .*", "(...)", t)
+        return t if len(t) <= n else t[:n - 3] + "..."
+    legenda = "\\l".join(f"{i:>2}  {curto(parte.strip()).replace(chr(34), chr(39))}" if k == 0
+                          else f"    {curto(parte.strip()).replace(chr(34), chr(39))}"
+                          for i, t in enumerate(g.rotulos, start=1)
+                          for k, parte in enumerate(t.split("; ")))
+    linhas.append(f'  legenda [shape=note, fixedsize=false, fontname="DejaVu Sans Mono", fontsize=13, fillcolor="#fffef2", label="{legenda}\\l"];')
     linhas.append("}")
     return "\n".join(linhas)
+
+
+def png_lado_a_lado(texto_dot, saida):
+    """Desenha o grafo e a legenda separados e junta lado a lado: a legenda
+    no topo do grafo aumentaria a altura de toda a figura."""
+    import subprocess
+    import tempfile
+    from PIL import Image
+    legenda = re.search(r"  legenda \[.*?\];", texto_dot, flags=re.S).group(0)
+    grafo = texto_dot.replace(legenda, "")
+    so_legenda = 'digraph L { graph [pad=0.1];\n' + legenda + '\n}'
+    with tempfile.TemporaryDirectory() as tmp:
+        imagens = []
+        for nome, conteudo in (("grafo", grafo), ("legenda", so_legenda)):
+            fonte, png = Path(tmp) / f"{nome}.dot", Path(tmp) / f"{nome}.png"
+            fonte.write_text(conteudo, encoding="utf-8")
+            subprocess.run(["dot", "-Tpng", "-Gdpi=150", str(fonte), "-o", str(png)], check=True)
+            imagens.append(Image.open(png).convert("RGB"))
+    a, b = imagens
+    junto = Image.new("RGB", (a.width + b.width + 30, max(a.height, b.height)), "white")
+    junto.paste(a, (0, 0))
+    junto.paste(b, (a.width + 30, 0))
+    junto.save(saida)
 
 
 def main():
@@ -263,6 +305,7 @@ def main():
     ap.add_argument("--metodo")
     ap.add_argument("--dot")
     ap.add_argument("--md")
+    ap.add_argument("--png", help="gera PNG com o grafo e a legenda lado a lado (requer graphviz e Pillow)")
     args = ap.parse_args()
     texto = Path(args.arquivo).read_text(encoding="utf-8")
     resultados = []
@@ -272,6 +315,8 @@ def main():
         resultados.append(m)
         if args.metodo == nome and args.dot:
             Path(args.dot).write_text(dot(g, m), encoding="utf-8")
+        if args.metodo == nome and args.png:
+            png_lado_a_lado(dot(g, m), args.png)
     cab = "| Método | Linha | N | E | P | V(G)=E−N+2 | V(G)=P+1 | Regiões | &&, \\|\\|, ?: |"
     tab = [cab, "|" + "---|" * 9]
     for m in resultados:

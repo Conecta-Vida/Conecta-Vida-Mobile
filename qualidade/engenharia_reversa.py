@@ -200,34 +200,70 @@ def plantuml(classes, testes, rels):
     return "\n".join(linhas)
 
 
+EMPILHAR = False
+
+
+def quebrar(texto, largura=36):
+    """Quebra assinaturas longas nas vírgulas, com recuo nas linhas seguintes."""
+    if len(texto) <= largura:
+        return [texto]
+    partes, linhas, atual = re.split(r"(?<=,)\s", texto), [], ""
+    for parte in partes:
+        if atual and len(atual) + len(parte) + 1 > largura:
+            linhas.append(atual)
+            atual = "      " + parte
+        else:
+            atual = (atual + " " + parte) if atual else parte
+    linhas.append(atual)
+    # retorno longo vai para a linha seguinte
+    final = []
+    for linha in linhas:
+        if len(linha) > largura and "): " in linha:
+            a, b = linha.rsplit("): ", 1)
+            final += [a + "):", "      " + b.strip()]
+        else:
+            final.append(linha)
+    return final
+
+
 def dot(classes, testes, rels):
     def esc(s):
         return s.replace("<", "&lt;").replace(">", "&gt;").replace("{", "\\{").replace("}", "\\}").replace("|", "\\|")
-    linhas = ['digraph classes {', 'rankdir=BT; node [shape=record, fontname="Helvetica", fontsize=9];',
-              'edge [fontname="Helvetica", fontsize=8];']
+    linhas = ['digraph classes {', 'rankdir=BT; nodesep=0.25; ranksep=0.5; pad=0.1; concentrate=true;',
+              'node [shape=record, fontname="DejaVu Sans", fontsize=12, style=filled, fillcolor="#ffffff"];',
+              'edge [fontname="DejaVu Sans", fontsize=11];']
     pacotes = {}
     for c in classes.values():
         pacotes.setdefault(c["pacote"], []).append(c)
     if testes:
         pacotes.setdefault("teste", [])
     for i, (pacote, itens) in enumerate(pacotes.items()):
-        linhas.append(f'subgraph cluster_{i} {{ label="{pacote}"; style=rounded; color=gray50; fontname="Helvetica-Bold";')
+        cores = {"aplicacao": "#eef4fb", "dominio": "#f2f8ee", "infraestrutura": "#fff6e6", "teste": "#f5f0fb"}
+        linhas.append(f'subgraph cluster_{i} {{ label="«pacote» {pacote}"; style="rounded,filled"; fillcolor="{cores.get(pacote, "#ffffff")}"; color=gray40; fontname="DejaVu Sans"; fontsize=13; labelloc=t;')
         for c in itens:
             cab = ("«enumeration»\\n" if c["tipo"] == "enum" else "«abstract»\\n" if "abstract" in c["tipo"] else
                    "«test double»\\n" if pacote == "teste" else "") + c["nome"]
+            if c.get("resumida"):
+                linhas.append(f'  {c["nome"]} [shape=box, label="{cab}"];')
+                continue
             if c["tipo"] == "enum":
                 attrs = "\\l".join(esc(v) for v in c["atributos"])
                 mets = ""
             else:
                 attrs = "\\l".join(esc(f"{'-' if n.startswith('_') else '+'}{n.lstrip('_')}" + (f": {t}" if t else "")) for n, t in c["atributos"])
-                mets = "\\l".join(esc(f"{'-' if n.startswith('_') else '+'}{n.lstrip('_')}" + (f": {r}" if r else ""))
-                                  for n, p, r in c["metodos"])
+                mets = "\\l".join(esc(linha) for n, p, r in c["metodos"]
+                                  for linha in quebrar(f"{'-' if n.startswith('_') else '+'}{n.lstrip('_')}" + (f": {r}" if r else "")))
             linhas.append(f'  {c["nome"]} [label="{{{cab}|{attrs}{chr(92)+"l" if attrs else ""}|{mets}{chr(92)+"l" if mets else ""}}}"];')
         if pacote == "teste":
             for t in testes:
                 mets = "\\l".join(esc(f"+{g}()") for g in t["grupos"])
                 linhas.append(f'  {t["nome"]} [label="{{«test»\\n{t["nome"]}||{mets}\\l}}"];')
         linhas.append("}")
+    # --empilhar: classes resumidas de um mesmo pacote ficam em coluna
+    for pacote, itens in (pacotes.items() if EMPILHAR else []):
+        resumidas = [c["nome"] for c in itens if c.get("resumida")]
+        for a, b in zip(resumidas, resumidas[1:]):
+            linhas.append(f"  {a} -> {b} [style=invis];")
     estilo = {"heranca": "arrowhead=empty", "realizacao": "arrowhead=empty, style=dashed",
               "associacao": "arrowhead=vee", "dependencia": "arrowhead=vee, style=dashed"}
     linhas += [f"  {a} -> {b} [{estilo[t]}];" for a, b, t in rels]
@@ -240,9 +276,25 @@ def main():
     ap.add_argument("caminhos", nargs="+")
     ap.add_argument("-o", "--saida", required=True)
     ap.add_argument("-f", "--formato", choices=["puml", "dot"], default="puml")
+    ap.add_argument("--relacoes-de", default="",
+                    help="mostra só as relações que saem das classes destes pacotes")
+    ap.add_argument("--empilhar", action="store_true",
+                    help="empilha em coluna as classes resumidas de cada pacote")
+    ap.add_argument("--resumir", default="",
+                    help="pacotes (separados por vírgula) cujas classes aparecem só com o nome")
     args = ap.parse_args()
+    global EMPILHAR
+    EMPILHAR = args.empilhar
     classes, testes = analisar(ler(args.caminhos))
+    for c in classes.values():
+        if c["pacote"] in [p.strip() for p in args.resumir.split(",") if p.strip()]:
+            c["atributos"], c["metodos"], c["resumida"] = [], [], True
     rels = relacoes(classes, testes)
+    if args.relacoes_de:
+        pacotes = {p.strip() for p in args.relacoes_de.split(",")}
+        nomes_teste = {t["nome"] for t in testes}
+        rels = [r for r in rels if (classes.get(r[0], {}).get("pacote") in pacotes)
+                or ("teste" in pacotes and r[0] in nomes_teste)]
     texto = (plantuml if args.formato == "puml" else dot)(classes, testes, rels)
     Path(args.saida).write_text(texto, encoding="utf-8")
     print(f"{len(classes)} classes, {len(testes)} arquivos de teste, {len(rels)} relações -> {args.saida}")

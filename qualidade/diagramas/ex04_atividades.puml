@@ -1,76 +1,73 @@
 @startuml ex04_atividades_uml
-' Exercício 4 - Diagrama de Atividades (UML) com raias do caso de uso
-' "Inscrever-se em campanha". Os números [n] são os nós do GFC.
+' Exercício 4 - Diagrama de Atividades (UML) com raias - UC03 Inscrever-se em campanha.
+' Os números [n] são os nós do Grafo de Fluxo de Controle (Figura 4).
 skinparam defaultFontName DejaVu Sans
-skinparam defaultFontSize 11
+skinparam defaultFontSize 15
 skinparam ActivityBackgroundColor #FFFFFF
 skinparam ActivityBorderColor #333333
 skinparam ActivityDiamondBackgroundColor #FFE3B3
+skinparam ActivityDiamondFontSize 14
+skinparam ArrowFontSize 14
 skinparam SwimlaneTitleFontStyle bold
-skinparam SwimlaneTitleFontSize 13
-title UC03 – Inscrever-se em campanha
+skinparam SwimlaneTitleFontSize 16
 
-|#F6F9FD|Cidadão (ator primário)|
+|#F6F9FD|Cidadão|
 start
-:[1] Abrir os detalhes\nde uma campanha;
+:[1] Abrir detalhes\nda campanha;
 |#F4F9F1|Sistema Conecta Vida|
-:[1] Exibir detalhes, período\ne situação da inscrição;
-|Cidadão (ator primário)|
-:[1] Tocar no ícone\n"gerenciar inscrições";
+:[1] Exibir detalhes\ne situação;
+|Cidadão|
+:[1] Tocar em\n"gerenciar\ninscrições";
 |Sistema Conecta Vida|
-if ([2] Campanha encerrada\ne sem inscrições? (RN02)) then (sim)
-  #FDE8E8:[3] Exibir "Esta campanha\njá foi encerrada." (E1);
+if ([2] Encerrada e\nsem inscrições?\n(RN02)) then (sim)
+  #FDE8E8:[3] "Campanha\nencerrada" (E1);
   stop
 else (não)
 endif
-if ([4] ID da campanha e\nusuário válidos? (RN01)) then (não)
-  #FDE8E8:[5] Exibir mensagem\nde erro (E2 / E3);
+if ([4] ID e usuário\nválidos? (RN01)) then (não)
+  #FDE8E8:[5] Mensagem\nde erro (E2/E3);
   stop
 else (sim)
 endif
-|#FDF8EF|Supabase (ator secundário)|
-:[6] Buscar dependentes ativos e\ninscrições da conta (RLS — RN03);
+|#FDF8EF|Supabase|
+:[6] Buscar dependentes\nativos e inscrições\n(RLS, RN03);
 |Sistema Conecta Vida|
-:[6] Exibir titular e dependentes ativos;\nse encerrada, só permite desmarcar (A4);
-|Cidadão (ator primário)|
-:[6] Marcar / desmarcar participantes;
-if ([7] Confirmou?) then (não: Cancelar — A2)
-  stop
-else (sim: Salvar inscrições)
-endif
-|Sistema Conecta Vida|
-if ([8] Houve alteração?) then (não)
-  #FFF6E0:[9] Exibir "Nenhuma alteração\nnas inscrições." (A3);
+:[6] Exibir participantes\n(A4: se encerrada,\nsó desmarcar);
+|Cidadão|
+:[6] Marcar /\ndesmarcar;
+if ([7] Confirmou?) then (não, A2)
   stop
 else (sim)
 endif
-while ([10] Há participante\nalterado a processar?) is (sim)
+|Sistema Conecta Vida|
+if ([8] Houve\nalteração?) then (não)
+  #FFF6E0:[9] "Nenhuma\nalteração" (A3);
+  stop
+else (sim)
+endif
+while ([10] Há participante\nalterado?) is (sim)
   if ([11] Marcado para\ninscrever?) then (sim)
-    if ([12] Campanha aberta e vínculo ativo?\n(RN02, RN03, RN06)) then (não)
-      #FDE8E8:[13] Registrar recusa\ndo participante;
+    if ([12] Aberta e\nvínculo ativo?\n(RN02/03/06)) then (não)
+      #FDE8E8:[13] Registrar\nrecusa;
     else (sim)
-      |Supabase (ator secundário)|
-      :[14] Gravar inscrição em usuarios_campanhas\n(RLS RN01/RN03, índice único RN04);
+      |Supabase|
+      :[14] Gravar inscrição\n(RN01, RN03, RN04);
       |Sistema Conecta Vida|
-      if ([16] Gravou?) then (não)
-        #FDE8E8:[17] Registrar falha (E4);
-      else (sim)
-      endif
     endif
-  else (não — A1)
-    |Supabase (ator secundário)|
-    :[15] Remover inscrição (A1)\n(revogação de vínculo cancela — RN05);
+  else (não, A1)
+    |Supabase|
+    :[15] Remover\ninscrição (RN05);
     |Sistema Conecta Vida|
-    if ([16] Gravou?) then (não)
-      #FDE8E8:[17] Registrar falha (E4);
-    else (sim)
-    endif
+  endif
+  if ([16] Gravou?) then (não)
+    #FDE8E8:[17] Registrar\nfalha (E4);
+  else (sim)
   endif
 endwhile (não)
-if ([18] Houve falhas\nou recusas?) then (sim)
-  #FDE8E8:[19] Exibir "Algumas inscrições\nnão foram atualizadas: ...";
+if ([18] Falhas ou\nrecusas?) then (sim)
+  #FDE8E8:[19] "Algumas não\nforam atualizadas";
 else (não)
-  #E6F4E1:[20] Exibir "Inscrições atualizadas\npara N participante(s)";
+  #E6F4E1:[20] "Inscrições\natualizadas (N)";
 endif
 stop
 @enduml

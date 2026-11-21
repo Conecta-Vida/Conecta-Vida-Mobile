@@ -1,0 +1,18 @@
+// Exercício 2 (parte b) - pacote dominio (entidades) do caso de uso "Inscrever-se em campanha"
+digraph dominio {
+  graph [rankdir=TB, fontname="DejaVu Sans", fontsize=13, nodesep=0.45, ranksep=0.7, pad=0.15];
+  node  [shape=record, fontname="DejaVu Sans", fontsize=12, style=filled, fillcolor="#ffffff"];
+  edge  [fontname="DejaVu Sans", fontsize=11];
+  subgraph cluster_dom { label="«pacote» dominio (lib/models)"; style="rounded,filled"; fillcolor="#f2f8ee"; color="#5b9a3c";
+    Inscricao [label="{«entity»\nInscricao|+ id: int?\l+ usuarioId: int\l+ comunicacaoId: int\l+ dependenteId: int?\l+ participanteNome: String\l+ parentesco: String\l|+ doTitular(): bool\l+ chaveParticipante(): String\l+ fromMap(map): Inscricao\l}"];
+    Campanha [label="{«entity»\nNewsModel (Campanha)|+ id: int?\l+ tag: String (CAMPANHA \| NOTICIA \| ALERTA)\l+ titulo: String\l+ categoria: String\l+ local: String\l+ dataInicio: String\l+ dataFim: String\l+ status: String (ATIVA \| ENCERRADA)\l|+ ehCampanha(): bool\l+ encerrada(): bool\l+ encerradaEm(hoje: DateTime): bool\l}"];
+    Dependente [label="{«entity»\nDependenteModel|+ id: int?\l+ nomeCompleto: String\l+ dataNascimento: DateTime\l+ parentesco: String\l+ status: String (pendente \| ativo \| revogado)\l+ emailDependente: String?\l+ declarouResponsabilidade: bool\l|+ ativo(): bool\l+ idadeEm(nascimento: DateTime,\l      hoje: DateTime): int\l}"];
+    Usuario [label="{«entity»\nUserModel (Titular)|+ id: int?\l+ nome: String\l+ email: String\l+ dataNascimento: int?\l+ localizacao: String\l}"];
+    Participante [label="{«entity»\nParticipante|+ dependenteId: int?\l+ nome: String\l+ parentesco: String\l+ vinculoAtivo: bool\l|+ ehTitular(): bool\l+ chave(): String\l}"];
+  }
+  Inscricao -> Campanha [arrowhead=vee, label="campanha  1"];
+  Inscricao -> Usuario [arrowhead=vee, label="titular  1"];
+  Inscricao -> Dependente [arrowhead=vee, label="participante  0..1"];
+  Dependente -> Usuario [arrowhead=vee, label="titular  1 (até 10 dependentes)"];
+  Inscricao -> Participante [style=dashed, arrowhead=vee, label="«use»", color="#555555", fontcolor="#555555"];
+}

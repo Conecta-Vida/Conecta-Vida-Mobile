@@ -58,8 +58,11 @@ jobs:
           python3 qualidade/cobertura_por_metodo.py qualidade/relatorios/lcov-caso-de-uso.info \
             lib/usecases lib/models/inscricao.dart lib/models/noticia.dart lib/models/dependente.dart \
             --html qualidade/relatorios/cobertura-por-metodo.html --md qualidade/relatorios/cobertura-por-metodo.md
+          sudo apt-get install -y -qq graphviz
+          pip install pillow
           python3 qualidade/gfc_dart.py lib/usecases/inscricao_campanha_service.dart \
             --metodo salvarInscricoes --dot qualidade/relatorios/gfc-salvarInscricoes.dot \
+            --png qualidade/relatorios/gfc-salvarInscricoes.png \
             --md qualidade/relatorios/complexidade-ciclomatica.md
       - name: Diagrama de classes por engenharia reversa
         if: always()
@@ -73,10 +76,18 @@ jobs:
             lib/usecases lib/models/inscricao.dart lib/models/noticia.dart \
             lib/models/dependente.dart lib/services/supabase_inscricao_repository.dart \
             test/usecases test/models/inscricao_entidades_test.dart -o qualidade/relatorios/classes.puml
+          P="lib/usecases lib/models/inscricao.dart lib/models/noticia.dart lib/models/dependente.dart"
+          python3 qualidade/engenharia_reversa.py $P lib/services/supabase_inscricao_repository.dart \
+            --resumir dominio -f dot -o qualidade/relatorios/classes-a-aplicacao.dot
+          python3 qualidade/engenharia_reversa.py lib/models/inscricao.dart lib/models/noticia.dart \
+            lib/models/dependente.dart -f dot -o qualidade/relatorios/classes-b-dominio.dot
+          python3 qualidade/engenharia_reversa.py $P test/usecases test/models/inscricao_entidades_test.dart \
+            --resumir aplicacao,dominio --relacoes-de teste --empilhar -f dot \
+            -o qualidade/relatorios/classes-c-teste.dot
+          for f in qualidade/relatorios/classes-*.dot; do dot -Tpng -Gdpi=150 "$f" -o "${f%.dot}.png"; done
           curl -sSL -o plantuml.jar https://github.com/plantuml/plantuml/releases/download/v1.2024.7/plantuml-1.2024.7.jar
           sudo apt-get install -y -qq graphviz
           java -jar plantuml.jar -tpng qualidade/relatorios/*.puml qualidade/diagramas/*.puml
-          dot -Tpng -Gdpi=150 qualidade/relatorios/gfc-salvarInscricoes.dot -o qualidade/relatorios/gfc-salvarInscricoes.png
       - name: Publicar relatórios
         if: always()
         uses: actions/upload-artifact@v4
