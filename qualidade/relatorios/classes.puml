@@ -15,22 +15,20 @@ package "aplicacao" {
     naoECampanha
     campanhaEncerrada
     usuarioNaoIdentificado
-    /// E5: todas as vagas da campanha estão ocupadas (RN07).
-  campanhaLotada
-    /// E6: as novas inscrições escolhidas excedem as vagas restantes (RN07).
-  vagasInsuficientes
+    campanhaLotada
+    vagasInsuficientes
   }
   class InscricaoException {
     +motivo: MotivoRecusa
     +vagasRestantes: int?
-    +mensagem: String
+    +mensagem(): String
     +toString(): String
   }
   class ResultadoInscricao {
     +alteracoes: int
     +selecionados: int
     +falhas: List<String>
-    +sucessoTotal: bool
+    +sucessoTotal(): bool
     +mensagem(tituloCampanha: String): String
   }
   class InscricaoCampanhaService {
@@ -50,8 +48,8 @@ package "dominio" {
     +dependenteId: int?
     +participanteNome: String
     +parentesco: String
-    +doTitular: bool
-    +chaveParticipante: String
+    +doTitular(): bool
+    +chaveParticipante(): String
     -inteiro(valor: Object?): int? {static}
   }
   class Participante {
@@ -59,8 +57,8 @@ package "dominio" {
     +nome: String
     +parentesco: String
     +vinculoAtivo: bool
-    +ehTitular: bool
-    +chave: String
+    +ehTitular(): bool
+    +chave(): String
     +chaveDe(dependenteId: int?): String {static}
   }
   class NewsModel {
@@ -84,16 +82,16 @@ package "dominio" {
     +fonteUrl: String
     +vagas: int?
     +inscritos: int
-    +abrangenciasAmplas
-    +vagasRestantes: int?
-    +lotada: bool
+    +abrangenciasAmplas: Set<String>
+    +vagasRestantes(): int?
+    +lotada(): bool
     +comportaNovas(quantidade: int): bool
-    +abrangenciaGeral: bool
-    +localEhCidade: bool
-    +ehCampanha: bool
-    +tipoLegivel: String
-    +dataLegivel: String
-    +encerrada: bool
+    +abrangenciaGeral(): bool
+    +localEhCidade(): bool
+    +ehCampanha(): bool
+    +tipoLegivel(): String
+    +dataLegivel(): String
+    +encerrada(): bool
     +encerradaEm(hoje: DateTime): bool
     -inteiroOuNulo(valor: dynamic): int? {static}
     +toMap(): Map<String, dynamic>
@@ -107,8 +105,8 @@ package "dominio" {
     +status: String
     +emailDependente: String?
     +declarouResponsabilidade: bool
-    +pendente: bool
-    +ativo: bool
+    +pendente(): bool
+    +ativo(): bool
     +idadeEm(nascimento: DateTime, hoje: DateTime): int {static}
     +exigeAutorizacaoDoDependente(nascimento: DateTime, parentesco: String, hoje: DateTime?): bool {static}
     +toRequestMap(): Map<String, dynamic>
@@ -118,7 +116,7 @@ package "dominio" {
     +titularNome: String
     +parentesco: String
     +status: String
-    +pendente: bool
+    +pendente(): bool
   }
 }
 package "infraestrutura" {
@@ -135,9 +133,9 @@ package "teste" {
     +comunicacaoId: int
     +usuarioId: int
     +dependenteId: int?
-    +operator: bool
-    +hashCode: int
+    +hashCode(): int
     +toString(): String
+    +operator ==(other: Object): bool
   }
   class RepositorioStub <<test double>> {
     +dependentes: List<DependenteModel>
@@ -154,7 +152,7 @@ package "teste" {
     +verificarAcesso (passo 4)()
     +listarParticipantes (passo 4)()
     +inscricoesDoUsuario()
-    +salvarInscricoes (passos 5 a 7)()
+    +salvarInscricoes (passos 5 e 6)()
     +InscricaoException.mensagem()
   }
   class InscricaoEntidadesTest <<test>> {

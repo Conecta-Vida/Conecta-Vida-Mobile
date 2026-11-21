@@ -17,9 +17,9 @@ subgraph cluster_1 { label="«pacote» dominio"; style="rounded,filled"; fillcol
   ConviteDependente [shape=box, label="ConviteDependente"];
 }
 subgraph cluster_2 { label="«pacote» teste"; style="rounded,filled"; fillcolor="#f5f0fb"; color=gray40; fontname="DejaVu Sans"; fontsize=13; labelloc=t;
-  Chamada [label="{«test double»\nChamada|+operacao: String\l+comunicacaoId: int\l+usuarioId: int\l+dependenteId: int?\l+operator: bool\l|+hashCode: int\l+toString(): String\l}"];
+  Chamada [label="{«test double»\nChamada|+operacao: String\l+comunicacaoId: int\l+usuarioId: int\l+dependenteId: int?\l|+hashCode(): int\l+toString(): String\l+operator ==(other: Object): bool\l}"];
   RepositorioStub [label="{«test double»\nRepositorioStub|+dependentes: List&lt;DependenteModel&gt;\l+inscricoes: List&lt;Inscricao&gt;\l+falharPara: Set&lt;int?&gt;\l+mensagemDeFalha: String\l+chamadas: List&lt;Chamada&gt;\l|+buscarDependentesAtivos(usuarioId: int):\l      Future&lt;List&lt;DependenteModel&gt;&gt;\l+buscarInscricoes(comunicacaoId: int):\l      Future&lt;List&lt;Inscricao&gt;&gt;\l+inscrever(comunicacaoId: int,\l      usuarioId: int,\l      dependenteId: int?):\l      Future&lt;void&gt;\l+desinscrever(comunicacaoId: int,\l      usuarioId: int,\l      dependenteId: int?):\l      Future&lt;void&gt;\l}"];
-  InscricaoCampanhaServiceTest [label="{«test»\nInscricaoCampanhaServiceTest||+verificarAcesso (passo 4)()\l+listarParticipantes (passo 4)()\l+inscricoesDoUsuario()\l+salvarInscricoes (passos 5 a 7)()\l+InscricaoException.mensagem()\l}"];
+  InscricaoCampanhaServiceTest [label="{«test»\nInscricaoCampanhaServiceTest||+verificarAcesso (passo 4)()\l+listarParticipantes (passo 4)()\l+inscricoesDoUsuario()\l+salvarInscricoes (passos 5 e 6)()\l+InscricaoException.mensagem()\l}"];
   InscricaoEntidadesTest [label="{«test»\nInscricaoEntidadesTest||+Inscricao()\l+Participante()\l+NewsModel.encerradaEm (RN02)()\l+NewsModel (Campanha) — conversões()\l+NewsModel — vagas (RN07)()\l+Dependente — vínculo usado na inscrição (RN03)()\l}"];
 }
   InscricaoRepository -> MotivoRecusa [style=invis];
