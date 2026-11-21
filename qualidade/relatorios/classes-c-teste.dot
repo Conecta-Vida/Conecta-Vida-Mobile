@@ -1,0 +1,52 @@
+digraph classes {
+rankdir=BT; nodesep=0.25; ranksep=0.5; pad=0.1; concentrate=true;
+node [shape=record, fontname="DejaVu Sans", fontsize=12, style=filled, fillcolor="#ffffff"];
+edge [fontname="DejaVu Sans", fontsize=11];
+subgraph cluster_0 { label="«pacote» aplicacao"; style="rounded,filled"; fillcolor="#eef4fb"; color=gray40; fontname="DejaVu Sans"; fontsize=13; labelloc=t;
+  InscricaoRepository [shape=box, label="«abstract»\nInscricaoRepository"];
+  MotivoRecusa [shape=box, label="«enumeration»\nMotivoRecusa"];
+  InscricaoException [shape=box, label="InscricaoException"];
+  ResultadoInscricao [shape=box, label="ResultadoInscricao"];
+  InscricaoCampanhaService [shape=box, label="InscricaoCampanhaService"];
+}
+subgraph cluster_1 { label="«pacote» dominio"; style="rounded,filled"; fillcolor="#f2f8ee"; color=gray40; fontname="DejaVu Sans"; fontsize=13; labelloc=t;
+  Inscricao [shape=box, label="Inscricao"];
+  Participante [shape=box, label="Participante"];
+  NewsModel [shape=box, label="NewsModel"];
+  DependenteModel [shape=box, label="DependenteModel"];
+  ConviteDependente [shape=box, label="ConviteDependente"];
+}
+subgraph cluster_2 { label="«pacote» teste"; style="rounded,filled"; fillcolor="#f5f0fb"; color=gray40; fontname="DejaVu Sans"; fontsize=13; labelloc=t;
+  Chamada [label="{«test double»\nChamada|+operacao: String\l+comunicacaoId: int\l+usuarioId: int\l+dependenteId: int?\l|+hashCode(): int\l+toString(): String\l+operator ==(other: Object): bool\l}"];
+  RepositorioStub [label="{«test double»\nRepositorioStub|+dependentes: List&lt;DependenteModel&gt;\l+inscricoes: List&lt;Inscricao&gt;\l+falharPara: Set&lt;int?&gt;\l+mensagemDeFalha: String\l+chamadas: List&lt;Chamada&gt;\l|+buscarDependentesAtivos(usuarioId: int):\l      Future&lt;List&lt;DependenteModel&gt;&gt;\l+buscarInscricoes(comunicacaoId: int):\l      Future&lt;List&lt;Inscricao&gt;&gt;\l+inscrever(comunicacaoId: int,\l      usuarioId: int,\l      dependenteId: int?):\l      Future&lt;void&gt;\l+desinscrever(comunicacaoId: int,\l      usuarioId: int,\l      dependenteId: int?):\l      Future&lt;void&gt;\l}"];
+  InscricaoCampanhaServiceTest [label="{«test»\nInscricaoCampanhaServiceTest||+verificarAcesso (passo 4)()\l+listarParticipantes (passo 4)()\l+inscricoesDoUsuario()\l+salvarInscricoes (passos 5 e 6)()\l+InscricaoException.mensagem()\l}"];
+  InscricaoEntidadesTest [label="{«test»\nInscricaoEntidadesTest||+Inscricao()\l+Participante()\l+NewsModel.encerradaEm (RN02)()\l+NewsModel (Campanha) — conversões()\l+NewsModel — vagas (RN07)()\l+Dependente — vínculo usado na inscrição (RN03)()\l}"];
+}
+  InscricaoRepository -> MotivoRecusa [style=invis];
+  MotivoRecusa -> InscricaoException [style=invis];
+  InscricaoException -> ResultadoInscricao [style=invis];
+  ResultadoInscricao -> InscricaoCampanhaService [style=invis];
+  Inscricao -> Participante [style=invis];
+  Participante -> NewsModel [style=invis];
+  NewsModel -> DependenteModel [style=invis];
+  DependenteModel -> ConviteDependente [style=invis];
+  InscricaoCampanhaServiceTest -> Chamada [arrowhead=vee, style=dashed];
+  InscricaoCampanhaServiceTest -> DependenteModel [arrowhead=vee, style=dashed];
+  InscricaoCampanhaServiceTest -> Inscricao [arrowhead=vee, style=dashed];
+  InscricaoCampanhaServiceTest -> InscricaoCampanhaService [arrowhead=vee, style=dashed];
+  InscricaoCampanhaServiceTest -> InscricaoException [arrowhead=vee, style=dashed];
+  InscricaoCampanhaServiceTest -> MotivoRecusa [arrowhead=vee, style=dashed];
+  InscricaoCampanhaServiceTest -> NewsModel [arrowhead=vee, style=dashed];
+  InscricaoCampanhaServiceTest -> Participante [arrowhead=vee, style=dashed];
+  InscricaoCampanhaServiceTest -> RepositorioStub [arrowhead=vee, style=dashed];
+  InscricaoCampanhaServiceTest -> ResultadoInscricao [arrowhead=vee, style=dashed];
+  InscricaoEntidadesTest -> ConviteDependente [arrowhead=vee, style=dashed];
+  InscricaoEntidadesTest -> DependenteModel [arrowhead=vee, style=dashed];
+  InscricaoEntidadesTest -> Inscricao [arrowhead=vee, style=dashed];
+  InscricaoEntidadesTest -> NewsModel [arrowhead=vee, style=dashed];
+  InscricaoEntidadesTest -> Participante [arrowhead=vee, style=dashed];
+  RepositorioStub -> Chamada [arrowhead=vee];
+  RepositorioStub -> DependenteModel [arrowhead=vee];
+  RepositorioStub -> Inscricao [arrowhead=vee];
+  RepositorioStub -> InscricaoRepository [arrowhead=empty, style=dashed];
+}

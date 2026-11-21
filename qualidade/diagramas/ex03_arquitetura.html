@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<!-- Exercício 3 - Diagrama Arquitetural do Conecta Vida (notação livre, em camadas). -->
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Arquitetura Conecta Vida</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "DejaVu Sans", Arial, sans-serif; font-size: 15px; color: #1d2733; background: #fff; }
+  .quadro { width: 1300px; padding: 14px; display: grid; grid-template-columns: 1fr 250px; gap: 14px; }
+  .camada { border-radius: 10px; padding: 10px 12px 12px; border: 2px solid; }
+  .titulo { font-weight: bold; font-size: 15px; margin-bottom: 8px; letter-spacing: .2px; }
+  .titulo small { font-weight: normal; font-size: 13.5px; color: #4b5866; }
+  .linha { display: flex; gap: 10px; align-items: stretch; }
+  .caixa { background: #fff; border: 1.5px solid #6b7785; border-radius: 7px; padding: 6px 8px; flex: 1; line-height: 1.28; }
+  .caixa b { display: block; font-size: 15px; }
+  .caixa span { font-size: 13.5px; color: #3b4652; }
+  .destaque { background: #dbe8f7; border-color: #2f5f9e; border-width: 2.5px; }
+  .atores { border-color: #9aa3ad; border-style: dashed; }
+  .front { border-color: #4a78b5; background: #eef4fb; }
+  .app { border: 1.5px solid #4a78b5; border-radius: 8px; padding: 8px; flex: 2.6; background: #f7fbff; }
+  .app .titulo { font-size: 14.5px; margin-bottom: 6px; }
+  .back { border-color: #5b9a3c; background: #f2f8ee; }
+  .dados { border-color: #c9892b; background: #fff6e6; }
+  .ext { border-color: #9aa3ad; border-style: dashed; }
+  .ci { border-color: #7d5ba6; background: #f5f0fb; }
+  .seta { text-align: center; font-size: 13.5px; color: #33404d; padding: 3px 0; }
+  .seta::before { content: "▼"; display: block; font-size: 15px; color: #33404d; line-height: 1; }
+  .lado { display: flex; flex-direction: column; gap: 10px; }
+  .lado .caixa { flex: none; }
+  .nota { font-size: 13.5px; color: #33404d; margin-top: 6px; }
+</style></head><body>
+<div class="quadro">
+  <div>
+    <div class="camada atores">
+      <div class="titulo">ATORES</div>
+      <div class="linha">
+        <div class="caixa"><b>Cidadão (titular)</b><span>celular Android · iOS · navegador (PWA)</span></div>
+        <div class="caixa"><b>Gestor de saúde</b><span>navegador</span></div>
+      </div>
+    </div>
+    <div class="seta">HTTPS</div>
+    <div class="camada front">
+      <div class="titulo">FRONT-END <small>— publicado no Netlify (deploy a cada push na main)</small></div>
+      <div class="linha">
+        <div class="app">
+          <div class="titulo">App Conecta Vida — Flutter 3.44 / Dart 3.12</div>
+          <div class="linha">
+            <div class="caixa"><b>Apresentação</b><span>lib/screens · widgets<br>NewsDetailsPage</span></div>
+            <div class="caixa destaque"><b>Aplicação</b><span>lib/usecases<br>InscricaoCampanhaService</span></div>
+            <div class="caixa"><b>Domínio</b><span>lib/models<br>NewsModel · Inscricao</span></div>
+            <div class="caixa"><b>Infraestrutura</b><span>SupabaseInscricao­Repository · supabase_flutter</span></div>
+          </div>
+          <div class="nota">Local: Hive (preferências) · notificações locais · GPS · leitura em voz alta</div>
+        </div>
+        <div class="caixa"><b>Painel administrativo</b><span>React 19 + TypeScript + Vite<br>Tailwind · shadcn/ui · Recharts · jsPDF<br>@supabase/supabase-js</span></div>
+      </div>
+    </div>
+    <div class="seta">HTTPS + JWT · WebSocket (supabase_flutter / supabase-js)</div>
+    <div class="camada back">
+      <div class="titulo">BACK-END COMO SERVIÇO (BaaS) <small>— Supabase, na nuvem</small></div>
+      <div class="linha">
+        <div class="caixa"><b>Auth</b><span>cadastro · confirmação de e-mail · login</span></div>
+        <div class="caixa"><b>API REST/RPC</b><span>PostgREST: usuarios_campanhas, dependentes</span></div>
+        <div class="caixa"><b>Realtime</b><span>alertas em tempo real</span></div>
+        <div class="caixa"><b>Edge Functions</b><span>Deno/TypeScript: importação de dados, unidades próximas</span></div>
+        <div class="caixa"><b>Storage</b><span>imagens · APK</span></div>
+        <div class="caixa"><b>pg_cron + pg_net</b><span>encerra campanhas vencidas às 03h05</span></div>
+      </div>
+    </div>
+    <div class="seta">SQL + RLS (Row Level Security)</div>
+    <div class="camada dados">
+      <div class="titulo">PERSISTÊNCIA — PostgreSQL 17</div>
+      <div class="linha">
+        <div class="caixa"><b>Tabelas</b><span>comunicacoes · usuarios_campanhas · dependentes · usuarios</span></div>
+        <div class="caixa"><b>Regras do caso de uso</b><span>políticas cv_inscricoes_* (RN01–RN03) · índices únicos (RN04) · gatilhos (RN05, RN06)</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="lado">
+    <div class="camada ext">
+      <div class="titulo">APIs EXTERNAS</div>
+      <div class="lado">
+        <div class="caixa"><b>gov.br/saúde e Agência SP</b><span>RSS de notícias</span></div>
+        <div class="caixa"><b>CNES · IBGE</b><span>dados abertos de saúde</span></div>
+        <div class="caixa"><b>InfoDengue</b><span>Fiocruz / FGV</span></div>
+        <div class="caixa"><b>OpenStreetMap</b><span>cidade pelo GPS (app)</span></div>
+      </div>
+      <div class="nota">Chamadas pelas Edge Functions (HTTPS)</div>
+    </div>
+    <div class="camada ci">
+      <div class="titulo">QUALIDADE / CI</div>
+      <div class="caixa"><b>GitHub Actions</b><span>flutter analyze · flutter test + lcov · pytest + PostgreSQL 17</span></div>
+    </div>
+  </div>
+</div>
+</body></html>

@@ -1,0 +1,50 @@
+@startuml ex04_atividades_uml_parte1
+' Exercício 4 (parte 1) - Diagrama de Atividades (UML) com raias - UC03 Inscrever-se em campanha.
+' Os números [n] são os nós do Grafo de Fluxo de Controle (Figura 4).
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #333333
+skinparam ActivityDiamondBackgroundColor #FFE3B3
+skinparam ActivityDiamondFontSize 14
+skinparam ArrowFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+skinparam SwimlaneTitleFontSize 16
+
+|#F6F9FD|Cidadão|
+start
+:[1] Abrir detalhes\nda campanha;
+|#F4F9F1|Sistema Conecta Vida|
+:[1] Exibir detalhes\ne situação;
+|Cidadão|
+:[1] Tocar em\n"gerenciar\ninscrições";
+|Sistema Conecta Vida|
+if ([2] Encerrada e\nsem inscrições?\n(RN02)) then (sim)
+  #FDE8E8:[3] "Campanha\nencerrada" (E1);
+  stop
+else (não)
+endif
+if ([4] ID e usuário\nválidos? (RN01)) then (não)
+  #FDE8E8:[5] Mensagem\nde erro (E2/E3);
+  stop
+else (sim)
+endif
+|#FDF8EF|Supabase|
+:[6] Buscar dependentes\nativos e inscrições\n(RLS, RN03);
+|Sistema Conecta Vida|
+:[6] Exibir participantes\n(A4: se encerrada,\nsó desmarcar);
+|Cidadão|
+:[6] Marcar /\ndesmarcar;
+if ([7] Confirmou?) then (não, A2)
+  stop
+else (sim)
+endif
+|Sistema Conecta Vida|
+if ([8] Houve\nalteração?) then (não)
+  #FFF6E0:[9] "Nenhuma\nalteração" (A3);
+  stop
+else (sim)
+endif
+(A)
+detach
+@enduml

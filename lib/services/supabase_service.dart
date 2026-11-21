@@ -518,6 +518,8 @@ class SupabaseService {
           'orgao': instituicaoNome,
           'status': item['status'] ?? '',
           'fonteUrl': item['fonte_url'] ?? '',
+          'vagas': item['vagas'],
+          'inscritos': item['inscritos'] ?? 0,
           // Contato real da instituição; vazio quando ela não informou
           // (a tela mostra "Não informado" em vez de um número fictício).
           'orgaoTelefone': instituicao is Map

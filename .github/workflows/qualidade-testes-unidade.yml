@@ -1,0 +1,108 @@
+# Trabalho 2 de Qualidade de Software: testes de unidade do caso de uso
+# "Inscrever-se em campanha", cobertura (lcov) e diagrama de classes por
+# engenharia reversa (dcdg + PlantUML).
+name: Qualidade - testes de unidade e cobertura
+
+on:
+  push:
+    branches: [ "qualidade/**" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: qualidade-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Análise estática
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Testes de unidade com cobertura
+        run: |
+          mkdir -p qualidade/relatorios
+          flutter test --coverage --reporter expanded \
+            --file-reporter json:qualidade/relatorios/testes.json \
+            | tee qualidade/relatorios/testes.txt
+      - name: Relatório de cobertura (lcov/genhtml)
+        if: always()
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lcov
+          cp coverage/lcov.info qualidade/relatorios/lcov-completo.info
+          head -5 coverage/lcov.info
+          lcov --extract coverage/lcov.info \
+            'lib/usecases/*' 'lib/models/inscricao.dart' \
+            'lib/models/noticia.dart' 'lib/models/dependente.dart' \
+            '*/lib/usecases/*' '*/lib/models/inscricao.dart' \
+            '*/lib/models/noticia.dart' '*/lib/models/dependente.dart' \
+            -o qualidade/relatorios/lcov-caso-de-uso.info \
+            --ignore-errors unused,empty,inconsistent
+          genhtml qualidade/relatorios/lcov-caso-de-uso.info \
+            -o qualidade/relatorios/cobertura --title "Conecta Vida - Inscrever-se em campanha" \
+            --ignore-errors inconsistent,category,source
+          lcov --list qualidade/relatorios/lcov-caso-de-uso.info --ignore-errors inconsistent \
+            | tee qualidade/relatorios/cobertura.txt
+      - name: Cobertura por método e GFC (complexidade ciclomática)
+        if: always()
+        run: |
+          python3 qualidade/cobertura_por_metodo.py qualidade/relatorios/lcov-caso-de-uso.info \
+            lib/usecases lib/models/inscricao.dart lib/models/noticia.dart lib/models/dependente.dart \
+            --html qualidade/relatorios/cobertura-por-metodo.html --md qualidade/relatorios/cobertura-por-metodo.md
+          sudo apt-get install -y -qq graphviz
+          pip install pillow
+          python3 qualidade/gfc_dart.py lib/usecases/inscricao_campanha_service.dart \
+            --metodo salvarInscricoes --dot qualidade/relatorios/gfc-salvarInscricoes.dot \
+            --png qualidade/relatorios/gfc-salvarInscricoes.png \
+            --png-grafo qualidade/relatorios/gfc-salvarInscricoes-grafo.png \
+            --legenda qualidade/relatorios/gfc-salvarInscricoes-legenda.md \
+            --md qualidade/relatorios/complexidade-ciclomatica.md
+      - name: Diagrama de classes por engenharia reversa
+        if: always()
+        continue-on-error: true
+        run: |
+          dart pub global activate dcdg
+          export PATH="$PATH:$HOME/.pub-cache/bin"
+          dcdg -s lib/usecases -s lib/models -s test/usecases \
+            -o qualidade/relatorios/classes-dcdg.puml || true
+          python3 qualidade/engenharia_reversa.py \
+            lib/usecases lib/models/inscricao.dart lib/models/noticia.dart \
+            lib/models/dependente.dart lib/services/supabase_inscricao_repository.dart \
+            test/usecases test/models/inscricao_entidades_test.dart -o qualidade/relatorios/classes.puml
+          P="lib/usecases lib/models/inscricao.dart lib/models/noticia.dart lib/models/dependente.dart"
+          python3 qualidade/engenharia_reversa.py $P lib/services/supabase_inscricao_repository.dart \
+            --resumir dominio -f dot -o qualidade/relatorios/classes-a-aplicacao.dot
+          python3 qualidade/engenharia_reversa.py lib/models/inscricao.dart lib/models/noticia.dart \
+            lib/models/dependente.dart -f dot -o qualidade/relatorios/classes-b-dominio.dot
+          python3 qualidade/engenharia_reversa.py $P test/usecases test/models/inscricao_entidades_test.dart \
+            --resumir aplicacao,dominio --relacoes-de teste --empilhar -f dot \
+            -o qualidade/relatorios/classes-c-teste.dot
+          for f in qualidade/relatorios/classes-*.dot; do dot -Tpng -Gdpi=150 "$f" -o "${f%.dot}.png"; done
+          curl -sSL -o plantuml.jar https://github.com/plantuml/plantuml/releases/download/v1.2024.7/plantuml-1.2024.7.jar
+          sudo apt-get install -y -qq graphviz
+          java -jar plantuml.jar -tpng qualidade/relatorios/*.puml qualidade/diagramas/*.puml
+      - name: Publicar relatórios
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-qualidade
+          path: qualidade/relatorios/
+      - name: Guardar relatórios no branch
+        if: always()
+        run: |
+          rm -f plantuml.jar
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f qualidade/relatorios qualidade/diagramas
+          git commit -m "chore(qualidade): relatórios de testes e cobertura [skip ci]" || exit 0
+          git pull --rebase -X theirs origin "${GITHUB_REF_NAME}"
+          git push

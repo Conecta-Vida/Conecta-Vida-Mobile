@@ -1,0 +1,1 @@
+genhtml qualidade/relatorios/lcov-caso-de-uso.info -o qualidade/relatorios/cobertura --title 'Conecta Vida - Inscrever-se em campanha' --ignore-errors inconsistent,category,source
