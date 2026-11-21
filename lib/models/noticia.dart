@@ -21,6 +21,30 @@ class NewsModel {
   /// Endereço da matéria original, quando veio de uma fonte oficial.
   final String fonteUrl;
 
+  /// Limite de vagas da campanha; nulo = sem limite (RN07).
+  final int? vagas;
+
+  /// Pessoas já inscritas na campanha (cada participante ocupa uma vaga).
+  final int inscritos;
+
+  /// Vagas que ainda restam; nulo quando não há limite. Nunca é negativo
+  /// (o gestor pode ter reduzido o limite abaixo dos inscritos).
+  int? get vagasRestantes {
+    final limite = vagas;
+    if (limite == null) return null;
+    final restantes = limite - inscritos;
+    return restantes < 0 ? 0 : restantes;
+  }
+
+  /// Todas as vagas foram ocupadas.
+  bool get lotada => vagasRestantes == 0;
+
+  /// Cabem mais [quantidade] participantes (sempre, quando não há limite).
+  bool comportaNovas(int quantidade) {
+    final restantes = vagasRestantes;
+    return restantes == null || quantidade <= restantes;
+  }
+
   /// Sem local definido: aparece com qualquer filtro de cidade.
   bool get abrangenciaGeral {
     final onde = local.trim().toLowerCase();
@@ -89,6 +113,8 @@ class NewsModel {
     this.orgaoSite = 'https://www.saude.gov.br',
     this.status = '',
     this.fonteUrl = '',
+    this.vagas,
+    this.inscritos = 0,
   });
 
   factory NewsModel.fromMap(Map<String, dynamic> map) {
@@ -121,7 +147,16 @@ class NewsModel {
       orgaoSite: map['orgaoSite'] ?? 'https://www.saude.gov.br',
       status: (map['status'] ?? '').toString(),
       fonteUrl: (map['fonteUrl'] ?? map['fonte_url'] ?? '').toString(),
+      vagas: _inteiroOuNulo(map['vagas']),
+      inscritos: _inteiroOuNulo(map['inscritos']) ?? 0,
     );
+  }
+
+  static int? _inteiroOuNulo(dynamic valor) {
+    if (valor == null) return null;
+    if (valor is int) return valor;
+    if (valor is num) return valor.toInt();
+    return int.tryParse('$valor'.trim());
   }
 
   Map<String, dynamic> toMap() {
@@ -144,6 +179,8 @@ class NewsModel {
       'orgaoSite': orgaoSite,
       'status': status,
       'fonteUrl': fonteUrl,
+      'vagas': vagas,
+      'inscritos': inscritos,
     };
   }
 }

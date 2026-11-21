@@ -6,7 +6,12 @@ import 'package:mobile_app/models/dependente.dart';
 import 'package:mobile_app/models/inscricao.dart';
 import 'package:mobile_app/models/noticia.dart';
 
-NewsModel campanha({String status = 'ATIVA', String dataFim = ''}) =>
+NewsModel campanha({
+  String status = 'ATIVA',
+  String dataFim = '',
+  int? vagas,
+  int inscritos = 0,
+}) =>
     NewsModel(
       id: 1,
       tag: 'CAMPANHA',
@@ -17,6 +22,8 @@ NewsModel campanha({String status = 'ATIVA', String dataFim = ''}) =>
       descricao: '',
       imagem: '',
       status: status,
+      vagas: vagas,
+      inscritos: inscritos,
     );
 
 void main() {
@@ -151,6 +158,44 @@ void main() {
       expect(com('NOTICIA').tipoLegivel, 'Notícia');
       expect(com('ALERTA').tipoLegivel, 'Alerta');
       expect(com('EVENTO').tipoLegivel, 'EVENTO');
+    });
+  });
+
+  group('NewsModel — vagas (RN07)', () {
+    test('CT01 — sem vagas definidas não há limite', () {
+      final c = campanha();
+      expect(c.vagasRestantes, isNull);
+      expect(c.lotada, isFalse);
+      expect(c.comportaNovas(50), isTrue);
+    });
+
+    test('CT26 — vagas restantes = vagas − inscritos', () {
+      final c = campanha(vagas: 10, inscritos: 7);
+      expect(c.vagasRestantes, 3);
+      expect(c.lotada, isFalse);
+      expect(c.comportaNovas(3), isTrue);
+      expect(c.comportaNovas(4), isFalse);
+    });
+
+    test('CT28 — última vaga ocupada: lotada', () {
+      final c = campanha(vagas: 5, inscritos: 5);
+      expect(c.vagasRestantes, 0);
+      expect(c.lotada, isTrue);
+    });
+
+    test('CT31 — gestor reduziu abaixo dos inscritos', () {
+      final c = campanha(vagas: 3, inscritos: 5);
+      expect(c.vagasRestantes, 0);
+      expect(c.lotada, isTrue);
+    });
+
+    test('fromMap lê vagas e inscritos do banco', () {
+      final c = NewsModel.fromMap({'vagas': '4', 'inscritos': 1});
+      expect(c.vagas, 4);
+      expect(c.inscritos, 1);
+      final sem = NewsModel.fromMap({});
+      expect(sem.vagas, isNull);
+      expect(sem.inscritos, 0);
     });
   });
 
