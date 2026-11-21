@@ -7,8 +7,8 @@ inscricao.dart                      | 100%    20|    -   0
 noticia.dart                        | 100%    83|    -   0
 
 [lib/usecases/]
-inscricao_campanha_service.dart     | 100%    64|    -   0
+inscricao_campanha_service.dart     | 100%    69|    -   0
 ==========================================================
-                              Total:| 100%   205|    -   0
+                              Total:| 100%   210|    -   0
 Message summary:
   no messages were reported

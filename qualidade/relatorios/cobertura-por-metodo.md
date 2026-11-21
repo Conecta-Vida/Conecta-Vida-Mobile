@@ -1,14 +1,14 @@
 | Pacote | Classe | Método | Linhas cobertas | % | Testado |
 |---|---|---|---|---|---|
-| aplicacao | InscricaoException | mensagem | 6/6 | 100% | sim |
+| aplicacao | InscricaoException | mensagem | 8/8 | 100% | sim |
 | aplicacao | InscricaoException | toString() | 1/1 | 100% | sim |
 | aplicacao | ResultadoInscricao | sucessoTotal | 1/1 | 100% | sim |
 | aplicacao | ResultadoInscricao | mensagem() | 5/5 | 100% | sim |
 | aplicacao | InscricaoCampanhaService | InscricaoCampanhaService() | 1/1 | 100% | sim |
-| aplicacao | InscricaoCampanhaService | verificarAcesso() | 4/4 | 100% | sim |
+| aplicacao | InscricaoCampanhaService | verificarAcesso() | 5/5 | 100% | sim |
 | aplicacao | InscricaoCampanhaService | inscricoesDoUsuario() | 3/3 | 100% | sim |
 | aplicacao | InscricaoCampanhaService | listarParticipantes() | 19/19 | 100% | sim |
-| aplicacao | InscricaoCampanhaService | salvarInscricoes() | 21/21 | 100% | sim |
+| aplicacao | InscricaoCampanhaService | salvarInscricoes() | 23/23 | 100% | sim |
 | dominio | Inscricao | doTitular | 1/1 | 100% | sim |
 | dominio | Inscricao | chaveParticipante | 2/2 | 100% | sim |
 | dominio | Inscricao | _inteiro() | 3/3 | 100% | sim |

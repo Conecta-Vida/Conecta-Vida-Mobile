@@ -15,10 +15,14 @@ package "aplicacao" {
     naoECampanha
     campanhaEncerrada
     usuarioNaoIdentificado
-    limiteDeParticipantes
+    /// E5: todas as vagas da campanha estão ocupadas (RN07).
+  campanhaLotada
+    /// E6: as novas inscrições escolhidas excedem as vagas restantes (RN07).
+  vagasInsuficientes
   }
   class InscricaoException {
     +motivo: MotivoRecusa
+    +vagasRestantes: int?
     +mensagem: String
     +toString(): String
   }
@@ -30,8 +34,6 @@ package "aplicacao" {
     +mensagem(tituloCampanha: String): String
   }
   class InscricaoCampanhaService {
-    +limiteDependentes: int
-    +limiteParticipantes: int
     -repositorio: InscricaoRepository
     -agora: DateTime Function()
     +verificarAcesso(campanha: NewsModel, usuarioId: int?, possuiInscricoes: bool): void
@@ -141,6 +143,7 @@ package "teste" {
     +dependentes: List<DependenteModel>
     +inscricoes: List<Inscricao>
     +falharPara: Set<int?>
+    +mensagemDeFalha: String
     +chamadas: List<Chamada>
     +buscarDependentesAtivos(usuarioId: int): Future<List<DependenteModel>>
     +buscarInscricoes(comunicacaoId: int): Future<List<Inscricao>>
@@ -186,7 +189,6 @@ InscricaoEntidadesTest ..> DependenteModel
 InscricaoEntidadesTest ..> Inscricao
 InscricaoEntidadesTest ..> NewsModel
 InscricaoEntidadesTest ..> Participante
-InscricaoException ..> InscricaoCampanhaService
 InscricaoException --> MotivoRecusa
 InscricaoRepository ..> DependenteModel
 InscricaoRepository ..> Inscricao
