@@ -163,6 +163,7 @@ void main() {
 
   group('NewsModel — vagas (RN07)', () {
     test('CT01 — sem vagas definidas não há limite', () {
+      // DRIVER: monta a campanha e consulta as vagas.
       final c = campanha();
       expect(c.vagasRestantes, isNull);
       expect(c.lotada, isFalse);
@@ -170,6 +171,7 @@ void main() {
     });
 
     test('CT26 — vagas restantes = vagas − inscritos', () {
+      // DRIVER: monta a campanha e consulta as vagas.
       final c = campanha(vagas: 10, inscritos: 7);
       expect(c.vagasRestantes, 3);
       expect(c.lotada, isFalse);
@@ -178,12 +180,14 @@ void main() {
     });
 
     test('CT28 — última vaga ocupada: lotada', () {
+      // DRIVER: monta a campanha e consulta as vagas.
       final c = campanha(vagas: 5, inscritos: 5);
       expect(c.vagasRestantes, 0);
       expect(c.lotada, isTrue);
     });
 
     test('CT31 — gestor reduziu abaixo dos inscritos', () {
+      // DRIVER: monta a campanha e consulta as vagas.
       final c = campanha(vagas: 3, inscritos: 5);
       expect(c.vagasRestantes, 0);
       expect(c.lotada, isTrue);

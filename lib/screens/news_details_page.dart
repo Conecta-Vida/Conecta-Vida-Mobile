@@ -162,6 +162,9 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
       if (!mounted) return;
 
       final encerrada = widget.noticia.encerrada;
+      // RN07: campanha lotada, como a encerrada, só aceita cancelamentos.
+      final soCancelar = encerrada || widget.noticia.lotada;
+      final vagasRestantes = widget.noticia.vagasRestantes;
       final inscritosAtuais = _inscricoesUsuario
           .map((i) => i.chaveParticipante)
           .toSet();
@@ -182,16 +185,23 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                       encerrada
                           ? 'Esta campanha foi encerrada: você só pode '
                                 'cancelar as inscrições existentes.'
+                          : widget.noticia.lotada
+                          ? 'As vagas desta campanha esgotaram: você só pode '
+                                'cancelar as inscrições existentes.'
                           : 'Marque todas as pessoas que deseja inscrever. '
                                 'Você pode selecionar você e vários dependentes.',
                     ),
+                    if (vagasRestantes != null) ...[
+                      const SizedBox(height: 8),
+                      Text('Vagas restantes: $vagasRestantes'),
+                    ],
                     const SizedBox(height: 12),
                     ...participantes.map((participante) {
                       final chave = participante.chave;
                       final jaInscrito = inscritosAtuais.contains(chave);
                       // RN02 e RN03: só desmarca quem não pode ser inscrito.
                       final podeMarcar =
-                          jaInscrito || (!encerrada && participante.vinculoAtivo);
+                          jaInscrito || (!soCancelar && participante.vinculoAtivo);
                       return CheckboxListTile(
                         value: selecionados.contains(chave),
                         controlAffinity: ListTileControlAffinity.leading,
@@ -470,6 +480,18 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                               ? _alternarInscricaoCampanha
                               : null,
                         ),
+                        // RN07: só aparece quando a campanha tem limite de vagas.
+                        if (_ehCampanha && widget.noticia.vagas != null) ...[
+                          const Divider(height: 1),
+                          NoticiasInfoBotao(
+                            icone: Icons.groups,
+                            titulo: 'Vagas',
+                            valor: widget.noticia.lotada
+                                ? 'Esgotadas'
+                                : '${widget.noticia.vagasRestantes} de '
+                                      '${widget.noticia.vagas} restantes',
+                          ),
+                        ],
                         const Divider(height: 1),
                         NoticiasInfoBotao(
                           icone: Icons.location_on,

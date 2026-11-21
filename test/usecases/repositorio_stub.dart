@@ -51,6 +51,9 @@ class RepositorioStub implements InscricaoRepository {
   /// Dependente (ou `null` = titular) cuja gravação deve falhar.
   final Set<int?> falharPara;
 
+  /// Mensagem da exceção simulada (ex.: a recusa do gatilho de vagas do banco).
+  final String mensagemDeFalha;
+
   /// Registro das chamadas (papel de mock).
   final List<Chamada> chamadas = [];
 
@@ -58,6 +61,7 @@ class RepositorioStub implements InscricaoRepository {
     this.dependentes = const [],
     this.inscricoes = const [],
     this.falharPara = const {},
+    this.mensagemDeFalha = 'falha simulada no banco',
   });
 
   @override
@@ -78,7 +82,8 @@ class RepositorioStub implements InscricaoRepository {
       Chamada('inscrever', comunicacaoId, usuarioId, dependenteId),
     );
     if (falharPara.contains(dependenteId)) {
-      throw Exception('falha simulada no banco');
+      // STUB: falha simulada no banco para este participante.
+      throw Exception(mensagemDeFalha);
     }
   }
 
@@ -92,7 +97,8 @@ class RepositorioStub implements InscricaoRepository {
       Chamada('desinscrever', comunicacaoId, usuarioId, dependenteId),
     );
     if (falharPara.contains(dependenteId)) {
-      throw Exception('falha simulada no banco');
+      // STUB: falha simulada no banco para este participante.
+      throw Exception(mensagemDeFalha);
     }
   }
 }

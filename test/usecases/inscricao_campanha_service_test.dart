@@ -19,6 +19,8 @@ NewsModel campanha({
   String tag = 'CAMPANHA',
   String status = 'ATIVA',
   String dataFim = '2026-12-31',
+  int? vagas,
+  int inscritos = 0,
 }) => NewsModel(
   id: id,
   tag: tag,
@@ -29,6 +31,8 @@ NewsModel campanha({
   descricao: '',
   imagem: '',
   status: status,
+  vagas: vagas,
+  inscritos: inscritos,
 );
 
 DependenteModel dependente(int id, {String status = 'ativo'}) =>
@@ -58,8 +62,9 @@ void main() {
   group('verificarAcesso (passo 4)', () {
     final s = servico(RepositorioStub());
 
-    test('campanha aberta e usuário identificado: libera', () {
+    test('CT01 · C5 — campanha aberta e usuário identificado: libera', () {
       expect(
+        // DRIVER: chama o serviço com a entrada do caso de teste.
         () => s.verificarAcesso(
           campanha: campanha(),
           usuarioId: usuarioId,
@@ -69,8 +74,9 @@ void main() {
       );
     });
 
-    test('RN01: comunicação que não é campanha é recusada', () {
+    test('CT17 · C2 — RN01: comunicação que não é campanha é recusada', () {
       expect(
+        // DRIVER: chama o serviço com a entrada do caso de teste.
         () => s.verificarAcesso(
           campanha: campanha(tag: 'NOTICIA'),
           usuarioId: usuarioId,
@@ -86,8 +92,9 @@ void main() {
       );
     });
 
-    test('E1/RN02: campanha encerrada sem inscrições é recusada', () {
+    test('CT04 · C1 — E1/RN02: campanha encerrada sem inscrições é recusada', () {
       expect(
+        // DRIVER: chama o serviço com a entrada do caso de teste.
         () => s.verificarAcesso(
           campanha: campanha(status: 'ENCERRADA'),
           usuarioId: usuarioId,
@@ -103,8 +110,9 @@ void main() {
       );
     });
 
-    test('A4: campanha encerrada com inscrições abre para cancelar', () {
+    test('CT10 · C7 — A4: campanha encerrada com inscrições abre para cancelar', () {
       expect(
+        // DRIVER: chama o serviço com a entrada do caso de teste.
         () => s.verificarAcesso(
           campanha: campanha(status: 'ENCERRADA'),
           usuarioId: usuarioId,
@@ -114,8 +122,9 @@ void main() {
       );
     });
 
-    test('E2: campanha sem ID é recusada', () {
+    test('CT20 · C2 — E2: campanha sem ID é recusada', () {
       expect(
+        // DRIVER: chama o serviço com a entrada do caso de teste.
         () => s.verificarAcesso(
           campanha: campanha(id: null),
           usuarioId: usuarioId,
@@ -131,8 +140,9 @@ void main() {
       );
     });
 
-    test('E3: usuário não identificado é recusado', () {
+    test('CT20 · C2 — E3: usuário não identificado é recusado', () {
       expect(
+        // DRIVER: chama o serviço com a entrada do caso de teste.
         () => s.verificarAcesso(
           campanha: campanha(),
           usuarioId: null,
@@ -147,12 +157,44 @@ void main() {
         ),
       );
     });
+
+    test('CT28 · C1 — E5/RN07: campanha lotada sem inscrições é recusada', () {
+      expect(
+        // DRIVER: chama o serviço com a entrada do caso de teste.
+        () => s.verificarAcesso(
+          campanha: campanha(vagas: 3, inscritos: 3),
+          usuarioId: usuarioId,
+          possuiInscricoes: false,
+        ),
+        throwsA(
+          isA<InscricaoException>().having(
+            (e) => e.mensagem,
+            'mensagem',
+            'As vagas desta campanha esgotaram.',
+          ),
+        ),
+      );
+    });
+
+    test('CT29 · C7 — A4/RN07: campanha lotada com inscrições abre para cancelar', () {
+      expect(
+        // DRIVER: chama o serviço com a entrada do caso de teste.
+        () => s.verificarAcesso(
+          campanha: campanha(vagas: 3, inscritos: 3),
+          usuarioId: usuarioId,
+          possuiInscricoes: true,
+        ),
+        returnsNormally,
+      );
+    });
   });
 
   // ------------------------------------------------------------------
   group('listarParticipantes (passo 4)', () {
-    test('titular sempre primeiro, seguido dos dependentes ativos', () async {
+    test('CT02 · C5 — titular sempre primeiro, seguido dos dependentes ativos', () async {
+      // STUB: dados fixos no lugar do banco.
       final repo = RepositorioStub(dependentes: [dependente(1), dependente(2)]);
+      // DRIVER: chama o serviço com a entrada do caso de teste.
       final lista = await servico(
         repo,
       ).listarParticipantes(usuarioId: usuarioId, inscricoesAtuais: []);
@@ -165,7 +207,8 @@ void main() {
       expect(lista.first.ehTitular, isTrue);
     });
 
-    test('RN03: ignora dependente pendente e dependente sem id', () async {
+    test('CT12 · C5 — RN03: ignora dependente pendente e dependente sem id', () async {
+      // STUB: dados fixos no lugar do banco.
       final repo = RepositorioStub(
         dependentes: [
           dependente(1, status: 'pendente'),
@@ -177,6 +220,7 @@ void main() {
           dependente(3),
         ],
       );
+      // DRIVER: chama o serviço com a entrada do caso de teste.
       final lista = await servico(
         repo,
       ).listarParticipantes(usuarioId: usuarioId, inscricoesAtuais: []);
@@ -185,9 +229,11 @@ void main() {
     });
 
     test(
-      'inscrito que perdeu o vínculo aparece só para cancelamento',
+      'CT14 · C7 — inscrito que perdeu o vínculo aparece só para cancelamento',
       () async {
+        // STUB: dados fixos no lugar do banco.
         final repo = RepositorioStub(dependentes: [dependente(1)]);
+        // DRIVER: chama o serviço com a entrada do caso de teste.
         final lista = await servico(repo).listarParticipantes(
           usuarioId: usuarioId,
           inscricoesAtuais: const [
@@ -228,7 +274,8 @@ void main() {
 
   // ------------------------------------------------------------------
   group('inscricoesDoUsuario', () {
-    test('devolve só as inscrições da própria conta', () async {
+    test('CT01 · C5 — devolve só as inscrições da própria conta', () async {
+      // STUB: dados fixos no lugar do banco.
       final repo = RepositorioStub(
         inscricoes: const [
           Inscricao(usuarioId: usuarioId, comunicacaoId: campanhaId),
@@ -236,6 +283,7 @@ void main() {
           Inscricao(usuarioId: usuarioId, comunicacaoId: 1),
         ],
       );
+      // DRIVER: chama o serviço com a entrada do caso de teste.
       final minhas = await servico(
         repo,
       ).inscricoesDoUsuario(comunicacaoId: campanhaId, usuarioId: usuarioId);
@@ -262,10 +310,12 @@ void main() {
       escolhidos: escolhidos,
     );
 
-    test('fluxo principal: inscreve titular e dependente', () async {
+    test('CT02 · C5 · P9 — fluxo principal: inscreve titular e dependente', () async {
       final repo = RepositorioStub();
+      // DRIVER: chama o serviço com a entrada do caso de teste.
       final r = await salvar(repo, escolhidos: {'titular', 'dependente:1'});
 
+      // MOCK: confere quais operações o serviço pediu ao banco.
       expect(repo.chamadas, [
         const Chamada('inscrever', campanhaId, usuarioId, null),
         const Chamada('inscrever', campanhaId, usuarioId, 1),
@@ -278,108 +328,130 @@ void main() {
       );
     });
 
-    test('A1: desmarcar participante cancela a inscrição', () async {
+    test('CT06 · C7 · P11 — A1: desmarcar participante cancela a inscrição', () async {
       final repo = RepositorioStub();
+      // DRIVER: chama o serviço com a entrada do caso de teste.
       final r = await salvar(
         repo,
         atuais: {'titular', 'dependente:1'},
         escolhidos: {'titular'},
       );
+      // MOCK: confere quais operações o serviço pediu ao banco.
       expect(repo.chamadas, [
         const Chamada('desinscrever', campanhaId, usuarioId, 1),
       ]);
       expect(r.alteracoes, 1);
     });
 
-    test('A3/RN04: sem alterações não chama o banco', () async {
+    test('CT09 · C4 · P6 — A3/RN04: sem alterações não chama o banco', () async {
       final repo = RepositorioStub();
+      // DRIVER: chama o serviço com a entrada do caso de teste.
       final r = await salvar(
         repo,
         atuais: {'titular'},
         escolhidos: {'titular'},
       );
+      // MOCK: confere quais operações o serviço pediu ao banco.
       expect(repo.chamadas, isEmpty);
       expect(r.mensagem('X'), 'Nenhuma alteração nas inscrições.');
     });
 
-    test('RN02: campanha encerrada não aceita inscrição nova', () async {
+    test('CT11 · C6 · P7 — RN02: campanha encerrada não aceita inscrição nova', () async {
       final repo = RepositorioStub();
+      // DRIVER: chama o serviço com a entrada do caso de teste.
       final r = await salvar(
         repo,
         camp: campanha(dataFim: '2026-11-19'),
         atuais: {'titular'},
         escolhidos: {'titular', 'dependente:1'},
       );
+      // MOCK: confere quais operações o serviço pediu ao banco.
       expect(repo.chamadas, isEmpty);
       expect(r.falhas, ['Dependente 1: campanha encerrada']);
       expect(r.mensagem('X'), startsWith('Algumas inscrições não foram'));
     });
 
-    test('RN02/A4: campanha encerrada permite cancelar', () async {
+    test('CT10 · C7 · P11 — RN02/A4: campanha encerrada permite cancelar', () async {
       final repo = RepositorioStub();
+      // DRIVER: chama o serviço com a entrada do caso de teste.
       final r = await salvar(
         repo,
         camp: campanha(status: 'ENCERRADA'),
         atuais: {'titular'},
         escolhidos: {},
       );
+      // MOCK: confere quais operações o serviço pediu ao banco.
       expect(repo.chamadas, [
         const Chamada('desinscrever', campanhaId, usuarioId, null),
       ]);
       expect(r.sucessoTotal, isTrue);
     });
 
-    test('RN03: dependente sem vínculo ativo não é inscrito', () async {
+    test('CT21 · C10 · P8 — RN03: dependente sem vínculo ativo não é inscrito', () async {
       final repo = RepositorioStub();
+      // DRIVER: chama o serviço com a entrada do caso de teste.
       final r = await salvar(
         repo,
         participantes: [participante(null), participante(5, vinculoAtivo: false)],
         escolhidos: {'dependente:5'},
       );
+      // MOCK: confere quais operações o serviço pediu ao banco.
       expect(repo.chamadas, isEmpty);
       expect(r.falhas, ['Dependente 5: vínculo não está ativo']);
     });
 
-    test('RN03: dependente sem vínculo ativo ainda pode ser cancelado', () async {
+    test('CT14 · C7 · P11 — RN03: dependente sem vínculo ativo ainda pode ser cancelado', () async {
       final repo = RepositorioStub();
+      // DRIVER: chama o serviço com a entrada do caso de teste.
       await salvar(
         repo,
         participantes: [participante(null), participante(5, vinculoAtivo: false)],
         atuais: {'dependente:5'},
         escolhidos: {},
       );
+      // MOCK: confere quais operações o serviço pediu ao banco.
       expect(repo.chamadas, [
         const Chamada('desinscrever', campanhaId, usuarioId, 5),
       ]);
     });
 
-    test('E4: falha no banco de um participante não impede os outros', () async {
+    test('CT18 · C8 · P10 — E4: falha no banco de um participante não impede os outros', () async {
+      // STUB: dados fixos no lugar do banco.
       final repo = RepositorioStub(falharPara: {1});
+      // DRIVER: chama o serviço com a entrada do caso de teste.
       final r = await salvar(repo, escolhidos: {'titular', 'dependente:1'});
+      // MOCK: confere quais operações o serviço pediu ao banco.
       expect(repo.chamadas, hasLength(2));
       expect(r.alteracoes, 1);
       expect(r.falhas.single, contains('Dependente 1'));
     });
 
-    test('E4: falha ao cancelar também é informada', () async {
+    test('CT19 · C9 · P12 — E4: falha ao cancelar também é informada', () async {
+      // STUB: dados fixos no lugar do banco.
       final repo = RepositorioStub(falharPara: {null});
+      // DRIVER: chama o serviço com a entrada do caso de teste.
       final r = await salvar(repo, atuais: {'titular'}, escolhidos: {});
       expect(r.alteracoes, 0);
       expect(r.falhas.single, startsWith('Eu (titular):'));
     });
 
-    test('E2: campanha sem ID é recusada antes de gravar', () async {
+    test('CT20 · C2 · P1 — E2: campanha sem ID é recusada antes de gravar', () async {
       final repo = RepositorioStub();
+      // DRIVER: chama o serviço com a entrada do caso de teste.
       await expectLater(
+        // DRIVER: chama o serviço com a entrada do caso de teste.
         salvar(repo, camp: campanha(id: null), escolhidos: {'titular'}),
         throwsA(isA<InscricaoException>()),
       );
+      // MOCK: confere quais operações o serviço pediu ao banco.
       expect(repo.chamadas, isEmpty);
     });
 
-    test('RN01: notícia é recusada antes de gravar', () async {
+    test('CT17 · C2 · P2 — RN01: notícia é recusada antes de gravar', () async {
       final repo = RepositorioStub();
+      // DRIVER: chama o serviço com a entrada do caso de teste.
       await expectLater(
+        // DRIVER: chama o serviço com a entrada do caso de teste.
         salvar(repo, camp: campanha(tag: 'ALERTA'), escolhidos: {'titular'}),
         throwsA(
           isA<InscricaoException>().having(
@@ -391,9 +463,11 @@ void main() {
       );
     });
 
-    test('E3: usuário nulo é recusado antes de gravar', () async {
+    test('CT20 · C2 · P3 — E3: usuário nulo é recusado antes de gravar', () async {
       final repo = RepositorioStub();
+      // DRIVER: chama o serviço com a entrada do caso de teste.
       await expectLater(
+        // DRIVER: chama o serviço com a entrada do caso de teste.
         salvar(repo, usuario: null, escolhidos: {'titular'}),
         throwsA(
           isA<InscricaoException>().having(
@@ -405,41 +479,92 @@ void main() {
       );
     });
 
-    // Análise de Valor Limite: titular + até 10 dependentes = 11 participantes.
+    // Análise de Valor Limite da RN07: vagas restantes x novas inscrições.
     List<Participante> participantesAte(int n) => [
       participante(null),
       for (var i = 1; i < n; i++) participante(i),
     ];
 
-    test('RN06 limite: 11 participantes (titular + 10) são aceitos', () async {
+    test('CT26 · C5 · P9 — RN07 limite: novas inscrições iguais às vagas restantes são aceitas', () async {
       final repo = RepositorioStub();
-      final todos = participantesAte(11);
+      // DRIVER: chama o serviço com a entrada do caso de teste.
       final r = await salvar(
         repo,
-        participantes: todos,
-        escolhidos: todos.map((p) => p.chave).toSet(),
+        camp: campanha(vagas: 3, inscritos: 1),
+        escolhidos: {'titular', 'dependente:1'},
       );
-      expect(r.alteracoes, 11);
+      // MOCK: confere quais operações o serviço pediu ao banco.
+      expect(repo.chamadas, [
+        const Chamada('inscrever', campanhaId, usuarioId, null),
+        const Chamada('inscrever', campanhaId, usuarioId, 1),
+      ]);
+      expect(r.alteracoes, 2);
     });
 
-    test('RN06 limite: 12 participantes são recusados', () async {
+    test('CT27 · C11 · P4 — RN07 limite: uma inscrição além das vagas restantes é recusada (E6)', () async {
       final repo = RepositorioStub();
-      final todos = participantesAte(12);
+      // DRIVER: chama o serviço com a entrada do caso de teste.
       await expectLater(
+        // DRIVER: chama o serviço com a entrada do caso de teste.
         salvar(
           repo,
-          participantes: todos,
-          escolhidos: todos.map((p) => p.chave).toSet(),
+          camp: campanha(vagas: 2, inscritos: 1),
+          escolhidos: {'titular', 'dependente:1'},
         ),
         throwsA(
-          isA<InscricaoException>().having(
-            (e) => e.motivo,
-            'motivo',
-            MotivoRecusa.limiteDeParticipantes,
-          ),
+          isA<InscricaoException>()
+              .having((e) => e.motivo, 'motivo', MotivoRecusa.vagasInsuficientes)
+              .having(
+                (e) => e.mensagem,
+                'mensagem',
+                'Restam 1 vaga(s) nesta campanha.',
+              ),
         ),
       );
+      // MOCK: confere quais operações o serviço pediu ao banco.
       expect(repo.chamadas, isEmpty);
+    });
+
+    test('CT29 · C7 · P11 — RN07: campanha lotada ainda permite cancelar', () async {
+      final repo = RepositorioStub();
+      // DRIVER: chama o serviço com a entrada do caso de teste.
+      final r = await salvar(
+        repo,
+        camp: campanha(vagas: 2, inscritos: 2),
+        atuais: {'titular'},
+        escolhidos: {},
+      );
+      // MOCK: confere quais operações o serviço pediu ao banco.
+      expect(repo.chamadas, [
+        const Chamada('desinscrever', campanhaId, usuarioId, null),
+      ]);
+      expect(r.sucessoTotal, isTrue);
+    });
+
+    test('P5 — laço sem participantes: nada é gravado', () async {
+      final repo = RepositorioStub();
+      // DRIVER: chama o serviço com a entrada do caso de teste.
+      final r = await salvar(repo, participantes: [], escolhidos: {});
+      // MOCK: confere quais operações o serviço pediu ao banco.
+      expect(repo.chamadas, isEmpty);
+      expect(r.alteracoes, 0);
+    });
+
+    test('CT32 · C8 · P10 — E4/RN07: banco recusa a vaga disputada', () async {
+      // STUB: dados fixos no lugar do banco.
+      final repo = RepositorioStub(
+        falharPara: {null},
+        mensagemDeFalha: 'Vagas esgotadas para esta campanha.',
+      );
+      // DRIVER: chama o serviço com a entrada do caso de teste.
+      final r = await salvar(
+        repo,
+        camp: campanha(vagas: 5, inscritos: 1),
+        participantes: participantesAte(1),
+        escolhidos: {'titular'},
+      );
+      expect(r.alteracoes, 0);
+      expect(r.falhas.single, contains('Vagas esgotadas para esta campanha.'));
     });
   });
 
@@ -452,8 +577,11 @@ void main() {
         expect(e.toString(), e.mensagem);
       }
       expect(
-        const InscricaoException(MotivoRecusa.limiteDeParticipantes).mensagem,
-        contains('11'),
+        const InscricaoException(
+          MotivoRecusa.vagasInsuficientes,
+          vagasRestantes: 1,
+        ).mensagem,
+        'Restam 1 vaga(s) nesta campanha.',
       );
     });
   });

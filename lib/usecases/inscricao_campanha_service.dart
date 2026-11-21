@@ -32,12 +32,20 @@ enum MotivoRecusa {
   naoECampanha,
   campanhaEncerrada,
   usuarioNaoIdentificado,
-  limiteDeParticipantes,
+
+  /// E5: todas as vagas da campanha estão ocupadas (RN07).
+  campanhaLotada,
+
+  /// E6: as novas inscrições escolhidas excedem as vagas restantes (RN07).
+  vagasInsuficientes,
 }
 
 class InscricaoException implements Exception {
   final MotivoRecusa motivo;
-  const InscricaoException(this.motivo);
+
+  /// Vagas que ainda restam (usada na mensagem de E6).
+  final int? vagasRestantes;
+  const InscricaoException(this.motivo, {this.vagasRestantes});
 
   String get mensagem => switch (motivo) {
     MotivoRecusa.campanhaSemId =>
@@ -46,10 +54,9 @@ class InscricaoException implements Exception {
     MotivoRecusa.campanhaEncerrada => 'Esta campanha já foi encerrada.',
     MotivoRecusa.usuarioNaoIdentificado =>
       'Não foi possível identificar o usuário para inscrição.',
-    MotivoRecusa.limiteDeParticipantes =>
-      'Selecione no máximo ${InscricaoCampanhaService.limiteParticipantes} '
-          'participantes (você e até '
-          '${InscricaoCampanhaService.limiteDependentes} dependentes).',
+    MotivoRecusa.campanhaLotada => 'As vagas desta campanha esgotaram.',
+    MotivoRecusa.vagasInsuficientes =>
+      'Restam ${vagasRestantes ?? 0} vaga(s) nesta campanha.',
   };
 
   @override
@@ -81,18 +88,15 @@ class ResultadoInscricao {
 }
 
 class InscricaoCampanhaService {
-  /// RN06: cada titular tem no máximo 10 dependentes.
-  static const int limiteDependentes = 10;
-  static const int limiteParticipantes = limiteDependentes + 1;
-
   final InscricaoRepository _repositorio;
   final DateTime Function() _agora;
 
   InscricaoCampanhaService(this._repositorio, {DateTime Function()? agora})
     : _agora = agora ?? DateTime.now;
 
-  /// Passo 4: confere se o diálogo pode ser aberto (RN01, RN02, E1 a E3).
-  /// Campanha encerrada só abre para quem já tem inscrição (A4: cancelar).
+  /// Passo 4: confere se o diálogo pode ser aberto (RN01, RN02, RN07, E1 a E3
+  /// e E5). Campanha encerrada ou lotada só abre para quem já tem inscrição
+  /// (A4: cancelar).
   void verificarAcesso({
     required NewsModel campanha,
     required int? usuarioId,
@@ -103,6 +107,9 @@ class InscricaoCampanhaService {
     }
     if (campanha.encerradaEm(_agora()) && !possuiInscricoes) {
       throw const InscricaoException(MotivoRecusa.campanhaEncerrada);
+    }
+    if (campanha.lotada && !possuiInscricoes) {
+      throw const InscricaoException(MotivoRecusa.campanhaLotada);
     }
     if (campanha.id == null) {
       throw const InscricaoException(MotivoRecusa.campanhaSemId);
@@ -160,7 +167,7 @@ class InscricaoCampanhaService {
   }
 
   /// Passos 5 a 7: compara quem estava inscrito com quem foi marcado e
-  /// inscreve/cancela cada participante alterado, aplicando RN01 a RN06.
+  /// inscreve/cancela cada participante alterado, aplicando RN01 a RN04 e RN07.
   Future<ResultadoInscricao> salvarInscricoes({
     required NewsModel campanha,
     required int? usuarioId,
@@ -178,8 +185,11 @@ class InscricaoCampanhaService {
     if (usuarioId == null) {
       throw const InscricaoException(MotivoRecusa.usuarioNaoIdentificado);
     }
-    if (escolhidos.length > limiteParticipantes) {
-      throw const InscricaoException(MotivoRecusa.limiteDeParticipantes);
+    if (!campanha.comportaNovas(escolhidos.difference(inscritosAtuais).length)) {
+      throw InscricaoException(
+        MotivoRecusa.vagasInsuficientes,
+        vagasRestantes: campanha.vagasRestantes,
+      );
     }
 
     final encerrada = campanha.encerradaEm(_agora());

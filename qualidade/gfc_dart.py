@@ -275,7 +275,7 @@ def dot(g, m):
     for a, b, r in g.arestas:
         linhas.append(f'  {a} -> {b}' + (f' [label="{r}"]' if r else "") + ";")
     def curto(t, n=50):
-        t = re.sub(r"throw const InscricaoException\(MotivoRecusa\.(\w+)\)", r"throw \1", t)
+        t = re.sub(r"throw (?:const )?InscricaoException\(\s*MotivoRecusa\.(\w+)\b.*", r"throw \1", t, flags=re.S)
         t = re.sub(r"\$\{participante\.nome\}: ", "", t)
         t = re.sub(r"\(\s*comunicacaoId: .*", "(...)", t)
         return t if len(t) <= n else t[:n - 3] + "..."
