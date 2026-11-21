@@ -1,5 +1,5 @@
-@startuml ex04_atividades_uml
-' Exercício 4 - Diagrama de Atividades (UML) com raias - UC03 Inscrever-se em campanha.
+@startuml ex04_atividades_uml_parte1
+' Exercício 4 (parte 1) - Diagrama de Atividades (UML) com raias - UC03 Inscrever-se em campanha.
 ' Os números [n] são os nós do Grafo de Fluxo de Controle (Figura 4).
 skinparam defaultFontName DejaVu Sans
 skinparam defaultFontSize 15
@@ -45,29 +45,6 @@ if ([8] Houve\nalteração?) then (não)
   stop
 else (sim)
 endif
-while ([10] Há participante\nalterado?) is (sim)
-  if ([11] Marcado para\ninscrever?) then (sim)
-    if ([12] Aberta e\nvínculo ativo?\n(RN02/03/06)) then (não)
-      #FDE8E8:[13] Registrar\nrecusa;
-    else (sim)
-      |Supabase|
-      :[14] Gravar inscrição\n(RN01, RN03, RN04);
-      |Sistema Conecta Vida|
-    endif
-  else (não, A1)
-    |Supabase|
-    :[15] Remover\ninscrição (RN05);
-    |Sistema Conecta Vida|
-  endif
-  if ([16] Gravou?) then (não)
-    #FDE8E8:[17] Registrar\nfalha (E4);
-  else (sim)
-  endif
-endwhile (não)
-if ([18] Falhas ou\nrecusas?) then (sim)
-  #FDE8E8:[19] "Algumas não\nforam atualizadas";
-else (não)
-  #E6F4E1:[20] "Inscrições\natualizadas (N)";
-endif
-stop
+(A)
+detach
 @enduml
