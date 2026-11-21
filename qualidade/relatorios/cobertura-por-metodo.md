@@ -17,6 +17,9 @@
 | dominio | Participante | ehTitular | 1/1 | 100% | sim |
 | dominio | Participante | chave | 1/1 | 100% | sim |
 | dominio | Participante | chaveDe() | 2/2 | 100% | sim |
+| dominio | NewsModel | vagasRestantes | 4/4 | 100% | sim |
+| dominio | NewsModel | lotada | 1/1 | 100% | sim |
+| dominio | NewsModel | comportaNovas() | 3/3 | 100% | sim |
 | dominio | NewsModel | abrangenciaGeral | 3/3 | 100% | sim |
 | dominio | NewsModel | localEhCidade | 3/3 | 100% | sim |
 | dominio | NewsModel | ehCampanha | 1/1 | 100% | sim |
@@ -24,8 +27,9 @@
 | dominio | NewsModel | dataLegivel | 4/4 | 100% | sim |
 | dominio | NewsModel | encerrada | 1/1 | 100% | sim |
 | dominio | NewsModel | encerradaEm() | 7/7 | 100% | sim |
-| dominio | NewsModel | NewsModel.fromMap() | 22/22 | 100% | sim |
-| dominio | NewsModel | toMap() | 20/20 | 100% | sim |
+| dominio | NewsModel | NewsModel.fromMap() | 24/24 | 100% | sim |
+| dominio | NewsModel | _inteiroOuNulo() | 4/4 | 100% | sim |
+| dominio | NewsModel | toMap() | 22/22 | 100% | sim |
 | dominio | DependenteModel | pendente | 1/1 | 100% | sim |
 | dominio | DependenteModel | ativo | 1/1 | 100% | sim |
 | dominio | DependenteModel | idadeEm() | 5/5 | 100% | sim |
@@ -35,4 +39,4 @@
 | dominio | ConviteDependente | pendente | 1/1 | 100% | sim |
 | dominio | ConviteDependente | ConviteDependente.fromMap() | 6/6 | 100% | sim |
 
-Métodos testados: 34 de 34.
+Métodos testados: 38 de 38.

@@ -4,11 +4,11 @@ Filename                            |Rate    Num|Rate  Num
 [lib/models/]
 dependente.dart                     | 100%    38|    -   0
 inscricao.dart                      | 100%    20|    -   0
-noticia.dart                        | 100%    67|    -   0
+noticia.dart                        | 100%    83|    -   0
 
 [lib/usecases/]
 inscricao_campanha_service.dart     | 100%    64|    -   0
 ==========================================================
-                              Total:| 100%   189|    -   0
+                              Total:| 100%   205|    -   0
 Message summary:
   no messages were reported

@@ -80,7 +80,12 @@ package "dominio" {
     +orgaoSite: String
     +status: String
     +fonteUrl: String
+    +vagas: int?
+    +inscritos: int
     +abrangenciasAmplas
+    +vagasRestantes: int?
+    +lotada: bool
+    +comportaNovas(quantidade: int): bool
     +abrangenciaGeral: bool
     +localEhCidade: bool
     +ehCampanha: bool
@@ -88,6 +93,7 @@ package "dominio" {
     +dataLegivel: String
     +encerrada: bool
     +encerradaEm(hoje: DateTime): bool
+    -inteiroOuNulo(valor: dynamic): int? {static}
     +toMap(): Map<String, dynamic>
   }
   class DependenteModel {
@@ -153,6 +159,7 @@ package "teste" {
     +Participante()
     +NewsModel.encerradaEm (RN02)()
     +NewsModel (Campanha) — conversões()
+    +NewsModel — vagas (RN07)()
     +Dependente — vínculo usado na inscrição (RN03)()
   }
 }
