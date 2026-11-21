@@ -1,0 +1,36 @@
+// Exercício 5 - Diagrama de Transição de Estados (UML) do objeto Campanha
+// (tabela comunicacoes, tipo CAMPANHA). Transições no formato evento [guarda] / ação.
+digraph DTE {
+  graph [rankdir=TB, fontname="DejaVu Sans", nodesep=0.9, ranksep=1.0, pad=0.2, dpi=150];
+  node  [fontname="DejaVu Sans", fontsize=13];
+  edge  [fontname="DejaVu Sans", fontsize=12, arrowsize=0.8];
+
+  ini [shape=circle, style=filled, fillcolor=black, label="", width=0.25];
+  fim [shape=doublecircle, style=filled, fillcolor=black, label="", width=0.18];
+
+  E1 [shape=plain, label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="6" style="rounded" bgcolor="#EEF4FB" color="#4A78B5">
+      <tr><td><b>Aberta sem inscritos</b></td></tr><hr/>
+      <tr><td align="left">status = ATIVA<br align="left"/>inscrições = 0<br align="left"/></td></tr></table>>];
+  E2 [shape=plain, label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="6" style="rounded" bgcolor="#EEF4FB" color="#4A78B5">
+      <tr><td><b>Aberta com inscritos</b></td></tr><hr/>
+      <tr><td align="left">status = ATIVA<br align="left"/>inscrições ≥ 1<br align="left"/></td></tr></table>>];
+  E3 [shape=plain, label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="6" style="rounded" bgcolor="#FDF1E3" color="#B5784A">
+      <tr><td><b>Encerrada</b></td></tr><hr/>
+      <tr><td align="left">status = ENCERRADA<br align="left"/>(só cancelamento)<br align="left"/></td></tr></table>>];
+
+
+  ini -> E1 [label="  t1: publicar\l  [gestor ou calendário]\l"];
+  E1 -> E2  [label="t2: inscrever\l[RN01 ∧ RN03 ∧\lRN04 ∧ RN06]\l"];
+  E2 -> E1  [label="t5: cancelar ou revogar\ldependente\l[inscrições = 1] / RN05\l"];
+  E2:w -> E2:w [label="t3: inscrever\l[RN01 ∧ RN03 ∧\lRN04 ∧ RN06]\l"];
+  E2:e -> E2:e [label="t4: cancelar\l[inscrições > 1]\l"];
+  E1 -> E3  [label="t6: encerrar\l[data_fim < agora\lou gestor]\l"];
+  E3 -> E1  [label="t11: reabrir\l[ATIVA ∧\linscrições = 0]\l"];
+  E2 -> E3  [label="t7: encerrar\l[data_fim < agora\lou gestor]\l"];
+  E3 -> E2  [label="t10: reabrir\l[ATIVA ∧\linscrições ≥ 1]\l"];
+  E3:e -> E3:e [label="t8: cancelar\l[inscrições ≥ 1] (A4)\l"];
+  E3:s -> E3:s [label="t9: inscrever\l/ recusar (RN02)\l"];
+  E1 -> fim [label="t12: excluir\l[gestor]\l", constraint=false];
+  E2 -> fim [label="t13: excluir [gestor]\l/ remove inscrições\l"];
+  E3:w -> fim [label="t14: excluir [gestor]\l/ remove inscrições\l"];
+}
