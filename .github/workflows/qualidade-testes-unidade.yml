@@ -63,6 +63,8 @@ jobs:
           python3 qualidade/gfc_dart.py lib/usecases/inscricao_campanha_service.dart \
             --metodo salvarInscricoes --dot qualidade/relatorios/gfc-salvarInscricoes.dot \
             --png qualidade/relatorios/gfc-salvarInscricoes.png \
+            --png-grafo qualidade/relatorios/gfc-salvarInscricoes-grafo.png \
+            --legenda qualidade/relatorios/gfc-salvarInscricoes-legenda.md \
             --md qualidade/relatorios/complexidade-ciclomatica.md
       - name: Diagrama de classes por engenharia reversa
         if: always()

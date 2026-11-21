@@ -235,6 +235,17 @@ def construir(lista, g, entradas, ctx):
     return abertas
 
 
+def fim_por_ultimo(g, saida_idx):
+    """O nó de saída é criado logo no início (os return/throw precisam dele),
+    mas fica mais claro numerado por último: 1 = início ... N = fim."""
+    total = len(g.rotulos)
+    novo = {i: (total if i == saida_idx else i - 1 if i > saida_idx else i) for i in range(1, total + 1)}
+    g.rotulos = [r for i, r in enumerate(g.rotulos, start=1) if i != saida_idx] + ["fim"]
+    g.arestas = [(novo[a], novo[b], r) for a, b, r in g.arestas]
+    g.predicados = {novo[i] for i in g.predicados}
+    g.blocos = {novo[i] for i in g.blocos}
+
+
 def analisar(nome, corpo):
     g = Grafo()
     inicio = g.no(f"início de {nome}()")
@@ -244,6 +255,7 @@ def analisar(nome, corpo):
     ctx = {"saida": saida_idx, "catch": None, "quebras": []}
     for a, r in construir(comandos(sem_comentarios(corpo)), g, [(inicio, "")], ctx):
         g.liga(a, saida_idx, r)
+    fim_por_ultimo(g, saida_idx)
     n, e, p = len(g.rotulos), len(g.arestas), len(g.predicados)
     logicos = len(re.findall(r"&&|\|\|", corpo)) + len(re.findall(r"\?(?![?.\s]*[>,)\]]|\.)\s", corpo))
     return g, {"metodo": nome, "N": n, "E": e, "P": p, "V_EN": e - n + 2, "V_P": p + 1,
@@ -306,6 +318,8 @@ def main():
     ap.add_argument("--dot")
     ap.add_argument("--md")
     ap.add_argument("--png", help="gera PNG com o grafo e a legenda lado a lado (requer graphviz e Pillow)")
+    ap.add_argument("--png-grafo", help="gera PNG só com o grafo, sem a legenda (requer graphviz)")
+    ap.add_argument("--legenda", help="grava a legenda (nó e comandos) em Markdown")
     args = ap.parse_args()
     texto = Path(args.arquivo).read_text(encoding="utf-8")
     resultados = []
@@ -317,6 +331,18 @@ def main():
             Path(args.dot).write_text(dot(g, m), encoding="utf-8")
         if args.metodo == nome and args.png:
             png_lado_a_lado(dot(g, m), args.png)
+        if args.metodo == nome and args.png_grafo:
+            import subprocess
+            texto_dot = dot(g, m)
+            so_grafo = texto_dot.replace(re.search(r"  legenda \[.*?\];\n", texto_dot, flags=re.S).group(0), "")
+            subprocess.run(["dot", "-Tpng", "-Gdpi=150", "-o", args.png_grafo], input=so_grafo.encode(), check=True)
+        if args.metodo == nome and args.legenda:
+            linhas = ["| Nó | Tipo | Comandos |", "|---|---|---|"]
+            for i, t in enumerate(g.rotulos, start=1):
+                tipo = "predicado" if i in g.predicados else "bloco"
+                cmds = "<br>".join(c.strip().replace("|", "\\|") for c in t.split("; "))
+                linhas.append(f"| {i} | {tipo} | `{cmds}` |")
+            Path(args.legenda).write_text("\n".join(linhas) + "\n", encoding="utf-8")
     cab = "| Método | Linha | N | E | P | V(G)=E−N+2 | V(G)=P+1 | Regiões | &&, \\|\\|, ?: |"
     tab = [cab, "|" + "---|" * 9]
     for m in resultados:
