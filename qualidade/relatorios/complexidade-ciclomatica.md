@@ -2,6 +2,6 @@
 |---|---|---|---|---|---|---|---|---|
 | mensagem() | 73 | 7 | 8 | 2 | 3 | 3 | 3 | 0 |
 | verificarAcesso() | 96 | 10 | 13 | 4 | 5 | 5 | 5 | 1 |
-| inscricoesDoUsuario() | 116 | 4 | 3 | 0 | 1 | 1 | 1 | 0 |
-| listarParticipantes() | 126 | 17 | 22 | 6 | 7 | 7 | 7 | 2 |
-| salvarInscricoes() | 164 | 32 | 43 | 12 | 13 | 13 | 13 | 0 |
+| inscricoesDoUsuario() | 116 | 2 | 1 | 0 | 1 | 1 | 1 | 0 |
+| listarParticipantes() | 126 | 15 | 20 | 6 | 7 | 7 | 7 | 2 |
+| salvarInscricoes() | 164 | 26 | 37 | 12 | 13 | 13 | 13 | 0 |
