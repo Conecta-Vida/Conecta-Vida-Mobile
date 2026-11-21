@@ -293,7 +293,7 @@ void main() {
   });
 
   // ------------------------------------------------------------------
-  group('salvarInscricoes (passos 5 a 7)', () {
+  group('salvarInscricoes (passos 5 e 6)', () {
     Future<ResultadoInscricao> salvar(
       RepositorioStub repo, {
       NewsModel? camp,
@@ -437,7 +437,6 @@ void main() {
 
     test('CT20 · C2 · P1 — E2: campanha sem ID é recusada antes de gravar', () async {
       final repo = RepositorioStub();
-      // DRIVER: chama o serviço com a entrada do caso de teste.
       await expectLater(
         // DRIVER: chama o serviço com a entrada do caso de teste.
         salvar(repo, camp: campanha(id: null), escolhidos: {'titular'}),
@@ -449,7 +448,6 @@ void main() {
 
     test('CT17 · C2 · P2 — RN01: notícia é recusada antes de gravar', () async {
       final repo = RepositorioStub();
-      // DRIVER: chama o serviço com a entrada do caso de teste.
       await expectLater(
         // DRIVER: chama o serviço com a entrada do caso de teste.
         salvar(repo, camp: campanha(tag: 'ALERTA'), escolhidos: {'titular'}),
@@ -465,7 +463,6 @@ void main() {
 
     test('CT20 · C2 · P3 — E3: usuário nulo é recusado antes de gravar', () async {
       final repo = RepositorioStub();
-      // DRIVER: chama o serviço com a entrada do caso de teste.
       await expectLater(
         // DRIVER: chama o serviço com a entrada do caso de teste.
         salvar(repo, usuario: null, escolhidos: {'titular'}),
@@ -503,7 +500,6 @@ void main() {
 
     test('CT27 · C11 · P4 — RN07 limite: uma inscrição além das vagas restantes é recusada (E6)', () async {
       final repo = RepositorioStub();
-      // DRIVER: chama o serviço com a entrada do caso de teste.
       await expectLater(
         // DRIVER: chama o serviço com a entrada do caso de teste.
         salvar(

@@ -7,8 +7,8 @@
 | 5 | bloco | `throw const InscricaoException(MotivoRecusa.naoECampanha)` |
 | 6 | predicado | `if (usuarioId == null)` |
 | 7 | bloco | `throw const InscricaoException(MotivoRecusa.usuarioNaoIdentificado)` |
-| 8 | predicado | `if (escolhidos.length > limiteParticipantes)` |
-| 9 | bloco | `throw const InscricaoException(MotivoRecusa.limiteDeParticipantes)` |
+| 8 | predicado | `if (!campanha.comportaNovas(escolhidos.difference(inscritosAtuais).length))` |
+| 9 | bloco | `throw InscricaoException( MotivoRecusa.vagasInsuficientes, vagasRestantes: campanha.vagasRestantes, )` |
 | 10 | bloco | `final encerrada = campanha.encerradaEm(_agora())<br>final falhas = <String>[]<br>var alteracoes = 0` |
 | 11 | predicado | `laço (final participante in participantes)` |
 | 12 | bloco | `final estavaInscrito = inscritosAtuais.contains(participante.chave)<br>final deveEstarInscrito = escolhidos.contains(participante.chave)` |

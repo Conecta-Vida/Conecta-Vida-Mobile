@@ -26,17 +26,15 @@ abstract class InscricaoRepository {
   });
 }
 
-/// Motivos pelos quais o caso de uso não pode prosseguir.
+/// Motivos pelos quais o caso de uso não pode prosseguir. [campanhaLotada] é
+/// E5 (vagas esgotadas) e [vagasInsuficientes] é E6 (novas inscrições além das
+/// vagas restantes), ambos da RN07.
 enum MotivoRecusa {
   campanhaSemId,
   naoECampanha,
   campanhaEncerrada,
   usuarioNaoIdentificado,
-
-  /// E5: todas as vagas da campanha estão ocupadas (RN07).
   campanhaLotada,
-
-  /// E6: as novas inscrições escolhidas excedem as vagas restantes (RN07).
   vagasInsuficientes,
 }
 

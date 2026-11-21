@@ -4,10 +4,10 @@ node [shape=record, fontname="DejaVu Sans", fontsize=12, style=filled, fillcolor
 edge [fontname="DejaVu Sans", fontsize=11];
 subgraph cluster_0 { label="«pacote» aplicacao"; style="rounded,filled"; fillcolor="#eef4fb"; color=gray40; fontname="DejaVu Sans"; fontsize=13; labelloc=t;
   InscricaoRepository [label="{«abstract»\nInscricaoRepository||+buscarDependentesAtivos(usuarioId: int):\l      Future&lt;List&lt;DependenteModel&gt;&gt;\l+buscarInscricoes(comunicacaoId: int):\l      Future&lt;List&lt;Inscricao&gt;&gt;\l+inscrever(comunicacaoId: int,\l      usuarioId: int,\l      dependenteId: int?):\l      Future&lt;void&gt;\l+desinscrever(comunicacaoId: int,\l      usuarioId: int,\l      dependenteId: int?):\l      Future&lt;void&gt;\l}"];
-  MotivoRecusa [label="{«enumeration»\nMotivoRecusa|campanhaSemId\lnaoECampanha\lcampanhaEncerrada\lusuarioNaoIdentificado\llimiteDeParticipantes\l|}"];
-  InscricaoException [label="{InscricaoException|+motivo: MotivoRecusa\l|+mensagem: String\l+toString(): String\l}"];
-  ResultadoInscricao [label="{ResultadoInscricao|+alteracoes: int\l+selecionados: int\l+falhas: List&lt;String&gt;\l|+sucessoTotal: bool\l+mensagem(tituloCampanha: String):\l      String\l}"];
-  InscricaoCampanhaService [label="{InscricaoCampanhaService|+limiteDependentes: int\l+limiteParticipantes: int\l-repositorio: InscricaoRepository\l-agora: DateTime Function()\l|+verificarAcesso(campanha: NewsModel,\l      usuarioId: int?,\l      possuiInscricoes: bool): void\l+inscricoesDoUsuario(comunicacaoId: int,\l      usuarioId: int):\l      Future&lt;List&lt;Inscricao&gt;&gt;\l+listarParticipantes(usuarioId: int,\l      inscricoesAtuais: List&lt;Inscricao&gt;):\l      Future&lt;List&lt;Participante&gt;&gt;\l+salvarInscricoes(campanha: NewsModel,\l      usuarioId: int?,\l      participantes: List&lt;Participante&gt;,\l      inscritosAtuais: Set&lt;String&gt;,\l      escolhidos: Set&lt;String&gt;):\l      Future&lt;ResultadoInscricao&gt;\l}"];
+  MotivoRecusa [label="{«enumeration»\nMotivoRecusa|campanhaSemId\lnaoECampanha\lcampanhaEncerrada\lusuarioNaoIdentificado\lcampanhaLotada\lvagasInsuficientes\l|}"];
+  InscricaoException [label="{InscricaoException|+motivo: MotivoRecusa\l+vagasRestantes: int?\l|+mensagem(): String\l+toString(): String\l}"];
+  ResultadoInscricao [label="{ResultadoInscricao|+alteracoes: int\l+selecionados: int\l+falhas: List&lt;String&gt;\l|+sucessoTotal(): bool\l+mensagem(tituloCampanha: String):\l      String\l}"];
+  InscricaoCampanhaService [label="{InscricaoCampanhaService|-repositorio: InscricaoRepository\l-agora: DateTime Function()\l|+verificarAcesso(campanha: NewsModel,\l      usuarioId: int?,\l      possuiInscricoes: bool): void\l+inscricoesDoUsuario(comunicacaoId: int,\l      usuarioId: int):\l      Future&lt;List&lt;Inscricao&gt;&gt;\l+listarParticipantes(usuarioId: int,\l      inscricoesAtuais: List&lt;Inscricao&gt;):\l      Future&lt;List&lt;Participante&gt;&gt;\l+salvarInscricoes(campanha: NewsModel,\l      usuarioId: int?,\l      participantes: List&lt;Participante&gt;,\l      inscritosAtuais: Set&lt;String&gt;,\l      escolhidos: Set&lt;String&gt;):\l      Future&lt;ResultadoInscricao&gt;\l}"];
 }
 subgraph cluster_1 { label="«pacote» dominio"; style="rounded,filled"; fillcolor="#f2f8ee"; color=gray40; fontname="DejaVu Sans"; fontsize=13; labelloc=t;
   Inscricao [shape=box, label="Inscricao"];
@@ -27,7 +27,6 @@ subgraph cluster_2 { label="«pacote» infraestrutura"; style="rounded,filled"; 
   InscricaoCampanhaService -> NewsModel [arrowhead=vee, style=dashed];
   InscricaoCampanhaService -> Participante [arrowhead=vee, style=dashed];
   InscricaoCampanhaService -> ResultadoInscricao [arrowhead=vee, style=dashed];
-  InscricaoException -> InscricaoCampanhaService [arrowhead=vee, style=dashed];
   InscricaoException -> MotivoRecusa [arrowhead=vee];
   InscricaoRepository -> DependenteModel [arrowhead=vee, style=dashed];
   InscricaoRepository -> Inscricao [arrowhead=vee, style=dashed];

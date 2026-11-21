@@ -31,6 +31,18 @@ METODO = re.compile(
     re.M,
 )
 GRUPO = re.compile(r"group\(\s*'([^']+)'")
+OPERADOR = re.compile(r"^[ ]{2}(?:@override\s+)?(\w[\w<>?]*)\s+operator\s*(==|\[\]=?|[<>+\-*/%]=?)\s*(\([^)]*\))", re.M)
+
+
+def tipo_do_valor(corpo, nome):
+    """Tipo de um const/final sem tipo declarado, pelo valor inicial (ex.: {'a', 'b'} é Set<String>)."""
+    m = re.search(r"\b" + re.escape(nome) + r"\s*=\s*(.)", corpo)
+    if not m:
+        return ""
+    inicio = corpo[m.start(1):m.start(1) + 40]
+    if inicio[0] == "{":
+        return "Map<String, …>" if ":" in inicio.split("}")[0] else "Set<String>"
+    return {"[": "List", "'": "String", '"': "String"}.get(inicio[0], "int" if inicio[0].isdigit() else "")
 PALAVRAS = {"return", "if", "for", "while", "switch", "throw", "await", "new", "else"}
 
 
@@ -122,7 +134,9 @@ def analisar(arquivos):
                     t = t.strip()
                     if t in PALAVRAS or ("(" in t and "Function" not in t) or t.endswith(" get") or t == "get":
                         continue
-                    info["atributos"].append((n, "" if t in ("const", "final") else t))
+                    if n == "operator":
+                        continue  # sobrecarga de operador: vai para os métodos (OPERADOR)
+                    info["atributos"].append((n, tipo_do_valor(corpo, n) if t in ("const", "final") else t))
                 for static, ret, get, n, params, fim in METODO.findall(declaracoes):
                     ret = ret.strip()
                     if ret in PALAVRAS or n in PALAVRAS or ret in ("const", "final"):
@@ -131,8 +145,10 @@ def analisar(arquivos):
                         continue  # é atributo, não método
                     if ret.startswith("factory") or ret == nome or n == nome:
                         continue  # construtores ficam fora do diagrama
-                    rotulo = (n + ("" if get else "(" + parametros(params) + ")"))
+                    rotulo = n + "(" + ("" if get else parametros(params)) + ")"  # getter = operação sem parâmetros
                     info["metodos"].append((rotulo, "", (ret + (" {static}" if static else "")).strip()))
+                for ret, op, params in OPERADOR.findall(declaracoes):
+                    info["metodos"].append(("operator " + op + "(" + parametros(params) + ")", "", ret))
             classes[nome] = info
         if arq.name.endswith("_test.dart"):
             nome = "".join(p.capitalize() for p in arq.stem.split("_"))
