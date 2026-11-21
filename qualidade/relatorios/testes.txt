@@ -97,9 +97,9 @@ Try `flutter pub outdated` for more information.
 00:01 +26: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/texto_test.dart: Texto.normalizar trata como iguais as grafias diferentes da mesma cidade
 00:01 +27: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/texto_test.dart: Texto.contem encontra o trecho ignorando acentos e maiúsculas
 00:01 +28: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/texto_test.dart: Texto.contem não encontra o que não existe
-00:02 +29: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/unidade_saude_test.dart: distância formatada em metros ou quilômetros
-00:02 +30: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/unidade_saude_test.dart: lê a unidade do banco e reconhece atendimento 24 horas
-00:02 +31: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/unidade_saude_test.dart: telefone "Não informado" não vira botão de ligar
+00:01 +29: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/unidade_saude_test.dart: distância formatada em metros ou quilômetros
+00:01 +30: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/unidade_saude_test.dart: lê a unidade do banco e reconhece atendimento 24 horas
+00:01 +31: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/unidade_saude_test.dart: telefone "Não informado" não vira botão de ligar
 00:02 +32: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: verificarAcesso (passo 4) campanha aberta e usuário identificado: libera
 00:02 +33: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: verificarAcesso (passo 4) RN01: comunicação que não é campanha é recusada
 00:02 +34: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: verificarAcesso (passo 4) E1/RN02: campanha encerrada sem inscrições é recusada
@@ -119,12 +119,12 @@ Try `flutter pub outdated` for more information.
 00:02 +48: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) RN03: dependente sem vínculo ativo ainda pode ser cancelado
 00:02 +49: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) E4: falha no banco de um participante não impede os outros
 00:02 +50: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) E4: falha ao cancelar também é informada
-00:03 +51: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) E2: campanha sem ID é recusada antes de gravar
-00:03 +52: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) RN01: notícia é recusada antes de gravar
-00:03 +53: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) E3: usuário nulo é recusado antes de gravar
-00:03 +54: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) RN06 limite: 11 participantes (titular + 10) são aceitos
-00:03 +55: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) RN06 limite: 12 participantes são recusados
-00:03 +56: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: InscricaoException.mensagem todas as recusas têm mensagem para o usuário
+00:02 +51: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) E2: campanha sem ID é recusada antes de gravar
+00:02 +52: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) RN01: notícia é recusada antes de gravar
+00:02 +53: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) E3: usuário nulo é recusado antes de gravar
+00:02 +54: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) RN06 limite: 11 participantes (titular + 10) são aceitos
+00:02 +55: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 a 7) RN06 limite: 12 participantes são recusados
+00:02 +56: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: InscricaoException.mensagem todas as recusas têm mensagem para o usuário
 00:03 +57: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: DependenteModel.fromMap aceita as colunas do banco
 00:03 +58: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: toRequestMap formata a data com zeros à esquerda e limpa espaços
 00:03 +59: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: regra de autorização do vínculo menor de idade entra pela declaração do responsável
