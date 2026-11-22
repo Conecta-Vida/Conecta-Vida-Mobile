@@ -34,6 +34,9 @@ jobs:
           flutter test --coverage --reporter expanded \
             --file-reporter json:qualidade/relatorios/testes.json \
             | tee qualidade/relatorios/testes.txt
+      - name: Relatório dos testes de unidade (HTML)
+        if: always()
+        run: python3 qualidade/relatorio_testes.py qualidade/relatorios/testes.json qualidade/relatorios/testes-unidade.html
       - name: Relatório de cobertura (lcov/genhtml)
         if: always()
         run: |
