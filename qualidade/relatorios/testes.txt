@@ -69,18 +69,18 @@ Got dependencies!
 Try `flutter pub outdated` for more information.
 00:00 +0: loading /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart
 00:00 +0: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.encerrada campanha ativa e dentro do prazo não está encerrada
-00:00 +1: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.encerrada campanha que termina hoje ainda vale
-00:00 +2: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.encerrada campanha com data de término passada está encerrada
-00:00 +3: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.encerrada campanha encerrada pelo painel está encerrada mesmo no prazo
-00:00 +4: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.encerrada campanha sem data de término fica aberta
-00:00 +5: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.encerrada notícias e alertas nunca são "encerrados"
-00:00 +6: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: conteúdo de abrangência geral vale para qualquer cidade
-00:00 +7: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: data e tipo aparecem em formato legível
-00:00 +8: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.fromMap lê o link da fonte oficial
-00:00 +9: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.fromMap lê o status e corta a data de publicação
-00:00 +10: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao fromMap lê números e textos vindos do banco
-00:00 +11: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao dependente_id nulo é a inscrição do titular
-00:00 +12: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao valores ausentes ou inválidos viram padrão
+00:00 +1: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao fromMap lê números e textos vindos do banco
+00:00 +2: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao fromMap lê números e textos vindos do banco
+00:00 +3: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao fromMap lê números e textos vindos do banco
+00:00 +4: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao fromMap lê números e textos vindos do banco
+00:00 +5: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao fromMap lê números e textos vindos do banco
+00:00 +6: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao fromMap lê números e textos vindos do banco
+00:00 +7: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao fromMap lê números e textos vindos do banco
+00:00 +8: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: data e tipo aparecem em formato legível
+00:00 +9: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao dependente_id nulo é a inscrição do titular
+00:00 +10: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.fromMap lê o link da fonte oficial
+00:00 +11: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao valores ausentes ou inválidos viram padrão
+00:00 +12: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/noticia_test.dart: NewsModel.fromMap lê o status e corta a data de publicação
 00:00 +13: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Participante titular tem chave "titular" e vínculo ativo
 00:00 +14: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Participante dependente tem chave com o id
 00:00 +15: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: NewsModel.encerradaEm (RN02) término ontem (limite inferior): encerrada
@@ -137,7 +137,7 @@ Try `flutter pub outdated` for more information.
 00:02 +64: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 e 6) P5 — laço sem participantes: nada é gravado
 00:02 +65: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 e 6) CT32 · C8 · P10 — E4/RN07: banco recusa a vaga disputada
 00:02 +66: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: InscricaoException.mensagem todas as recusas têm mensagem para o usuário
-00:03 +67: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: DependenteModel.fromMap aceita as colunas do banco
+00:02 +67: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: DependenteModel.fromMap aceita as colunas do banco
 00:03 +68: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: toRequestMap formata a data com zeros à esquerda e limpa espaços
 00:03 +69: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: regra de autorização do vínculo menor de idade entra pela declaração do responsável
 00:03 +70: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: regra de autorização do vínculo quem faz 18 anos amanhã ainda é menor
