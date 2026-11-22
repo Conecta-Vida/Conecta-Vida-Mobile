@@ -150,6 +150,10 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
   }
 
   Future<void> _alternarInscricaoCampanha() async {
+    // Trava o botão já no toque: as leituras abaixo vão à rede e um toque
+    // duplo abriria dois diálogos.
+    if (_processandoCampanha) return;
+    setState(() => _processandoCampanha = true);
     int? usuarioId = widget.userId;
 
     // Fallback: se o id não veio da sessão, tenta resolver pelo e-mail autenticado.
@@ -171,11 +175,10 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
         possuiInscricoes: _inscricoesUsuario.isNotEmpty,
       );
     } on InscricaoException catch (e) {
+      setState(() => _processandoCampanha = false);
       _avisar(e.mensagem);
       return;
     }
-
-    setState(() => _processandoCampanha = true);
 
     try {
       await _carregarStatusInscricao();
