@@ -393,10 +393,13 @@ void main() {
       final r = await salvar(
         repo,
         participantes: [participante(null), participante(5, vinculoAtivo: false)],
-        escolhidos: {'dependente:5'},
+        escolhidos: {'titular', 'dependente:5'},
       );
       // MOCK: confere quais operações o serviço pediu ao banco.
-      expect(repo.chamadas, isEmpty);
+      expect(repo.chamadas, [
+        const Chamada('inscrever', campanhaId, usuarioId, null),
+      ]);
+      expect(r.alteracoes, 1);
       expect(r.falhas, ['Dependente 5: vínculo não está ativo']);
     });
 
@@ -428,11 +431,22 @@ void main() {
 
     test('CT19 · C9 · P12 — E4: falha ao cancelar também é informada', () async {
       // STUB: dados fixos no lugar do banco.
-      final repo = RepositorioStub(falharPara: {null});
+      final repo = RepositorioStub(falharPara: {null, 1});
       // DRIVER: chama o serviço com a entrada do caso de teste.
-      final r = await salvar(repo, atuais: {'titular'}, escolhidos: {});
+      final r = await salvar(
+        repo,
+        atuais: {'titular', 'dependente:1'},
+        escolhidos: {},
+      );
+      // MOCK: confere quais operações o serviço pediu ao banco.
+      expect(repo.chamadas, [
+        const Chamada('desinscrever', campanhaId, usuarioId, null),
+        const Chamada('desinscrever', campanhaId, usuarioId, 1),
+      ]);
       expect(r.alteracoes, 0);
-      expect(r.falhas.single, startsWith('Eu (titular):'));
+      expect(r.falhas, hasLength(2));
+      expect(r.falhas[0], startsWith('Eu (titular):'));
+      expect(r.falhas[1], startsWith('Dependente 1:'));
     });
 
     test('CT20 · C2 · P1 — E2: campanha sem ID é recusada antes de gravar', () async {
