@@ -95,8 +95,8 @@ Try `flutter pub outdated` for more information.
 00:01 +23: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/texto_test.dart: Texto.contem encontra o trecho ignorando acentos e maiúsculas
 00:01 +24: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/texto_test.dart: Texto.contem não encontra o que não existe
 00:01 +25: loading /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart
-00:02 +25: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: verificarAcesso (passo 4) CT01 · C5 — campanha aberta e usuário identificado: libera
-00:02 +26: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: verificarAcesso (passo 4) CT17 · C2 — RN01: comunicação que não é campanha é recusada
+00:01 +25: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: verificarAcesso (passo 4) CT01 · C5 — campanha aberta e usuário identificado: libera
+00:01 +26: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: verificarAcesso (passo 4) CT17 · C2 — RN01: comunicação que não é campanha é recusada
 00:02 +27: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: verificarAcesso (passo 4) CT04 · C1 — E1/RN02: campanha encerrada sem inscrições é recusada
 00:02 +28: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: verificarAcesso (passo 4) CT10 · C7 — A4: campanha encerrada com inscrições abre para cancelar
 00:02 +29: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: verificarAcesso (passo 4) CT20 · C2 — E2: campanha sem ID é recusada
@@ -123,8 +123,8 @@ Try `flutter pub outdated` for more information.
 00:02 +50: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 e 6) CT27 · C11 · P4 — RN07 limite: uma inscrição além das vagas restantes é recusada (E6)
 00:02 +51: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 e 6) CT29 · C7 · P11 — RN07: campanha lotada ainda permite cancelar
 00:02 +52: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 e 6) P5 — laço sem participantes: nada é gravado
-00:02 +53: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao fromMap lê números e textos vindos do banco
-00:02 +54: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao fromMap lê números e textos vindos do banco
+00:02 +53: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 e 6) CT32 · C8 · P10 — E4/RN07: banco recusa a vaga disputada
+00:02 +54: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: InscricaoException.mensagem todas as recusas têm mensagem para o usuário
 00:02 +55: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao fromMap lê números e textos vindos do banco
 00:02 +56: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao dependente_id nulo é a inscrição do titular
 00:02 +57: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Inscricao valores ausentes ou inválidos viram padrão
