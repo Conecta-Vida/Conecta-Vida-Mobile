@@ -98,14 +98,15 @@ Try `flutter pub outdated` for more information.
 00:00 +27: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: NewsModel — vagas (RN07) fromMap lê vagas e inscritos do banco
 00:00 +28: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Dependente — vínculo usado na inscrição (RN03) fromMap aceita id em texto e status pendente
 00:00 +29: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/models/inscricao_entidades_test.dart: Dependente — vínculo usado na inscrição (RN03) ConviteDependente lê o pedido de autorização
+00:00 +30: loading /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/texto_test.dart
 00:01 +30: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/texto_test.dart: Texto.normalizar remove acentos, maiúsculas e espaços sobrando
 00:01 +31: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/texto_test.dart: Texto.normalizar trata como iguais as grafias diferentes da mesma cidade
 00:01 +32: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/texto_test.dart: Texto.contem encontra o trecho ignorando acentos e maiúsculas
 00:01 +33: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/texto_test.dart: Texto.contem não encontra o que não existe
-00:01 +34: loading /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/unidade_saude_test.dart
 00:01 +34: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/unidade_saude_test.dart: distância formatada em metros ou quilômetros
 00:01 +35: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/unidade_saude_test.dart: lê a unidade do banco e reconhece atendimento 24 horas
 00:01 +36: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/unidade_saude_test.dart: telefone "Não informado" não vira botão de ligar
+00:02 +37: loading /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart
 00:02 +37: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: verificarAcesso (passo 4) CT01 · C5 — campanha aberta e usuário identificado: libera
 00:02 +38: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: verificarAcesso (passo 4) CT17 · C2 — RN01: comunicação que não é campanha é recusada
 00:02 +39: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: verificarAcesso (passo 4) CT04 · C1 — E1/RN02: campanha encerrada sem inscrições é recusada
@@ -127,21 +128,21 @@ Try `flutter pub outdated` for more information.
 00:02 +55: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 e 6) CT14 · C7 · P11 — RN03: dependente sem vínculo ativo ainda pode ser cancelado
 00:02 +56: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 e 6) CT18 · C8 · P10 — E4: falha no banco de um participante não impede os outros
 00:02 +57: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 e 6) CT19 · C9 · P12 — E4: falha ao cancelar também é informada
-00:02 +58: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 e 6) CT20 · C2 · P1 — E2: campanha sem ID é recusada antes de gravar
-00:02 +59: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 e 6) CT17 · C2 · P2 — RN01: notícia é recusada antes de gravar
-00:02 +60: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 e 6) CT20 · C2 · P3 — E3: usuário nulo é recusado antes de gravar
-00:02 +61: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 e 6) CT26 · C5 · P9 — RN07 limite: novas inscrições iguais às vagas restantes são aceitas
-00:02 +62: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 e 6) CT27 · C11 · P4 — RN07 limite: uma inscrição além das vagas restantes é recusada (E6)
-00:02 +63: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 e 6) CT29 · C7 · P11 — RN07: campanha lotada ainda permite cancelar
-00:02 +64: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 e 6) P5 — laço sem participantes: nada é gravado
-00:02 +65: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: salvarInscricoes (passos 5 e 6) CT32 · C8 · P10 — E4/RN07: banco recusa a vaga disputada
-00:02 +66: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: InscricaoException.mensagem todas as recusas têm mensagem para o usuário
-00:02 +67: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: DependenteModel.fromMap aceita as colunas do banco
+00:02 +58: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: DependenteModel.fromMap aceita as colunas do banco
+00:02 +59: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: DependenteModel.fromMap aceita as colunas do banco
+00:02 +60: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: DependenteModel.fromMap aceita as colunas do banco
+00:02 +61: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: DependenteModel.fromMap aceita as colunas do banco
+00:02 +62: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: DependenteModel.fromMap aceita as colunas do banco
+00:02 +63: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: DependenteModel.fromMap aceita as colunas do banco
+00:02 +64: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: DependenteModel.fromMap aceita as colunas do banco
+00:02 +65: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: DependenteModel.fromMap aceita as colunas do banco
+00:02 +66: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: DependenteModel.fromMap aceita as colunas do banco
+00:02 +67: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/usecases/inscricao_campanha_service_test.dart: InscricaoException.mensagem todas as recusas têm mensagem para o usuário
 00:02 +68: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: toRequestMap formata a data com zeros à esquerda e limpa espaços
 00:02 +69: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: regra de autorização do vínculo menor de idade entra pela declaração do responsável
 00:02 +70: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: regra de autorização do vínculo quem faz 18 anos amanhã ainda é menor
 00:02 +71: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: regra de autorização do vínculo quem fez 18 anos hoje precisa autorizar
-00:02 +72: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: regra de autorização do vínculo adulto tutelado entra pela declaração do responsável
-00:02 +73: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: regra de autorização do vínculo adulto comum precisa autorizar
-00:02 +74: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: DependenteModel.fromMap lê a situação do vínculo
+00:03 +72: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: regra de autorização do vínculo adulto tutelado entra pela declaração do responsável
+00:03 +73: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: regra de autorização do vínculo adulto comum precisa autorizar
+00:03 +74: /home/runner/work/Conecta-Vida-Mobile/Conecta-Vida-Mobile/test/dependente_test.dart: DependenteModel.fromMap lê a situação do vínculo
 00:03 +75: All tests passed!
