@@ -1,20 +1,101 @@
 // Exercício 2 (parte b) - pacote dominio (entidades) do caso de uso "Inscrever-se em campanha"
+// Layout do dot fixado (layout=nop2) para pôr os rótulos de multiplicidade do lado de fora
+// da própria associação. Coordenadas em pontos.
 digraph dominio {
-  graph [rankdir=TB, fontname="DejaVu Sans", fontsize=13, nodesep=0.45, ranksep=0.5, pad=0.15];
-  node  [shape=record, fontname="DejaVu Sans", fontsize=12, style=filled, fillcolor="#ffffff"];
-  edge  [fontname="DejaVu Sans", fontsize=12];
-  subgraph cluster_dom { label="«pacote» dominio (lib/models)"; style="rounded,filled"; fillcolor="#f2f8ee"; color="#5b9a3c";
-    Inscricao [label="{«entity»\nInscricao|+ id: int?\l+ usuarioId: int\l+ comunicacaoId: int\l+ dependenteId: int?\l+ participanteNome: String\l+ parentesco: String\l|+ doTitular(): bool\l+ chaveParticipante(): String\l+ fromMap(map): Inscricao\l}"];
-    Campanha [label="{«entity»\nNewsModel (Campanha)|+ id: int?\l+ tag: String (CAMPANHA \| NOTICIA \| ALERTA)\l+ titulo: String\l+ categoria: String\l+ local: String\l+ dataInicio: String\l+ dataFim: String\l+ status: String (ATIVA \| ENCERRADA)\l+ vagas: int?\l+ inscritos: int\l|+ ehCampanha(): bool\l+ encerrada(): bool\l+ encerradaEm(hoje: DateTime): bool\l+ vagasRestantes(): int?\l+ lotada(): bool\l+ comportaNovas(quantidade: int): bool\l}"];
-    Dependente [label="{«entity»\nDependenteModel|+ id: int?\l+ nomeCompleto: String\l+ dataNascimento: DateTime\l+ parentesco: String\l+ status: String (pendente \| ativo \| revogado)\l+ emailDependente: String?\l+ declarouResponsabilidade: bool\l|+ ativo(): bool\l+ idadeEm(nascimento: DateTime,\l      hoje: DateTime): int\l}"];
-    Usuario [label="{«entity»\nUserModel (Titular)|+ id: int?\l+ nome: String\l+ email: String\l+ dataNascimento: int?\l+ localizacao: String\l}"];
-    NotaRN06 [shape=note, fontsize=12, fillcolor="#fffef2", label="RN06: até 10 dependentes por conta\l(garantido no banco)\l"];
-    Participante [label="{«entity»\nParticipante|+ dependenteId: int?\l+ nome: String\l+ parentesco: String\l+ vinculoAtivo: bool\l|+ ehTitular(): bool\l+ chave(): String\l}"];
-  }
-  Inscricao -> Campanha [arrowhead=vee, label="campanha  1"];
-  Inscricao -> Usuario [arrowhead=vee, label="titular  1"];
-  Inscricao -> Dependente [arrowhead=vee, label="  participante\l  0..1\l"];
-  Dependente -> Usuario [arrowhead=vee, label="  titular  1"];
-  Dependente -> NotaRN06 [style=dashed, arrowhead=none, color="#555555"];
-  Inscricao -> Participante [style=dashed, arrowhead=vee, label="«use»", color="#555555", fontcolor="#555555"];
+	graph [layout=nop2,
+		dpi=150,
+		bb="0,0,931,700",
+		fontname="DejaVu Sans",
+		fontsize=13,
+		nodesep=0.45,
+		pad=0.15,
+		rankdir=TB,
+		ranksep=0.5
+	];
+	node [fillcolor="#ffffff",
+		fontname="DejaVu Sans",
+		fontsize=12,
+		label="\N",
+		shape=record,
+		style=filled
+	];
+	edge [fontname="DejaVu Sans",
+		fontsize=12
+	];
+	subgraph cluster_dom {
+		graph [bb="8,8,923,692",
+			color="#5b9a3c",
+			fillcolor="#f2f8ee",
+			label="«pacote» dominio (lib/models)",
+			lheight=0.19,
+			lp="465.5,681",
+			lwidth=2.83,
+			style="rounded,filled"
+		];
+		Inscricao	[height=2.3333,
+			label="{«entity»\nInscricao|+ id: int?\l+ usuarioId: int\l+ comunicacaoId: int\l+ dependenteId: int?\l+ participanteNome: String\l+ parentesco: \
+String\l|+ doTitular(): bool\l+ chaveParticipante(): String\l+ fromMap(map): Inscricao\l}",
+			pos="616,578",
+			rects="521.5,627.5,710.5,661.5 521.5,541.5,710.5,627.5 521.5,494.5,710.5,541.5",
+			width=2.625];
+		Campanha	[height=3.5972,
+			label="{«entity»\nNewsModel (Campanha)|+ id: int?\l+ tag: String (CAMPANHA \| NOTICIA \| ALERTA)\l+ titulo: String\l+ categoria: String\l+ \
+local: String\l+ dataInicio: String\l+ dataFim: String\l+ status: String (ATIVA \| ENCERRADA)\l+ vagas: int?\l+ inscritos: int\l|+ \
+ehCampanha(): bool\l+ encerrada(): bool\l+ encerradaEm(hoje: DateTime): bool\l+ vagasRestantes(): int?\l+ lotada(): bool\l+ comportaNovas(\
+quantidade: int): bool\l}",
+			pos="161,302.5",
+			rects="15.5,397.5,306.5,431.5 15.5,259.5,306.5,397.5 15.5,173.5,306.5,259.5",
+			width=4.0417];
+		Inscricao -> Campanha	[arrowhead=vee,
+			label="campanha  1\l",
+			lp="304.4,459.5",
+			pos="e,306.56,421.21 521.23,536.29 462.48,509.56 386.39,472.19 323,432 320.36,430.32 317.71,428.61 315.05,426.87"];
+		Dependente	[height=2.5139,
+			label="{«entity»\nDependenteModel|+ id: int?\l+ nomeCompleto: String\l+ dataNascimento: DateTime\l+ parentesco: String\l+ status: String (\
+pendente \| ativo \| revogado)\l+ emailDependente: String?\l+ declarouResponsabilidade: bool\l|+ ativo(): bool\l+ idadeEm(nascimento: \
+DateTime,\l      hoje: DateTime): int\l}",
+			pos="482,302.5",
+			rects="338.5,358.5,625.5,392.5 338.5,259.5,625.5,358.5 338.5,212.5,625.5,259.5",
+			width=3.9861];
+		Inscricao -> Dependente	[arrowhead=vee,
+			label="participante\r0..1\r",
+			lp="515.0,473.0",
+			pos="e,525.69,392.68 575.43,494.2 561.19,465.13 545.05,432.19 530.24,401.97"];
+		Usuario	[height=1.5,
+			label="{«entity»\nUserModel (Titular)|+ id: int?\l+ nome: String\l+ email: String\l+ dataNascimento: int?\l+ localizacao: String\l}",
+			pos="690,70",
+			rects="611.5,89.5,768.5,123.5 611.5,16.5,768.5,89.5",
+			width=2.1806];
+		Inscricao -> Usuario	[arrowhead=vee,
+			label="titular  1",
+			lp="712.5,302.5",
+			pos="e,689.36,123.78 647.27,494.24 649.04,488.12 650.64,481.99 652,476 678.87,357.18 686.78,214.59 689.09,134.22"];
+		Participante	[height=1.7917,
+			label="{«entity»\nParticipante|+ dependenteId: int?\l+ nome: String\l+ parentesco: String\l+ vinculoAtivo: bool\l|+ ehTitular(): bool\l+ \
+chave(): String\l}",
+			pos="844,302.5",
+			rects="773,332.5,915,366.5 773,272.5,915,332.5 773,238.5,915,272.5",
+			width=1.9722];
+		Inscricao -> Participante	[arrowhead=vee,
+			color="#555555",
+			fontcolor="#555555",
+			label=«use»,
+			lp="751.6,466.6",
+			pos="e,799.39,366.6 694.55,494.38 712.84,474.33 731.94,452.69 749,432 763.91,413.91 779.33,393.77 793.29,374.89",
+			style=dashed];
+		Dependente -> Usuario	[arrowhead=vee,
+			label="titular\r1\r",
+			lp="569.7,157.7",
+			pos="e,640.05,123.55 559.8,212.46 580.22,189.38 602.31,164.65 623,142 626.26,138.43 629.62,134.78 633.02,131.11"];
+		NotaRN06	[fillcolor="#fffef2",
+			height=0.5,
+			label="RN06: até 10 dependentes por conta\l(garantido no banco)\l",
+			pos="460,70",
+			shape=note,
+			width=3.3056];
+		Dependente -> NotaRN06	[arrowhead=none,
+			color="#555555",
+			pos="473.49,212.38 469.09,166.27 464.13,114.26 461.63,88.052",
+			style=dashed];
+	}
 }
