@@ -4,25 +4,25 @@ digraph aplicacao {
   node  [shape=record, fontname="DejaVu Sans", fontsize=12, style=filled, fillcolor="#ffffff"];
   edge  [fontname="DejaVu Sans", fontsize=11];
   subgraph cluster_app { label="«pacote» aplicacao (lib/usecases)"; style="rounded,filled"; fillcolor="#eef4fb"; color="#4a78b5";
-    Service [label="{«use case / service»\nInscricaoCampanhaService|+ limiteDependentes: int = 10 \{static\}\l+ limiteParticipantes: int = 11 \{static\}\l- repositorio: InscricaoRepository\l- agora: DateTime Function()\l|+ verificarAcesso(campanha: NewsModel,\l      usuarioId: int?, possuiInscricoes: bool): void\l+ inscricoesDoUsuario(comunicacaoId: int,\l      usuarioId: int): Future\<List\<Inscricao\>\>\l+ listarParticipantes(usuarioId: int,\l      inscricoesAtuais: List\<Inscricao\>): Future\<List\<Participante\>\>\l+ salvarInscricoes(campanha: NewsModel, usuarioId: int?,\l      participantes: List\<Participante\>, inscritosAtuais: Set\<String\>,\l      escolhidos: Set\<String\>): Future\<ResultadoInscricao\>\l}"];
+    Service [label="{«use case / service»\nInscricaoCampanhaService|- repositorio: InscricaoRepository\l- agora: DateTime Function()\l|+ verificarAcesso(campanha: NewsModel,\l      usuarioId: int?, possuiInscricoes: bool): void\l+ inscricoesDoUsuario(comunicacaoId: int,\l      usuarioId: int): Future\<List\<Inscricao\>\>\l+ listarParticipantes(usuarioId: int,\l      inscricoesAtuais: List\<Inscricao\>): Future\<List\<Participante\>\>\l+ salvarInscricoes(campanha: NewsModel, usuarioId: int?,\l      participantes: List\<Participante\>, inscritosAtuais: Set\<String\>,\l      escolhidos: Set\<String\>): Future\<ResultadoInscricao\>\l}"];
     Repo [label="{«interface»\nInscricaoRepository||+ buscarDependentesAtivos(usuarioId: int):\l      Future\<List\<DependenteModel\>\>\l+ buscarInscricoes(comunicacaoId: int):\l      Future\<List\<Inscricao\>\>\l+ inscrever(comunicacaoId: int, usuarioId: int,\l      dependenteId: int?): Future\<void\>\l+ desinscrever(comunicacaoId: int, usuarioId: int,\l      dependenteId: int?): Future\<void\>\l}"];
     Resultado [label="{ResultadoInscricao|+ alteracoes: int\l+ selecionados: int\l+ falhas: List\<String\>\l|+ sucessoTotal(): bool\l+ mensagem(tituloCampanha: String): String\l}"];
-    Excecao [label="{InscricaoException|+ motivo: MotivoRecusa\l|+ mensagem(): String\l}"];
-    Motivo [label="{«enumeration»\nMotivoRecusa|campanhaSemId\lnaoECampanha\lcampanhaEncerrada\lusuarioNaoIdentificado\llimiteDeParticipantes\l}"];
+    Excecao [label="{InscricaoException|+ motivo: MotivoRecusa\l+ vagasRestantes: int?\l|+ mensagem(): String\l}"];
+    Motivo [label="{«enumeration»\nMotivoRecusa|campanhaSemId\lnaoECampanha\lcampanhaEncerrada\lusuarioNaoIdentificado\lcampanhaLotada\lvagasInsuficientes\l}"];
   }
-  subgraph cluster_dom { label="«pacote» dominio (detalhado na Figura 1b)"; style="rounded,dashed"; color="#5b9a3c"; fontcolor="#3d6b27";
+  subgraph cluster_dom { label="«pacote» dominio (detalhado na Figura 1b)"; labelloc=b; style="rounded,dashed"; color="#5b9a3c"; fontcolor="#3d6b27";
     node [shape=box, style="filled", fillcolor="#f2f8ee", fontsize=12];
     NewsModel; Inscricao; Participante; DependenteModel;
   }
   Service -> Repo [arrowhead=vee, label=" -repositorio  1"];
   Excecao -> Motivo [arrowhead=vee, label=" motivo  1"];
   edge [style=dashed, arrowhead=vee, color="#555555", fontcolor="#555555"];
-  Service -> Resultado [label="«create»"];
-  Service -> Excecao [label="«throw»"];
-  Service -> NewsModel [label="«use»"];
-  Service -> Participante [label="«use»"];
-  Service -> Inscricao [label="«use»"];
-  Repo -> Inscricao [label="«use»"];
-  Repo -> DependenteModel [label="«use»"];
+  Service -> Resultado [label="   «create»"];
+  Service -> Excecao [label="   «throw»"];
+  Service -> NewsModel [label="   «use»"];
+  Service -> Participante [label="   «use»"];
+  Service -> Inscricao [label="  «use»"];
+  Repo -> Inscricao [label="   «use»"];
+  Repo -> DependenteModel [headlabel="«use»", labelangle=-35, labeldistance=3.5, labelfontcolor="#555555"];
   { rank=same; Resultado; Excecao; Repo; }
 }

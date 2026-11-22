@@ -1,33 +1,38 @@
 // Exercício 4 - Grafo de Fluxo de Controle obtido do Diagrama de Atividades
-// Nós predicados (decisões): 2, 4, 7, 8, 10, 11, 12, 16, 18
+// Nós predicados (decisões): 2, 4, 7, 8, 10, 12, 13, 14, 18, 20
 digraph gfc {
-  graph [rankdir=TB, fontname="DejaVu Sans", fontsize=13, nodesep=0.5, ranksep=0.42, pad=0.25, dpi=150,
-         label="N = 21 nós, E = 29 arestas, P = 9 predicados (laranja)  →  V(G) = E − N + 2 = 10 = P + 1", labelloc=b];
+  graph [rankdir=TB, fontname="DejaVu Sans", fontsize=13, nodesep=0.4, ranksep=0.28, pad=0.25, dpi=150,
+         label="N = 23 nós, E = 32 arestas, P = 10 predicados (laranja)  →  V(G) = E − N + 2 = 11 = P + 1", labelloc=b];
   node  [shape=circle, fontname="DejaVu Sans", fontsize=14, width=0.5, fixedsize=true, style=filled, fillcolor="#ffffff"];
   edge  [arrowsize=0.7, fontname="DejaVu Sans", fontsize=12];
-  node [fillcolor="#ffe3b3"]; 2; 4; 7; 8; 10; 11; 12; 16; 18;
+  node [fillcolor="#ffe3b3"]; 2; 4; 7; 8; 10; 12; 13; 14; 18; 20;
   node [fillcolor="#ffffff"];
-  21 [shape=doublecircle, width=0.46];
+  23 [shape=doublecircle, width=0.46];
   // espinha do fluxo principal na mesma coluna
-  1 [group=p]; 2 [group=p]; 4 [group=p]; 6 [group=p]; 7 [group=p]; 8 [group=p];
-  10 [group=p]; 11 [group=p]; 12 [group=p]; 14 [group=p]; 16 [group=p]; 18 [group=p]; 21 [group=p];
-  { rank=max; 21; }
+  1 [group=p]; 2 [group=p]; 4 [group=p]; 6 [group=p]; 7 [group=p]; 8 [group=p]; 10 [group=p];
+  12 [group=p]; 13 [group=p]; 14 [group=p]; 16 [group=p]; 18 [group=p]; 20 [group=p]; 23 [group=p];
+  { rank=max; 23; }
+  // ordem horizontal no laço (arestas invisíveis só posicionam; não contam no grafo)
+  { rank=same; 15 -> 16 [style=invis]; }
+  { rank=same; 14 -> 17 [style=invis]; }
   1 -> 2;
   2 -> 3 [label=" sim"]; 2 -> 4 [label=" não"];
-  3 -> 21;
+  3 -> 23;
   4 -> 5 [label=" não"]; 4 -> 6 [label=" sim"];
-  5 -> 21;
+  5 -> 23;
   6 -> 7;
-  7 -> 21 [label=" não"]; 7 -> 8 [label=" sim"];
+  7 -> 23 [label=" não"]; 7 -> 8 [label=" sim"];
   8 -> 9 [label=" não"]; 8 -> 10 [label=" sim"];
-  9 -> 21;
-  10 -> 11 [label=" sim"]; 10 -> 18 [label=" não"];
-  11 -> 12 [label=" sim"]; 11 -> 15 [label=" não"];
-  12 -> 13 [label=" não"]; 12 -> 14 [label=" sim"];
-  13 -> 10;
-  14 -> 16; 15 -> 16;
-  16 -> 10 [label=" sim"]; 16 -> 17 [label=" não"];
-  17 -> 10;
-  18 -> 19 [label=" sim"]; 18 -> 20 [label=" não"];
-  19 -> 21; 20 -> 21;
+  9 -> 23;
+  10 -> 11 [label=" não"]; 10 -> 12 [label=" sim"];
+  11 -> 23;
+  12 -> 13 [label=" sim"]; 12 -> 20 [label=" não"];
+  13 -> 14 [label=" sim"]; 13 -> 17 [label=" não"];
+  14 -> 15 [label=" não"]; 14 -> 16 [label=" sim"];
+  15 -> 12;
+  16 -> 18; 17 -> 18;
+  18 -> 12 [label=" sim"]; 18 -> 19 [label=" não"];
+  19 -> 12;
+  20 -> 21 [label=" sim"]; 20 -> 22 [label=" não"];
+  21 -> 23; 22 -> 23;
 }

@@ -6,42 +6,47 @@ skinparam defaultFontSize 15
 skinparam ActivityBackgroundColor #FFFFFF
 skinparam ActivityBorderColor #333333
 skinparam ActivityDiamondBackgroundColor #FFE3B3
-skinparam ActivityDiamondFontSize 14
-skinparam ArrowFontSize 14
+skinparam ActivityDiamondFontSize 15
+skinparam ArrowFontSize 15
 skinparam SwimlaneTitleFontStyle bold
 skinparam SwimlaneTitleFontSize 16
 
 |#F6F9FD|Cidadão|
 start
-:[1] Abrir detalhes\nda campanha;
+:[1] Abrir detalhes da campanha;
 |#F4F9F1|Sistema Conecta Vida|
-:[1] Exibir detalhes\ne situação;
+:[1] Exibir detalhes e situação;
 |Cidadão|
-:[1] Tocar em\n"gerenciar\ninscrições";
+:[1] Tocar em "gerenciar inscrições";
 |Sistema Conecta Vida|
-if ([2] Encerrada e\nsem inscrições?\n(RN02)) then (sim)
-  #FDE8E8:[3] "Campanha\nencerrada" (E1);
+if ([2] Encerrada ou lotada, sem\ninscrições? (RN02/RN07)) then (sim)
+  #FDE8E8:[3] Mensagem de recusa (E1/E5);
   stop
 else (não)
 endif
-if ([4] ID e usuário\nválidos? (RN01)) then (não)
-  #FDE8E8:[5] Mensagem\nde erro (E2/E3);
+if ([4] Campanha (RN01), ID (E2)\ne usuário (E3) válidos?) then (não)
+  #FDE8E8:[5] Mensagem de erro (E2/E3);
   stop
 else (sim)
 endif
 |#FDF8EF|Supabase|
-:[6] Buscar dependentes\nativos e inscrições\n(RLS, RN03);
+:[6] Buscar dependentes ativos\ne inscrições (RN03);
 |Sistema Conecta Vida|
-:[6] Exibir participantes\n(A4: se encerrada,\nsó desmarcar);
+:[6] Exibir participantes (A4: se\nencerrada ou lotada, só desmarcar);
 |Cidadão|
-:[6] Marcar /\ndesmarcar;
+:[6] Marcar / desmarcar;
 if ([7] Confirmou?) then (não, A2)
   stop
 else (sim)
 endif
 |Sistema Conecta Vida|
-if ([8] Houve\nalteração?) then (não)
-  #FFF6E0:[9] "Nenhuma\nalteração" (A3);
+if ([8] Houve alteração?) then (não)
+  #FFF6E0:[9] "Nenhuma alteração" (A3);
+  stop
+else (sim)
+endif
+if ([10] Novas marcações cabem\nnas vagas? (RN07)) then (não)
+  #FDE8E8:[11] "Restam N vaga(s) nesta\ncampanha" (E6);
   stop
 else (sim)
 endif

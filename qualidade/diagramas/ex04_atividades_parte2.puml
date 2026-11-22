@@ -6,8 +6,8 @@ skinparam defaultFontSize 15
 skinparam ActivityBackgroundColor #FFFFFF
 skinparam ActivityBorderColor #333333
 skinparam ActivityDiamondBackgroundColor #FFE3B3
-skinparam ActivityDiamondFontSize 14
-skinparam ArrowFontSize 14
+skinparam ActivityDiamondFontSize 15
+skinparam ArrowFontSize 15
 skinparam SwimlaneTitleFontStyle bold
 skinparam SwimlaneTitleFontSize 16
 
@@ -15,32 +15,32 @@ skinparam SwimlaneTitleFontSize 16
 |#FDF8EF|Supabase|
 |Sistema Conecta Vida|
 (A)
-while ([10] Há participante\nalterado?) is (sim)
-  if ([11] Marcado para\ninscrever?) then (sim)
-    if ([12] Aberta e\nvínculo ativo?\n(RN02/03/06)) then (não)
-      #FDE8E8:[13] Registrar\nrecusa;
+while ([12] Há participante\nalterado?) is (sim)
+  if ([13] Marcado para\ninscrever?) then (sim)
+    if ([14] Aberta e\nvínculo ativo?\n(RN02/RN03)) then (não)
+      #FDE8E8:[15] Registrar\nrecusa;
       (R)
       detach
     else (sim)
       |Supabase|
-      :[14] Gravar inscrição\n(RN01, RN03, RN04);
+      :[16] Gravar inscrição\n(RN01, RN03,\nRN04, RN07);
       |Sistema Conecta Vida|
     endif
   else (não, A1)
     |Supabase|
-    :[15] Remover\ninscrição (RN05);
+    :[17] Remover\ninscrição (A1, RN02);
     |Sistema Conecta Vida|
   endif
-  if ([16] Gravou?) then (não)
-    #FDE8E8:[17] Registrar\nfalha (E4);
+  if ([18] Gravou?) then (não)
+    #FDE8E8:[19] Registrar\nfalha (E4);
   else (sim)
   endif
   (R)
 endwhile (não)
-if ([18] Falhas ou\nrecusas?) then (sim)
-  #FDE8E8:[19] "Algumas não\nforam atualizadas";
+if ([20] Falhas ou\nrecusas?) then (sim)
+  #FDE8E8:[21] "Algumas não\nforam atualizadas";
 else (não)
-  #E6F4E1:[20] "Inscrições\natualizadas (N)";
+  #E6F4E1:[22] "Inscrições\natualizadas (N)";
 endif
 stop
 @enduml

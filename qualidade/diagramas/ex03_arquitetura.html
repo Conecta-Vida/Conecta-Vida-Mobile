@@ -4,7 +4,9 @@
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; font-family: "DejaVu Sans", Arial, sans-serif; font-size: 15px; color: #1d2733; background: #fff; }
-  .quadro { width: 1300px; padding: 14px; display: grid; grid-template-columns: 1fr 250px; gap: 14px; }
+  .quadro { position: relative; width: 1400px; padding: 14px; display: grid; column-gap: 0; row-gap: 0;
+            grid-template-columns: 1fr 104px 250px; grid-template-rows: auto auto auto auto auto 40px auto;
+            grid-template-areas: "atores atores atores" "s1 . ." "front . ext" "s2 . ext" "back . ext" "s3 . ci" "dados . ci"; }
   .camada { border-radius: 10px; padding: 10px 12px 12px; border: 2px solid; }
   .titulo { font-weight: bold; font-size: 15px; margin-bottom: 8px; letter-spacing: .2px; }
   .titulo small { font-weight: normal; font-size: 13.5px; color: #4b5866; }
@@ -13,82 +15,135 @@
   .caixa b { display: block; font-size: 15px; }
   .caixa span { font-size: 13.5px; color: #3b4652; }
   .destaque { background: #dbe8f7; border-color: #2f5f9e; border-width: 2.5px; }
-  .atores { border-color: #9aa3ad; border-style: dashed; }
-  .front { border-color: #4a78b5; background: #eef4fb; }
-  .app { border: 1.5px solid #4a78b5; border-radius: 8px; padding: 8px; flex: 2.6; background: #f7fbff; }
+  .atores { grid-area: atores; border-color: #9aa3ad; border-style: dashed; }
+  .front { grid-area: front; border-color: #4a78b5; background: #eef4fb; }
+  .app { border: 1.5px solid #4a78b5; border-radius: 8px; padding: 8px; flex: 1; background: #f7fbff; }
   .app .titulo { font-size: 14.5px; margin-bottom: 6px; }
-  .back { border-color: #5b9a3c; background: #f2f8ee; }
-  .dados { border-color: #c9892b; background: #fff6e6; }
-  .ext { border-color: #9aa3ad; border-style: dashed; }
-  .ci { border-color: #7d5ba6; background: #f5f0fb; }
+  .painel { flex: 0 0 236px; }
+  .back { grid-area: back; border-color: #5b9a3c; background: #f2f8ee; }
+  .dados { grid-area: dados; align-self: start; border-color: #c9892b; background: #fff6e6; }
+  .ext { grid-area: ext; border-color: #9aa3ad; border-style: dashed; display: flex; flex-direction: column; gap: 10px; }
+  .ext .titulo { margin-bottom: 0; }
+  .ext .caixa { flex: none; }
+  .ext .saude { margin-top: auto; }
+  .ci { grid-area: ci; margin-top: 10px; align-self: start; border-color: #7d5ba6; background: #f5f0fb; display: flex; flex-direction: column; }
+  .ci .titulo { margin-bottom: 6px; }
+  .ci .caixa { flex: none; }
+  .ci .vao { height: 36px; }
   .seta { text-align: center; font-size: 13.5px; color: #33404d; padding: 3px 0; }
   .seta::before { content: "▼"; display: block; font-size: 15px; color: #33404d; line-height: 1; }
-  .lado { display: flex; flex-direction: column; gap: 10px; }
-  .lado .caixa { flex: none; }
+  .s1 { grid-area: s1; } .s2 { grid-area: s2; } .s3 { grid-area: s3; }
+  .lista { margin-top: 3px; font-size: 13.5px; color: #3b4652; line-height: 1.28; }
+  .lista div { margin-top: 4px; }
+  .lista i { font-style: normal; font-weight: bold; color: #1d2733; }
   .nota { font-size: 13.5px; color: #33404d; margin-top: 6px; }
+  #setas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+  #setas text { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 13.5px; fill: #33404d; }
 </style></head><body>
-<div class="quadro">
-  <div>
-    <div class="camada atores">
-      <div class="titulo">ATORES</div>
-      <div class="linha">
-        <div class="caixa"><b>Cidadão (titular)</b><span>celular Android · iOS · navegador (PWA)</span></div>
-        <div class="caixa"><b>Gestor de saúde</b><span>navegador</span></div>
-      </div>
+<div class="quadro" id="quadro">
+  <div class="camada atores">
+    <div class="titulo">ATORES</div>
+    <div class="linha">
+      <div class="caixa"><b>Cidadão (titular)</b><span>celular Android · iOS · navegador (PWA)</span></div>
+      <div class="caixa"><b>Gestor de saúde</b><span>navegador</span></div>
     </div>
-    <div class="seta">HTTPS</div>
-    <div class="camada front">
-      <div class="titulo">FRONT-END <small>— publicado no Netlify (deploy a cada push na main)</small></div>
-      <div class="linha">
-        <div class="app">
-          <div class="titulo">App Conecta Vida — Flutter 3.44 / Dart 3.12</div>
-          <div class="linha">
-            <div class="caixa"><b>Apresentação</b><span>lib/screens · widgets<br>NewsDetailsPage</span></div>
-            <div class="caixa destaque"><b>Aplicação</b><span>lib/usecases<br>InscricaoCampanhaService</span></div>
-            <div class="caixa"><b>Domínio</b><span>lib/models<br>NewsModel · Inscricao</span></div>
-            <div class="caixa"><b>Infraestrutura</b><span>SupabaseInscricao­Repository · supabase_flutter</span></div>
-          </div>
-          <div class="nota">Local: Hive (preferências) · notificações locais · GPS · leitura em voz alta</div>
+  </div>
+  <div class="seta s1">HTTPS</div>
+  <div class="camada front" id="camada-front">
+    <div class="titulo">FRONT-END <small>— publicado no Netlify (deploy a cada push na main)</small></div>
+    <div class="linha">
+      <div class="caixa painel"><b>Painel administrativo</b><span>React 19 + TypeScript + Vite<br>Tailwind · shadcn/ui · Recharts · jsPDF<br>@supabase/supabase-js</span></div>
+      <div class="app" id="app">
+        <div class="titulo">App Conecta Vida — Flutter 3.44 / Dart 3.12</div>
+        <div class="linha">
+          <div class="caixa"><b>Apresentação</b><span>lib/screens · widgets<br>NewsDetailsPage</span></div>
+          <div class="caixa destaque"><b>Aplicação</b><span>lib/usecases<br>InscricaoCampanha&shy;Service</span></div>
+          <div class="caixa"><b>Domínio</b><span>lib/models<br>NewsModel · Inscricao</span></div>
+          <div class="caixa"><b>Infraestrutura</b><span>SupabaseInscricao&shy;Repository · supabase_flutter</span></div>
         </div>
-        <div class="caixa"><b>Painel administrativo</b><span>React 19 + TypeScript + Vite<br>Tailwind · shadcn/ui · Recharts · jsPDF<br>@supabase/supabase-js</span></div>
-      </div>
-    </div>
-    <div class="seta">HTTPS + JWT · WebSocket (supabase_flutter / supabase-js)</div>
-    <div class="camada back">
-      <div class="titulo">BACK-END COMO SERVIÇO (BaaS) <small>— Supabase, na nuvem</small></div>
-      <div class="linha">
-        <div class="caixa"><b>Auth</b><span>cadastro · confirmação de e-mail · login</span></div>
-        <div class="caixa"><b>API REST/RPC</b><span>PostgREST: usuarios_campanhas, dependentes</span></div>
-        <div class="caixa"><b>Realtime</b><span>alertas em tempo real</span></div>
-        <div class="caixa"><b>Edge Functions</b><span>Deno/TypeScript: importação de dados, unidades próximas</span></div>
-        <div class="caixa"><b>Storage</b><span>imagens · APK</span></div>
-        <div class="caixa"><b>pg_cron + pg_net</b><span>encerra campanhas vencidas às 03h05</span></div>
-      </div>
-    </div>
-    <div class="seta">SQL + RLS (Row Level Security)</div>
-    <div class="camada dados">
-      <div class="titulo">PERSISTÊNCIA — PostgreSQL 17</div>
-      <div class="linha">
-        <div class="caixa"><b>Tabelas</b><span>comunicacoes · usuarios_campanhas · dependentes · usuarios</span></div>
-        <div class="caixa"><b>Regras do caso de uso</b><span>políticas cv_inscricoes_* (RN01–RN03) · índices únicos (RN04) · gatilhos (RN05, RN06)</span></div>
+        <div class="nota">Local: Hive (preferências) · notificações locais · GPS · leitura em voz alta</div>
       </div>
     </div>
   </div>
-  <div class="lado">
-    <div class="camada ext">
-      <div class="titulo">APIs EXTERNAS</div>
-      <div class="lado">
-        <div class="caixa"><b>gov.br/saúde e Agência SP</b><span>RSS de notícias</span></div>
-        <div class="caixa"><b>CNES · IBGE</b><span>dados abertos de saúde</span></div>
-        <div class="caixa"><b>InfoDengue</b><span>Fiocruz / FGV</span></div>
-        <div class="caixa"><b>OpenStreetMap</b><span>cidade pelo GPS (app)</span></div>
-      </div>
-      <div class="nota">Chamadas pelas Edge Functions (HTTPS)</div>
-    </div>
-    <div class="camada ci">
-      <div class="titulo">QUALIDADE / CI</div>
-      <div class="caixa"><b>GitHub Actions</b><span>flutter analyze · flutter test + lcov · pytest + PostgreSQL 17</span></div>
+  <div class="seta s2">HTTPS + JWT · WebSocket (supabase_flutter / supabase-js)</div>
+  <div class="camada back">
+    <div class="titulo">BACK-END COMO SERVIÇO (BaaS) <small>— Supabase, na nuvem</small></div>
+    <div class="linha">
+      <div class="caixa"><b>Auth</b><span>cadastro · confirmação de e-mail · login</span></div>
+      <div class="caixa"><b>API REST/RPC</b><span>PostgREST: usuarios_campanhas, dependentes</span></div>
+      <div class="caixa"><b>Realtime</b><span>alertas em tempo real</span></div>
+      <div class="caixa"><b>Storage</b><span>imagens · APK</span></div>
+      <div class="caixa"><b>pg_cron + pg_net</b><span>encerra campanhas vencidas às 03h05</span></div>
+      <div class="caixa" id="ef"><b>Edge Functions</b><span>Deno/TypeScript: importação de dados, unidades próximas</span></div>
     </div>
   </div>
+  <div class="seta s3">SQL + RLS (Row Level Security)</div>
+  <div class="camada dados">
+    <div class="titulo">PERSISTÊNCIA — PostgreSQL 17</div>
+    <div class="linha">
+      <div class="caixa"><b>Tabelas</b><span>comunicacoes · usuarios_campanhas · dependentes · usuarios</span></div>
+      <div class="caixa"><b>Regras do caso de uso</b><span>políticas cv_inscricoes_* (RN01–RN03) · índices únicos (RN04) · gatilhos (RN05, RN06, RN07 — vagas e contador de inscritos)</span></div>
+    </div>
+  </div>
+  <div class="camada ext" id="camada-ext">
+    <div class="titulo">APIs EXTERNAS</div>
+    <div class="caixa" id="osm"><b>OpenStreetMap</b><span>cidade pelo GPS (app)</span></div>
+    <div class="caixa saude" id="saude"><b>APIs externas de saúde</b>
+      <div class="lista">
+        <div><i>gov.br/saúde e Agência SP</i><br>RSS de notícias</div>
+        <div><i>CNES · IBGE</i><br>dados abertos de saúde</div>
+        <div><i>InfoDengue</i><br>Fiocruz / FGV</div>
+      </div>
+    </div>
+  </div>
+  <div class="camada ci">
+    <div class="titulo">QUALIDADE / CI</div>
+    <div class="caixa" id="gha"><b>GitHub Actions</b><span>flutter analyze · flutter test + lcov · pytest + PostgreSQL 17</span></div>
+    <div class="vao"></div>
+    <div class="caixa" id="repo"><b>Repositórios / testes</b><span>app · painel · banco</span></div>
+  </div>
+  <svg id="setas" xmlns="http://www.w3.org/2000/svg">
+    <defs><marker id="ponta" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#33404d"/></marker></defs>
+  </svg>
 </div>
+<script>
+// Setas tracejadas entre as caixas laterais e as camadas, calculadas a partir da posição real das caixas.
+(function () {
+  const q = document.getElementById('quadro').getBoundingClientRect();
+  const svg = document.getElementById('setas');
+  const r = id => { const b = document.getElementById(id).getBoundingClientRect();
+    return { l: b.left - q.left, r: b.right - q.left, t: b.top - q.top, b: b.bottom - q.top }; };
+  const ns = 'http://www.w3.org/2000/svg';
+  function linha(x1, y1, x2, y2) {
+    const p = document.createElementNS(ns, 'line');
+    Object.entries({ x1, y1, x2, y2, stroke: '#33404d', 'stroke-width': 1.6, 'stroke-dasharray': '7 5',
+      'marker-end': 'url(#ponta)' }).forEach(([k, v]) => p.setAttribute(k, v));
+    svg.appendChild(p);
+  }
+  function texto(x, y, linhas, ancora) {
+    linhas.forEach((t, i) => {
+      const e = document.createElementNS(ns, 'text');
+      e.setAttribute('x', x); e.setAttribute('y', y + i * 17); e.setAttribute('text-anchor', ancora || 'middle');
+      e.textContent = t; svg.appendChild(e);
+    });
+  }
+  // seta horizontal da direita de 'de' até a esquerda de 'para', na altura do meio da faixa em comum
+  function horizontal(de, para, rotulo) {
+    const a = r(de), b = r(para);
+    const y = (Math.max(a.t, b.t) + Math.min(a.b, b.b)) / 2;
+    linha(a.r, y, b.l - 1, y);
+    const meio = (r('camada-front').r + r('camada-ext').l) / 2;
+    texto(meio, y - 8 - (rotulo.length - 1) * 17, rotulo);
+  }
+  // OpenStreetMap na altura do meio do app, para a seta sair reta do centro do app
+  const app0 = r('app'), osm0 = r('osm'), d = (app0.t + app0.b) / 2 - (osm0.t + osm0.b) / 2;
+  if (d > 0) document.getElementById('osm').style.marginTop = d + 'px';
+  horizontal('app', 'osm', ['HTTPS', '(Nominatim)']);
+  horizontal('ef', 'saude', ['HTTPS']);
+  const g = r('gha'), p = r('repo'), x = (g.l + g.r) / 2;
+  linha(x, g.b, x, p.t - 1);
+  texto(x + 10, (g.b + p.t) / 2 + 5, ['push'], 'start');
+})();
+</script>
 </body></html>
