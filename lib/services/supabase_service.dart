@@ -585,6 +585,30 @@ class SupabaseService {
     bool forceRefresh = false,
   }) => fetchNoticiasPorCategoria(-1, forceRefresh: forceRefresh);
 
+  /// Vagas e inscritos atuais de uma campanha (RN07), lidos direto do banco
+  /// (sem o cache da lista). Devolve nulo se a consulta falhar.
+  static Future<({int? vagas, int inscritos})?> fetchVagas(
+    int comunicacaoId,
+  ) async {
+    try {
+      final linha = await _db
+          .from('comunicacoes')
+          .select('vagas, inscritos')
+          .eq('id', comunicacaoId)
+          .maybeSingle();
+      if (linha == null) return null;
+      final vagas = linha['vagas'];
+      final inscritos = linha['inscritos'];
+      return (
+        vagas: vagas is num ? vagas.toInt() : null,
+        inscritos: inscritos is num ? inscritos.toInt() : 0,
+      );
+    } catch (e) {
+      developer.log('Erro ao buscar vagas: $e', name: 'ApiService');
+      return null;
+    }
+  }
+
   /// Sugestões para a tela inicial: campanhas em andamento e alertas que
   /// combinam com a cidade do usuário e com os temas das campanhas em que
   /// ele já se inscreveu. Nunca sugere algo em que já está inscrito.

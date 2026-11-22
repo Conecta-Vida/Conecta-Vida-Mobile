@@ -33,6 +33,10 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
   bool _processandoCampanha = false;
   List<Inscricao> _inscricoesUsuario = [];
 
+  /// Campanha exibida, com vagas e inscritos relidos do banco (RN07): a
+  /// notícia recebida da lista pode estar desatualizada.
+  late NewsModel _campanha;
+
   bool get _ehCampanha => widget.noticia.tag.toUpperCase() == 'CAMPANHA';
 
   bool get _temTelefone =>
@@ -96,7 +100,9 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
   @override
   void initState() {
     super.initState();
+    _campanha = widget.noticia;
     _carregarStatusInscricao();
+    _atualizarVagas();
   }
 
   /// Caso de uso "Inscrever-se em campanha" (camada de aplicação).
@@ -121,6 +127,21 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
     }
   }
 
+  /// RN07: relê vagas e inscritos da campanha. Se a leitura falhar, mantém
+  /// os últimos valores conhecidos.
+  Future<void> _atualizarVagas() async {
+    if (!_ehCampanha || widget.noticia.id == null) return;
+    final atual = await SupabaseService.fetchVagas(widget.noticia.id!);
+    if (atual == null || !mounted) return;
+    setState(() {
+      _campanha = NewsModel.fromMap({
+        ...widget.noticia.toMap(),
+        'vagas': atual.vagas,
+        'inscritos': atual.inscritos,
+      });
+    });
+  }
+
   void _avisar(String mensagem, {Color? cor}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -139,10 +160,13 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
       usuarioId = user?.id;
     }
 
-    // Passo 4: campanha encerrada só abre para cancelar inscrições existentes.
+    // Passo 4: relê as vagas; campanha encerrada ou lotada só abre para
+    // cancelar inscrições existentes.
+    await _atualizarVagas();
+    if (!mounted) return;
     try {
       _inscricoes.verificarAcesso(
-        campanha: widget.noticia,
+        campanha: _campanha,
         usuarioId: usuarioId,
         possuiInscricoes: _inscricoesUsuario.isNotEmpty,
       );
@@ -161,10 +185,10 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
       );
       if (!mounted) return;
 
-      final encerrada = widget.noticia.encerrada;
+      final encerrada = _campanha.encerrada;
       // RN07: campanha lotada, como a encerrada, só aceita cancelamentos.
-      final soCancelar = encerrada || widget.noticia.lotada;
-      final vagasRestantes = widget.noticia.vagasRestantes;
+      final soCancelar = encerrada || _campanha.lotada;
+      final vagasRestantes = _campanha.vagasRestantes;
       final inscritosAtuais = _inscricoesUsuario
           .map((i) => i.chaveParticipante)
           .toSet();
@@ -185,7 +209,7 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                       encerrada
                           ? 'Esta campanha foi encerrada: você só pode '
                                 'cancelar as inscrições existentes.'
-                          : widget.noticia.lotada
+                          : _campanha.lotada
                           ? 'As vagas desta campanha esgotaram: você só pode '
                                 'cancelar as inscrições existentes.'
                           : 'Marque todas as pessoas que deseja inscrever. '
@@ -241,9 +265,9 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
 
       if (!mounted || escolhidos == null) return;
 
-      // Passos 6 e 7: o serviço aplica as regras e grava cada alteração.
+      // Passo 6: o serviço aplica as regras e grava cada alteração.
       final resultado = await _inscricoes.salvarInscricoes(
-        campanha: widget.noticia,
+        campanha: _campanha,
         usuarioId: usuarioId,
         participantes: participantes,
         inscritosAtuais: inscritosAtuais,
@@ -251,6 +275,7 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
       );
 
       await _carregarStatusInscricao();
+      await _atualizarVagas();
       _avisar(
         resultado.mensagem(widget.noticia.titulo),
         cor: !resultado.sucessoTotal
@@ -481,15 +506,15 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                               : null,
                         ),
                         // RN07: só aparece quando a campanha tem limite de vagas.
-                        if (_ehCampanha && widget.noticia.vagas != null) ...[
+                        if (_ehCampanha && _campanha.vagas != null) ...[
                           const Divider(height: 1),
                           NoticiasInfoBotao(
                             icone: Icons.groups,
                             titulo: 'Vagas',
-                            valor: widget.noticia.lotada
+                            valor: _campanha.lotada
                                 ? 'Esgotadas'
-                                : '${widget.noticia.vagasRestantes} de '
-                                      '${widget.noticia.vagas} restantes',
+                                : '${_campanha.vagasRestantes} de '
+                                      '${_campanha.vagas} restantes',
                           ),
                         ],
                         const Divider(height: 1),
