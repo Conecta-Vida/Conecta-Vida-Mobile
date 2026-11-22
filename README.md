@@ -84,7 +84,7 @@ A chave é a **publishable** (pública), feita para ficar no aplicativo. **Não 
 
 `PASSWORD_RESET_URL` é a página do painel (Netlify) aberta pelo link do e-mail "esqueci senha". Cada valor pode ser sobrescrito no build com `--dart-define=NOME=valor`.
 
-O SQL das regras de acesso e a explicação da arquitetura estão no repositório do painel, em `supabase/` ([Conecta-Vida-Admin](https://github.com/gustavotenorio26062005/Conecta-Vida-Admin/tree/claude/pensive-feynman-iwcx33)).
+O SQL das regras de acesso e a explicação da arquitetura estão no repositório do painel, em `supabase/` ([Conecta-Vida-Admin](https://github.com/Conecta-Vida/Conecta-Vida-Admin)).
 
 ### Login com Microsoft (opcional)
 
@@ -254,7 +254,7 @@ O **Meu Cronograma** escuta alterações de inscrição/cancelamento, recarrega 
 ## 9. Serviços relacionados
 
 - [Repositório Flutter Mobile](https://github.com/Conecta-Vida/Conecta-Vida-Mobile)
-- [Painel administrativo e SQL do Supabase](https://github.com/gustavotenorio26062005/Conecta-Vida-Admin/tree/claude/pensive-feynman-iwcx33)
+- [Painel administrativo e SQL do Supabase](https://github.com/Conecta-Vida/Conecta-Vida-Admin)
 
 ---
 

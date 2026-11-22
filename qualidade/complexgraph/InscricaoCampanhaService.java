@@ -22,7 +22,7 @@ public class InscricaoCampanhaService {
         this.relogio = relogio;
     }
 
-    // Passos 5 a 7 do caso de uso: compara quem estava inscrito com quem foi
+    // Passos 5 e 6 do caso de uso: compara quem estava inscrito com quem foi
     // marcado e inscreve/cancela cada participante alterado (RN01 a RN04 e RN07).
     public ResultadoInscricao salvarInscricoes(Campanha campanha, Integer usuarioId,
             List<Participante> participantes, Set<String> inscritosAtuais,

@@ -61,7 +61,7 @@ class InscricaoException implements Exception {
   String toString() => mensagem;
 }
 
-/// Resultado de "Salvar inscrições" (passos 6 e 7 do fluxo principal).
+/// Resultado de "Salvar inscrições" (passo 6 do fluxo principal).
 class ResultadoInscricao {
   final int alteracoes;
   final int selecionados;
@@ -164,7 +164,7 @@ class InscricaoCampanhaService {
     return participantes;
   }
 
-  /// Passos 5 a 7: compara quem estava inscrito com quem foi marcado e
+  /// Passos 5 e 6: compara quem estava inscrito com quem foi marcado e
   /// inscreve/cancela cada participante alterado, aplicando RN01 a RN04 e RN07.
   Future<ResultadoInscricao> salvarInscricoes({
     required NewsModel campanha,

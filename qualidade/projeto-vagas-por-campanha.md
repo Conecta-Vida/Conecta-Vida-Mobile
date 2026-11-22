@@ -2,7 +2,7 @@
 
 ## Intenção
 
-Hoje o app recusa inscrições com mais de 11 participantes por meio de uma constante fixa
+Antes desta mudança, o app recusava inscrições com mais de 11 participantes por meio de uma constante fixa
 (`limiteParticipantes = 11` em `InscricaoCampanhaService`), que não existia no app original.
 O limite real do sistema é outro: o banco recusa o 11º dependente por conta (RN06). O grupo
 quer trocar a constante fixa por um número que o gestor define no painel para cada campanha:
