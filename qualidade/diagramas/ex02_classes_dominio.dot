@@ -46,7 +46,7 @@ quantidade: int): bool\l}",
 			pos="161,302.5",
 			rects="15.5,397.5,306.5,431.5 15.5,259.5,306.5,397.5 15.5,173.5,306.5,259.5",
 			width=4.0417];
-		Inscricao -> Campanha	[arrowhead=vee,
+		Inscricao -> Campanha	[arrowhead=vee, taillabel="0..*", labelangle=-35, labeldistance=2.2,
 			label="campanha  1\l",
 			lp="304.4,459.5",
 			pos="e,306.56,421.21 521.23,536.29 462.48,509.56 386.39,472.19 323,432 320.36,430.32 317.71,428.61 315.05,426.87"];
@@ -57,7 +57,7 @@ DateTime,\l      hoje: DateTime): int\l}",
 			pos="482,302.5",
 			rects="338.5,358.5,625.5,392.5 338.5,259.5,625.5,358.5 338.5,212.5,625.5,259.5",
 			width=3.9861];
-		Inscricao -> Dependente	[arrowhead=vee,
+		Inscricao -> Dependente	[arrowhead=vee, taillabel="0..*", labelangle=-35, labeldistance=2.2,
 			label="participante\r0..1\r",
 			lp="515.0,473.0",
 			pos="e,525.69,392.68 575.43,494.2 561.19,465.13 545.05,432.19 530.24,401.97"];
@@ -66,12 +66,12 @@ DateTime,\l      hoje: DateTime): int\l}",
 			pos="690,70",
 			rects="611.5,89.5,768.5,123.5 611.5,16.5,768.5,89.5",
 			width=2.1806];
-		Inscricao -> Usuario	[arrowhead=vee,
+		Inscricao -> Usuario	[arrowhead=vee, taillabel="0..*", labelangle=35, labeldistance=2.2,
 			label="titular  1",
 			lp="712.5,302.5",
 			pos="e,689.36,123.78 647.27,494.24 649.04,488.12 650.64,481.99 652,476 678.87,357.18 686.78,214.59 689.09,134.22"];
 		Participante	[height=1.7917,
-			label="{«entity»\nParticipante|+ dependenteId: int?\l+ nome: String\l+ parentesco: String\l+ vinculoAtivo: bool\l|+ ehTitular(): bool\l+ \
+			label="{«value object»\nParticipante|+ dependenteId: int?\l+ nome: String\l+ parentesco: String\l+ vinculoAtivo: bool\l|+ ehTitular(): bool\l+ \
 chave(): String\l}",
 			pos="844,302.5",
 			rects="773,332.5,915,366.5 773,272.5,915,332.5 773,238.5,915,272.5",
@@ -83,7 +83,7 @@ chave(): String\l}",
 			lp="751.6,466.6",
 			pos="e,799.39,366.6 694.55,494.38 712.84,474.33 731.94,452.69 749,432 763.91,413.91 779.33,393.77 793.29,374.89",
 			style=dashed];
-		Dependente -> Usuario	[arrowhead=vee,
+		Dependente -> Usuario	[arrowhead=vee, taillabel="0..10", labelangle=35, labeldistance=2.4,
 			label="titular\r1\r",
 			lp="569.7,157.7",
 			pos="e,640.05,123.55 559.8,212.46 580.22,189.38 602.31,164.65 623,142 626.26,138.43 629.62,134.78 633.02,131.11"];
