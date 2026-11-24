@@ -3,10 +3,13 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../accessibility/accessibility_provider.dart';
 import '../accessibility/accessibility_speech_service.dart';
+import '../models/inscricao.dart';
 import '../models/noticia.dart';
 import 'package:provider/provider.dart';
 import '../global/appCor.dart';
+import '../services/supabase_inscricao_repository.dart';
 import '../services/supabase_service.dart';
+import '../usecases/inscricao_campanha_service.dart';
 import '../widgets/noticia_info_botao.dart';
 import '../widgets/noticia_secao_mais.dart';
 
@@ -28,7 +31,11 @@ class NewsDetailsPage extends StatefulWidget {
 
 class _NewsDetailsPageState extends State<NewsDetailsPage> {
   bool _processandoCampanha = false;
-  List<Map<String, dynamic>> _inscricoesUsuario = [];
+  List<Inscricao> _inscricoesUsuario = [];
+
+  /// Campanha exibida, com vagas e inscritos relidos do banco (RN07): a
+  /// notícia recebida da lista pode estar desatualizada.
+  late NewsModel _campanha;
 
   bool get _ehCampanha => widget.noticia.tag.toUpperCase() == 'CAMPANHA';
 
@@ -93,18 +100,15 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
   @override
   void initState() {
     super.initState();
+    _campanha = widget.noticia;
     _carregarStatusInscricao();
+    _atualizarVagas();
   }
 
-  int? _idComoInt(dynamic valor) {
-    if (valor is num) return valor.toInt();
-    return int.tryParse(valor?.toString() ?? '');
-  }
-
-  String _chaveParticipante(Map<String, dynamic> inscricao) {
-    final dependenteId = _idComoInt(inscricao['dependente_id']);
-    return dependenteId == null ? 'titular' : 'dependente:$dependenteId';
-  }
+  /// Caso de uso "Inscrever-se em campanha" (camada de aplicação).
+  final InscricaoCampanhaService _inscricoes = InscricaoCampanhaService(
+    const SupabaseInscricaoRepository(),
+  );
 
   Future<void> _carregarStatusInscricao() async {
     if (!_ehCampanha || widget.userId == null || widget.noticia.id == null) {
@@ -112,13 +116,10 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
     }
 
     try {
-      final inscricoes = await SupabaseService.fetchInscritosCampanha(
-        widget.noticia.id!,
+      final minhas = await _inscricoes.inscricoesDoUsuario(
+        comunicacaoId: widget.noticia.id!,
+        usuarioId: widget.userId!,
       );
-      final minhas = inscricoes
-          .where((item) => '${item['usuario_id'] ?? ''}' == '${widget.userId}')
-          .toList();
-
       if (!mounted) return;
       setState(() => _inscricoesUsuario = minhas);
     } catch (_) {
@@ -126,29 +127,33 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
     }
   }
 
+  /// RN07: relê vagas e inscritos da campanha. Se a leitura falhar, mantém
+  /// os últimos valores conhecidos.
+  Future<void> _atualizarVagas() async {
+    if (!_ehCampanha || widget.noticia.id == null) return;
+    final atual = await SupabaseService.fetchVagas(widget.noticia.id!);
+    if (atual == null || !mounted) return;
+    setState(() {
+      _campanha = NewsModel.fromMap({
+        ...widget.noticia.toMap(),
+        'vagas': atual.vagas,
+        'inscritos': atual.inscritos,
+      });
+    });
+  }
+
+  void _avisar(String mensagem, {Color? cor}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(mensagem), backgroundColor: cor),
+    );
+  }
+
   Future<void> _alternarInscricaoCampanha() async {
-    // Campanha encerrada não aceita novas inscrições; quem já estava
-    // inscrito ainda pode abrir o diálogo para cancelar.
-    if (widget.noticia.encerrada && _inscricoesUsuario.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Esta campanha já foi encerrada.')),
-      );
-      return;
-    }
-
-    final comunicacaoId = widget.noticia.id;
-    if (comunicacaoId == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Esta campanha ainda não possui ID válido para inscrição.',
-          ),
-        ),
-      );
-      return;
-    }
-
+    // Trava o botão já no toque: as leituras abaixo vão à rede e um toque
+    // duplo abriria dois diálogos.
+    if (_processandoCampanha) return;
+    setState(() => _processandoCampanha = true);
     int? usuarioId = widget.userId;
 
     // Fallback: se o id não veio da sessão, tenta resolver pelo e-mail autenticado.
@@ -159,69 +164,38 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
       usuarioId = user?.id;
     }
 
-    if (usuarioId == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Não foi possível identificar o usuário para inscrição.',
-          ),
-        ),
+    // Passo 4: relê as vagas; campanha encerrada ou lotada só abre para
+    // cancelar inscrições existentes.
+    await _atualizarVagas();
+    if (!mounted) return;
+    try {
+      _inscricoes.verificarAcesso(
+        campanha: _campanha,
+        usuarioId: usuarioId,
+        possuiInscricoes: _inscricoesUsuario.isNotEmpty,
       );
+    } on InscricaoException catch (e) {
+      setState(() => _processandoCampanha = false);
+      _avisar(e.mensagem);
       return;
     }
 
-    setState(() => _processandoCampanha = true);
-
     try {
-      final dependentes = await SupabaseService.fetchDependentes(
-        usuarioId,
-        somenteAtivos: true,
-      );
       await _carregarStatusInscricao();
+      final participantes = await _inscricoes.listarParticipantes(
+        usuarioId: usuarioId!,
+        inscricoesAtuais: _inscricoesUsuario,
+      );
       if (!mounted) return;
 
-      // Mantém também participantes já inscritos cujo cadastro foi inativado,
-      // para que o titular consiga cancelar essas inscrições.
-      final participantes = <Map<String, dynamic>>[
-        {
-          'chave': 'titular',
-          'nome': 'Eu (titular)',
-          'parentesco': 'Titular',
-          'dependente_id': null,
-        },
-      ];
-
-      for (final dependente in dependentes) {
-        if (dependente.id == null) continue;
-        participantes.add({
-          'chave': 'dependente:${dependente.id}',
-          'nome': dependente.nomeCompleto,
-          'parentesco': dependente.parentesco,
-          'dependente_id': dependente.id,
-        });
-      }
-
-      final chavesDisponiveis = participantes
-          .map((item) => item['chave'] as String)
+      final encerrada = _campanha.encerrada;
+      // RN07: campanha lotada, como a encerrada, só aceita cancelamentos.
+      final soCancelar = encerrada || _campanha.lotada;
+      final vagasRestantes = _campanha.vagasRestantes;
+      final inscritosAtuais = _inscricoesUsuario
+          .map((i) => i.chaveParticipante)
           .toSet();
-      for (final inscricao in _inscricoesUsuario) {
-        final dependenteId = _idComoInt(inscricao['dependente_id']);
-        if (dependenteId == null) continue;
-        final chave = 'dependente:$dependenteId';
-        if (chavesDisponiveis.contains(chave)) continue;
-
-        participantes.add({
-          'chave': chave,
-          'nome': (inscricao['participante_nome'] ?? 'Dependente').toString(),
-          'parentesco': (inscricao['parentesco'] ?? 'Cadastro indisponível')
-              .toString(),
-          'dependente_id': dependenteId,
-        });
-        chavesDisponiveis.add(chave);
-      }
-
-      final selecionados = _inscricoesUsuario.map(_chaveParticipante).toSet();
+      final selecionados = Set<String>.from(inscritosAtuais);
 
       final escolhidos = await showDialog<Set<String>>(
         context: context,
@@ -234,27 +208,43 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      'Marque todas as pessoas que deseja inscrever. '
-                      'Você pode selecionar você e vários dependentes.',
+                    Text(
+                      encerrada
+                          ? 'Esta campanha foi encerrada: você só pode '
+                                'cancelar as inscrições existentes.'
+                          : _campanha.lotada
+                          ? 'As vagas desta campanha esgotaram: você só pode '
+                                'cancelar as inscrições existentes.'
+                          : 'Marque todas as pessoas que deseja inscrever. '
+                                'Você pode selecionar você e vários dependentes.',
                     ),
+                    if (vagasRestantes != null) ...[
+                      const SizedBox(height: 8),
+                      Text('Vagas restantes: $vagasRestantes'),
+                    ],
                     const SizedBox(height: 12),
                     ...participantes.map((participante) {
-                      final chave = participante['chave'] as String;
+                      final chave = participante.chave;
+                      final jaInscrito = inscritosAtuais.contains(chave);
+                      // RN02 e RN03: só desmarca quem não pode ser inscrito.
+                      final podeMarcar =
+                          jaInscrito || (!soCancelar && participante.vinculoAtivo);
                       return CheckboxListTile(
                         value: selecionados.contains(chave),
                         controlAffinity: ListTileControlAffinity.leading,
-                        title: Text(participante['nome'] as String),
-                        subtitle: Text(participante['parentesco'] as String),
-                        onChanged: (marcado) {
-                          refresh(() {
-                            if (marcado == true) {
-                              selecionados.add(chave);
-                            } else {
-                              selecionados.remove(chave);
-                            }
-                          });
-                        },
+                        title: Text(participante.nome),
+                        subtitle: Text(participante.parentesco),
+                        onChanged: podeMarcar
+                            ? (marcado) {
+                                refresh(() {
+                                  if (marcado == true) {
+                                    selecionados.add(chave);
+                                  } else {
+                                    selecionados.remove(chave);
+                                  }
+                                });
+                              }
+                            : null,
                       );
                     }),
                   ],
@@ -278,78 +268,27 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
 
       if (!mounted || escolhidos == null) return;
 
-      final inscricoesAtuais = _inscricoesUsuario
-          .map(_chaveParticipante)
-          .toSet();
-      final falhas = <String>[];
-      var alteracoes = 0;
-
-      // Cada participante é incluído/removido pela API existente.
-      // Assim, uma única confirmação da tela pode atualizar várias pessoas.
-      for (final participante in participantes) {
-        final chave = participante['chave'] as String;
-        final estavaInscrito = inscricoesAtuais.contains(chave);
-        final deveEstarInscrito = escolhidos.contains(chave);
-        if (estavaInscrito == deveEstarInscrito) continue;
-
-        final dependenteId = _idComoInt(participante['dependente_id']);
-        final nome = participante['nome'] as String;
-
-        try {
-          if (deveEstarInscrito) {
-            await SupabaseService.inscreverUsuarioEmCampanha(
-              comunicacaoId: comunicacaoId,
-              usuarioId: usuarioId,
-              dependenteId: dependenteId,
-            );
-          } else {
-            await SupabaseService.desinscreverUsuarioDaCampanha(
-              comunicacaoId: comunicacaoId,
-              usuarioId: usuarioId,
-              dependenteId: dependenteId,
-            );
-          }
-          alteracoes++;
-        } catch (e) {
-          falhas.add('$nome: $e');
-        }
-      }
+      // Passo 6: o serviço aplica as regras e grava cada alteração.
+      final resultado = await _inscricoes.salvarInscricoes(
+        campanha: _campanha,
+        usuarioId: usuarioId,
+        participantes: participantes,
+        inscritosAtuais: inscritosAtuais,
+        escolhidos: escolhidos,
+      );
 
       await _carregarStatusInscricao();
-      if (!mounted) return;
-
-      if (falhas.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Algumas inscrições não foram atualizadas: ${falhas.join('; ')}',
-            ),
-            backgroundColor: AppCor.error,
-          ),
-        );
-      } else if (alteracoes == 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Nenhuma alteração nas inscrições.')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Inscrições atualizadas para ${escolhidos.length} participante(s) '
-              'em: ${widget.noticia.titulo}.',
-            ),
-            backgroundColor: AppCor.primary,
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao processar inscrições: $e'),
-          backgroundColor: AppCor.error,
-        ),
+      await _atualizarVagas();
+      _avisar(
+        resultado.mensagem(widget.noticia.titulo),
+        cor: !resultado.sucessoTotal
+            ? AppCor.error
+            : (resultado.alteracoes == 0 ? null : AppCor.primary),
       );
+    } on InscricaoException catch (e) {
+      _avisar(e.mensagem, cor: AppCor.error);
+    } catch (e) {
+      _avisar('Erro ao processar inscrições: $e', cor: AppCor.error);
     } finally {
       if (mounted) setState(() => _processandoCampanha = false);
     }
@@ -569,6 +508,18 @@ class _NewsDetailsPageState extends State<NewsDetailsPage> {
                               ? _alternarInscricaoCampanha
                               : null,
                         ),
+                        // RN07: só aparece quando a campanha tem limite de vagas.
+                        if (_ehCampanha && _campanha.vagas != null) ...[
+                          const Divider(height: 1),
+                          NoticiasInfoBotao(
+                            icone: Icons.groups,
+                            titulo: 'Vagas',
+                            valor: _campanha.lotada
+                                ? 'Esgotadas'
+                                : '${_campanha.vagasRestantes} de '
+                                      '${_campanha.vagas} restantes',
+                          ),
+                        ],
                         const Divider(height: 1),
                         NoticiasInfoBotao(
                           icone: Icons.location_on,

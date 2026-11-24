@@ -1,0 +1,200 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+left to right direction
+hide empty members
+package "aplicacao" {
+  abstract class InscricaoRepository {
+    +buscarDependentesAtivos(usuarioId: int): Future<List<DependenteModel>>
+    +buscarInscricoes(comunicacaoId: int): Future<List<Inscricao>>
+    +inscrever(comunicacaoId: int, usuarioId: int, dependenteId: int?): Future<void>
+    +desinscrever(comunicacaoId: int, usuarioId: int, dependenteId: int?): Future<void>
+  }
+  enum MotivoRecusa {
+    campanhaSemId
+    naoECampanha
+    campanhaEncerrada
+    usuarioNaoIdentificado
+    campanhaLotada
+    vagasInsuficientes
+  }
+  class InscricaoException {
+    +motivo: MotivoRecusa
+    +vagasRestantes: int?
+    +mensagem(): String
+    +toString(): String
+  }
+  class ResultadoInscricao {
+    +alteracoes: int
+    +selecionados: int
+    +falhas: List<String>
+    +sucessoTotal(): bool
+    +mensagem(tituloCampanha: String): String
+  }
+  class InscricaoCampanhaService {
+    -repositorio: InscricaoRepository
+    -agora: DateTime Function()
+    +verificarAcesso(campanha: NewsModel, usuarioId: int?, possuiInscricoes: bool): void
+    +inscricoesDoUsuario(comunicacaoId: int, usuarioId: int): Future<List<Inscricao>>
+    +listarParticipantes(usuarioId: int, inscricoesAtuais: List<Inscricao>): Future<List<Participante>>
+    +salvarInscricoes(campanha: NewsModel, usuarioId: int?, participantes: List<Participante>, inscritosAtuais: Set<String>, escolhidos: Set<String>): Future<ResultadoInscricao>
+  }
+}
+package "dominio" {
+  class Inscricao {
+    +id: int?
+    +usuarioId: int
+    +comunicacaoId: int
+    +dependenteId: int?
+    +participanteNome: String
+    +parentesco: String
+    +doTitular(): bool
+    +chaveParticipante(): String
+    -inteiro(valor: Object?): int? {static}
+  }
+  class Participante {
+    +dependenteId: int?
+    +nome: String
+    +parentesco: String
+    +vinculoAtivo: bool
+    +ehTitular(): bool
+    +chave(): String
+    +chaveDe(dependenteId: int?): String {static}
+  }
+  class NewsModel {
+    +id: int?
+    +tag: String
+    +data: String
+    +dataInicio: String
+    +dataFim: String
+    +titulo: String
+    +subtitulo: String
+    +descricao: String
+    +imagem: String
+    +categoria: String
+    +local: String
+    +publicoAlvo: String
+    +textoBotaoAcao: String
+    +orgao: String
+    +orgaoTelefone: String
+    +orgaoSite: String
+    +status: String
+    +fonteUrl: String
+    +vagas: int?
+    +inscritos: int
+    +abrangenciasAmplas: Set<String>
+    +vagasRestantes(): int?
+    +lotada(): bool
+    +comportaNovas(quantidade: int): bool
+    +abrangenciaGeral(): bool
+    +localEhCidade(): bool
+    +ehCampanha(): bool
+    +tipoLegivel(): String
+    +dataLegivel(): String
+    +encerrada(): bool
+    +encerradaEm(hoje: DateTime): bool
+    -inteiroOuNulo(valor: dynamic): int? {static}
+    +toMap(): Map<String, dynamic>
+  }
+  class DependenteModel {
+    +id: int?
+    +nomeCompleto: String
+    +dataNascimento: DateTime
+    +parentesco: String
+    +sexo: String?
+    +status: String
+    +emailDependente: String?
+    +declarouResponsabilidade: bool
+    +pendente(): bool
+    +ativo(): bool
+    +idadeEm(nascimento: DateTime, hoje: DateTime): int {static}
+    +exigeAutorizacaoDoDependente(nascimento: DateTime, parentesco: String, hoje: DateTime?): bool {static}
+    +toRequestMap(): Map<String, dynamic>
+  }
+  class ConviteDependente {
+    +id: int
+    +titularNome: String
+    +parentesco: String
+    +status: String
+    +pendente(): bool
+  }
+}
+package "infraestrutura" {
+  class SupabaseInscricaoRepository {
+    +buscarDependentesAtivos(usuarioId: int): Future<List<DependenteModel>>
+    +buscarInscricoes(comunicacaoId: int): Future<List<Inscricao>>
+    +inscrever(comunicacaoId: int, usuarioId: int, dependenteId: int?): Future<void>
+    +desinscrever(comunicacaoId: int, usuarioId: int, dependenteId: int?): Future<void>
+  }
+}
+package "teste" {
+  class Chamada <<test double>> {
+    +operacao: String
+    +comunicacaoId: int
+    +usuarioId: int
+    +dependenteId: int?
+    +hashCode(): int
+    +toString(): String
+    +operator ==(other: Object): bool
+  }
+  class RepositorioStub <<test double>> {
+    +dependentes: List<DependenteModel>
+    +inscricoes: List<Inscricao>
+    +falharPara: Set<int?>
+    +mensagemDeFalha: String
+    +chamadas: List<Chamada>
+    +buscarDependentesAtivos(usuarioId: int): Future<List<DependenteModel>>
+    +buscarInscricoes(comunicacaoId: int): Future<List<Inscricao>>
+    +inscrever(comunicacaoId: int, usuarioId: int, dependenteId: int?): Future<void>
+    +desinscrever(comunicacaoId: int, usuarioId: int, dependenteId: int?): Future<void>
+  }
+  class InscricaoCampanhaServiceTest <<test>> {
+    +verificarAcesso (passo 4)()
+    +listarParticipantes (passo 4)()
+    +inscricoesDoUsuario()
+    +salvarInscricoes (passos 5 e 6)()
+    +InscricaoException.mensagem()
+  }
+  class InscricaoEntidadesTest <<test>> {
+    +Inscricao()
+    +Participante()
+    +NewsModel.encerradaEm (RN02)()
+    +NewsModel (Campanha) — conversões()
+    +NewsModel — vagas (RN07)()
+    +Dependente — vínculo usado na inscrição (RN03)()
+  }
+}
+Inscricao ..> Participante
+InscricaoCampanhaService ..> Inscricao
+InscricaoCampanhaService ..> InscricaoException
+InscricaoCampanhaService --> InscricaoRepository
+InscricaoCampanhaService ..> MotivoRecusa
+InscricaoCampanhaService ..> NewsModel
+InscricaoCampanhaService ..> Participante
+InscricaoCampanhaService ..> ResultadoInscricao
+InscricaoCampanhaServiceTest ..> Chamada
+InscricaoCampanhaServiceTest ..> DependenteModel
+InscricaoCampanhaServiceTest ..> Inscricao
+InscricaoCampanhaServiceTest ..> InscricaoCampanhaService
+InscricaoCampanhaServiceTest ..> InscricaoException
+InscricaoCampanhaServiceTest ..> MotivoRecusa
+InscricaoCampanhaServiceTest ..> NewsModel
+InscricaoCampanhaServiceTest ..> Participante
+InscricaoCampanhaServiceTest ..> RepositorioStub
+InscricaoCampanhaServiceTest ..> ResultadoInscricao
+InscricaoEntidadesTest ..> ConviteDependente
+InscricaoEntidadesTest ..> DependenteModel
+InscricaoEntidadesTest ..> Inscricao
+InscricaoEntidadesTest ..> NewsModel
+InscricaoEntidadesTest ..> Participante
+InscricaoException --> MotivoRecusa
+InscricaoRepository ..> DependenteModel
+InscricaoRepository ..> Inscricao
+RepositorioStub --> Chamada
+RepositorioStub --> DependenteModel
+RepositorioStub --> Inscricao
+RepositorioStub ..|> InscricaoRepository
+SupabaseInscricaoRepository ..> DependenteModel
+SupabaseInscricaoRepository ..> Inscricao
+SupabaseInscricaoRepository ..|> InscricaoRepository
+@enduml

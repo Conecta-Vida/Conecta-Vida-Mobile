@@ -1,0 +1,50 @@
+// Exercício 5 - Diagrama de Transição de Estados (UML) do objeto Campanha
+// (tabela comunicacoes, tipo CAMPANHA). Transições no formato evento [guarda] / ação.
+// Layout fixo (layout=nop2): posição de cada estado, trajeto de cada seta e lugar de cada
+// rótulo definidos à mão, para nenhum rótulo cruzar outra seta. Coordenadas em pontos.
+digraph DTE {
+  graph [layout=nop2, fontname="DejaVu Sans", pad=0.2, dpi=150];
+  node  [fontname="DejaVu Sans", fontsize=13];
+  edge  [fontname="DejaVu Sans", fontsize=12, arrowsize=0.8];
+
+  ini [pos="215.0,1062.0", shape=circle, style=filled, fillcolor=black, label="", width=0.25];
+  fim [pos="380.0,130.0", shape=doublecircle, style=filled, fillcolor=black, label="", width=0.18];
+  E1 [pos="255.0,960.0", shape=plain, label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="6" style="rounded" bgcolor="#EEF4FB" color="#4A78B5">
+      <tr><td><b>Aberta sem inscritos</b></td></tr><hr/>
+      <tr><td align="left">status = ATIVA<br align="left"/>inscrições = 0<br align="left"/></td></tr></table>>];
+  E2 [pos="640.0,610.0", shape=plain, label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="6" style="rounded" bgcolor="#EEF4FB" color="#4A78B5">
+      <tr><td><b>Aberta com inscritos</b></td></tr><hr/>
+      <tr><td align="left">status = ATIVA<br align="left"/>1 ≤ inscrições &lt; vagas<br align="left"/>(ou sem limite)<br align="left"/></td></tr></table>>];
+  E3 [pos="660.0,330.0", shape=plain, label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="6" style="rounded" bgcolor="#FDF1E3" color="#B5784A">
+      <tr><td><b>Encerrada</b></td></tr><hr/>
+      <tr><td align="left">status = ENCERRADA<br align="left"/>(só cancelamento)<br align="left"/></td></tr></table>>];
+  E5 [pos="250.0,610.0", shape=plain, label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="6" style="rounded" bgcolor="#FBECEC" color="#B54A5A">
+      <tr><td><b>Lotada</b></td></tr><hr/>
+      <tr><td align="left">status = ATIVA<br align="left"/>vagas definidas ∧<br align="left"/>inscrições ≥ vagas<br align="left"/></td></tr></table>>];
+
+  ini -> E1 [label="t1: publicar\l[gestor ou calendário]\l", pos="e,215.0,994.0 215.0,1053.0 215.0,1036.0 215.0,1019.0 215.0,1002.0", lp="138.5,1023.5"];
+  E1 -> E2 [label="t2: inscrever\l[RN01 ∧ RN03 ∧ RN04 ∧\lsobram vagas após a\linscrição (RN07)]\l", pos="e,606.0,651.0 337.5,948.0 423.0,948.0 508.5,948.0 594.0,948.0 600.6,948.0 606.0,942.6 606.0,936.0 606.0,843.7 606.0,751.3 606.0,659.0", lp="514.7,910.2"];
+  E2 -> E2 [label="t3: inscrever\l[RN01 ∧ RN03 ∧ RN04 ∧\lsobram vagas após a\linscrição (RN07)]\l", pos="e,680.0,651.0 656.0,651.0 650.0,693.0 686.0,693.0 681.1,658.9", lp="767.9,698.8"];
+  E2 -> E2 [label="t4: cancelar\l[inscrições > 1]\l", pos="e,724.0,606.0 724.0,588.0 766.0,578.0 766.0,616.0 731.8,607.9", lp="813.2,597.0"];
+  E2 -> E1 [label="t5: cancelar ou revogar\ldependente\l[inscrições = 1] / RN05\l", pos="e,337.5,980.0 626.0,651.0 626.0,756.7 626.0,862.3 626.0,968.0 626.0,974.6 620.6,980.0 614.0,980.0 524.5,980.0 435.0,980.0 345.5,980.0", lp="706.2,933.9"];
+  E1 -> E3 [label="t6: encerrar\l[data_fim < agora\lou gestor]\l", pos="e,738.0,342.0 290.0,994.0 290.0,1006.0 290.0,1018.0 290.0,1030.0 290.0,1036.6 295.4,1042.0 302.0,1042.0 503.7,1042.0 705.3,1042.0 907.0,1042.0 913.6,1042.0 919.0,1036.6 919.0,1030.0 919.0,804.7 919.0,579.3 919.0,354.0 919.0,347.4 913.6,342.0 907.0,342.0 853.3,342.0 799.7,342.0 746.0,342.0", lp="636.0,1072.6"];
+  E2 -> E3 [label="t7: encerrar\l[data_fim < agora\lou gestor]\l", pos="e,612.0,364.0 612.0,569.0 612.0,503.3 612.0,437.7 612.0,372.0", lp="547.4,415.2"];
+  E3 -> E3 [label="t8: cancelar\l[inscrições ≥ 1] (A4)\l", pos="e,738.0,316.0 738.0,300.0 780.0,290.0 780.0,326.0 745.8,317.9", lp="841.7,308.0"];
+  E3 -> E3 [label="t9: inscrever\l/ recusar (RN02)\l", pos="e,714.0,296.0 690.0,296.0 684.0,254.0 720.0,254.0 715.1,288.1", lp="702.0,241.1"];
+  E3 -> E2 [label="t10: reabrir\l[ATIVA ∧\linscrições ≥ 1 ∧\l(sem limite ∨\linscrições < vagas)]\l", pos="e,700.0,569.0 700.0,364.0 700.0,429.7 700.0,495.3 700.0,561.0", lp="771.2,466.5"];
+  E3 -> E1 [label="t11: reabrir\l[ATIVA ∧\linscrições = 0]\l", pos="e,316.0,994.0 738.0,356.0 787.0,356.0 836.0,356.0 885.0,356.0 891.6,356.0 897.0,361.4 897.0,368.0 897.0,581.3 897.0,794.7 897.0,1008.0 897.0,1014.6 891.6,1020.0 885.0,1020.0 698.3,1020.0 511.7,1020.0 325.0,1020.0 320.0,1020.0 316.0,1016.0 316.0,1011.0 316.0,1008.0 316.0,1005.0 316.0,1002.0", lp="842.2,820.8"];
+  E1 -> fim [label="t12: excluir\l[gestor]\l", pos="e,369.5,130.0 172.5,945.0 123.7,945.0 74.8,945.0 26.0,945.0 19.4,945.0 14.0,939.6 14.0,933.0 14.0,669.3 14.0,405.7 14.0,142.0 14.0,135.4 19.4,130.0 26.0,130.0 137.8,130.0 249.7,130.0 361.5,130.0", lp="57.9,309.3"];
+  E2 -> fim [label="t13: excluir [gestor]\l/ remove inscrições\l", pos="e,390.5,130.0 566.0,569.0 566.0,550.0 566.0,531.0 566.0,512.0 566.0,505.4 560.6,500.0 554.0,500.0 525.0,500.0 496.0,500.0 467.0,500.0 460.4,500.0 455.0,494.6 455.0,488.0 455.0,372.7 455.0,257.3 455.0,142.0 455.0,135.4 449.6,130.0 443.0,130.0 428.2,130.0 413.3,130.0 398.5,130.0", lp="385.4,477.8"];
+  E3 -> fim [label="t14: excluir [gestor]\l/ remove inscrições\l", pos="e,380.0,119.5 600.0,296.0 600.0,234.7 600.0,173.3 600.0,112.0 600.0,105.4 594.6,100.0 588.0,100.0 520.6,100.0 453.2,100.0 385.8,100.0 382.6,100.0 380.0,102.6 380.0,105.8 380.0,107.7 380.0,109.6 380.0,111.5", lp="669.6,154.9"];
+  E2 -> E5 [label="t15: inscrever\l[RN01 ∧ RN03 ∧ RN04 ∧\locupa a última vaga]\l", pos="e,320.0,640.0 556.0,640.0 480.0,640.0 404.0,640.0 328.0,640.0", lp="438.0,670.6"];
+  E1 -> E5 [label="t16: inscrever\l[RN01 ∧ RN03 ∧ RN04 ∧\locupa todas as vagas]\l", pos="e,237.0,651.0 237.0,926.0 237.0,837.0 237.0,748.0 237.0,659.0", lp="153.1,774.8"];
+  E5 -> E2 [label="t17: cancelar\l[restam inscrições ∧\linscrições − 1 < vagas]\l/ libera vaga\l", pos="e,588.0,651.0 280.0,651.0 280.0,695.0 280.0,739.0 280.0,783.0 280.0,789.6 285.4,795.0 292.0,795.0 386.7,795.0 481.3,795.0 576.0,795.0 582.6,795.0 588.0,789.6 588.0,783.0 588.0,741.7 588.0,700.3 588.0,659.0", lp="381.6,832.8"];
+  E5 -> E1 [label="t18: cancelar\l[última inscrição]\l", pos="e,259.0,926.0 259.0,651.0 259.0,740.0 259.0,829.0 259.0,918.0", lp="321.3,884.8"];
+  E5 -> E5 [label="t19: inscrever\l/ recusar (RN07)\l", pos="e,213.0,651.0 193.0,651.0 187.0,693.0 219.0,693.0 214.1,658.9", lp="133.8,677.0"];
+  E5 -> E2 [label="t20: gestor aumenta vagas\l[sem limite ∨\lvagas > inscrições]\l", pos="e,568.0,651.0 303.0,651.0 303.0,668.3 303.0,685.7 303.0,703.0 303.0,709.6 308.4,715.0 315.0,715.0 395.3,715.0 475.7,715.0 556.0,715.0 562.6,715.0 568.0,709.6 568.0,703.0 568.0,688.3 568.0,673.7 568.0,659.0", lp="435.5,745.6"];
+  E5 -> E3 [label="t21: encerrar\l[data_fim < agora\lou gestor]\l", pos="e,582.0,345.0 296.0,569.0 296.0,498.3 296.0,427.7 296.0,357.0 296.0,350.4 301.4,345.0 308.0,345.0 396.7,345.0 485.3,345.0 574.0,345.0", lp="372.6,375.6"];
+  E5 -> fim [label="t22: excluir [gestor]\l/ remove inscrições\l", pos="e,380.0,140.5 236.0,569.0 236.0,450.0 236.0,331.0 236.0,212.0 236.0,205.4 241.4,200.0 248.0,200.0 288.0,200.0 328.0,200.0 368.0,200.0 374.6,200.0 380.0,194.6 380.0,188.0 380.0,174.8 380.0,161.7 380.0,148.5", lp="166.4,366.0"];
+  E2 -> E5 [label="t23: gestor reduz vagas\l[vagas ≤ inscrições]\l", pos="e,320.0,586.0 556.0,586.0 480.0,586.0 404.0,586.0 328.0,586.0", lp="438.0,562.6"];
+  E3 -> E5 [label="t24: reabrir\l[ATIVA ∧\linscrições ≥ vagas]\l", pos="e,268.0,569.0 582.0,312.0 481.3,312.0 380.7,312.0 280.0,312.0 273.4,312.0 268.0,317.4 268.0,324.0 268.0,403.0 268.0,482.0 268.0,561.0", lp="348.8,281.4"];
+  E5 -> E5 [label="t25: cancelar\l[inscrições − 1\l≥ vagas]\l/ continua lotada\l", pos="e,180.0,616.0 180.0,598.0 138.0,588.0 138.0,626.0 172.2,617.9", lp="87.7,607.0"];
+}
